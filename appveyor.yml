@@ -1,0 +1,18 @@
+environment:
+  os: Windows Server 2019
+
+  matrix:
+    - PYTHON: C:\Python38-x64
+
+install:
+  - ps: wget 'https://www.antlr.org/download/antlr-4.8-complete.jar' -OutFile antlr4.jar
+  - "java -jar antlr4.jar -visitor pryst\\parser\\Pryst.g4"
+  - "dir pryst\\parser"
+  - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+  - "%PYTHON%\\python.exe setup.py install"
+
+build: off
+
+test_script:
+  - "%PYTHON%\\python.exe setup.py test"
+# docs here: http://www.appveyor.com/docs/appveyor-yml

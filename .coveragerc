@@ -1,0 +1,20 @@
+[run]
+parallel = True
+
+omit =
+    # used only for debugs purposes
+    pryst/parser/CST.py
+    pryst/parser/Utils.py
+    # auto-generated files
+    pryst/parser/Pryst*.py
+
+source =
+    pryst
+
+[report]
+exclude_lines =
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+    raise ValueError
+

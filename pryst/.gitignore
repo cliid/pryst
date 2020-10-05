@@ -1,0 +1,10 @@
+parser_notes.md
+.DS_Store
+/parser/Pryst.tokens
+/parser/PrystLexer.py
+/parser/PrystLexer.tokens
+/parser/PrystListener.py
+/parser/PrystParser.py
+/parser/PrystVisitor.py
+/parser/.antlr/*
+/parser/.antlr

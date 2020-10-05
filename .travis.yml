@@ -1,0 +1,39 @@
+language: python
+
+matrix:
+  allow_failures:
+    - os: osx
+  include:
+    - python: 3.8
+      os: linux
+    - python: nightly
+      os: linux
+    - language: generic
+      os: osx
+
+before_install:
+  - curl -O https://www.antlr.org/download/antlr-4.8-complete.jar
+  - antlr4='java -jar antlr-4.8-complete.jar'
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew upgrade python@3.8; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then virtualenv --python=python3 env; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then source env/bin/activate; fi
+  - python --version; pip --version
+
+# command to install dependencies
+install:
+  - "pip install coverage"
+  - "pip install codecov"
+  - "pip install -r requirements.txt"
+  - "$antlr4 -visitor pryst/parser/Pryst.g4"
+  - "pip install ."
+  # Add subprocess support for coverage
+  - SPACK=$(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
+  - printf "\nimport coverage; coverage.process_startup()\n" >> "$SPACK/sitecustomize.py"
+
+# command to run tests
+script:
+  - "coverage run setup.py test"
+  - "coverage combine"
+  - "coverage report"
+
+after_success: codecov
