@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='Pryst Language',
+    name='pryst',
     version='0.1',
     author='Jiwu Jang',
     author_email='cliid@gmail.com',
@@ -17,6 +17,4 @@ setup(
     entry_points={
         'console_scripts': ['pryst = pryst.prystapp:main']
     },
-    test_suite='pryst.run_tests.get_suite',
-
 )

@@ -1,4 +1,0 @@
-if 1+2 == 0:
-    test = foo
-else:
-    test = bar

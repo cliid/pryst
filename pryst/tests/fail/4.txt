@@ -1,3 +1,0 @@
-if True:
-    print("hey")		# 4 spaces
-     print("hello")		# 5 spaces

@@ -1,3 +1,0 @@
-print("hey")
-if 10:
-    print("10")

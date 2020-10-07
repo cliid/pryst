@@ -1,3 +1,0 @@
-while:
-# should fail
-    print("fail?")
