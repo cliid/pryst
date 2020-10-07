@@ -1,0 +1,12 @@
+.DS_Store
+/pryst/generated/Pryst.tokens
+/pryst/generated/PrystLexer.py
+/pryst/generated/PrystLexer.tokens
+/pryst/generated/PrystListener.py
+/pryst/generated/PrystParser.py
+/pryst/generated/PrystVisitor.py
+/pryst/generated/.antlr
+/3rdparty
+/env
+/pryst/out
+/.vscode

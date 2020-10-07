@@ -1,9 +1,0 @@
-.DS_Store
-/generated/Pryst.tokens
-/generated/PrystLexer.py
-/generated/PrystLexer.tokens
-/generated/PrystListener.py
-/generated/PrystParser.py
-/generated/PrystVisitor.py
-/generated/.antlr/*
-/generated/.antlr
