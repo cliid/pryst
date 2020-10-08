@@ -3,617 +3,468 @@ grammar Pryst;
 options {
 	language = Python3;
 }
-primaryExpression:
-	Identifier
-	| Constant
-	| StringLiteral+
-	| '(' expression ')'
-	| '(' compoundStatement ')';
+compilationUnit:
+	packageDeclaration? importDeclaration* typeDeclaration* EOF;
 
-postfixExpression:
-	primaryExpression
-	| postfixExpression '[' expression ']'
-	| postfixExpression '(' argumentExpressionList? ')'
-	| postfixExpression '.' Identifier
-	| postfixExpression '++'
-	| postfixExpression '--'
-	| '(' typeName ')' '{' initializerList '}'
-	| '(' typeName ')' '{' initializerList ',' '}';
+packageDeclaration: PACKAGE qualifiedName ';';
 
-argumentExpressionList:
-	assignmentExpression
-	| argumentExpressionList ',' assignmentExpression;
+importDeclaration: IMPORT STATIC? qualifiedName ('.' '*')? ';';
 
-unaryExpression:
-	postfixExpression
-	| '++' unaryExpression
-	| '--' unaryExpression
-	| unaryOperator castExpression
-	| 'sizeof' unaryExpression
-	| 'sizeof' '(' typeName ')';
+typeDeclaration:
+	classModifier* (classDeclaration | enumDeclaration)
+	| ';';
 
-unaryOperator: '&' | '*' | '+' | '-' | '~' | '!';
+modifier: classModifier;
 
-castExpression:
-	'(' typeName ')' castExpression
-	| unaryExpression
-	| DigitSequence; // for
+classModifier: PUBLIC | PROTECTED | PRIVATE | STATIC;
 
-multiplicativeExpression:
-	castExpression
-	| multiplicativeExpression '*' castExpression
-	| multiplicativeExpression '/' castExpression
-	| multiplicativeExpression '%' castExpression;
+classDeclaration:
+	CLASS IDENTIFIER typeParameters? (EXTENDS typeType)? classBody;
 
-additiveExpression:
-	multiplicativeExpression
-	| additiveExpression '+' multiplicativeExpression
-	| additiveExpression '-' multiplicativeExpression;
+typeParameters: '<' typeParameter (',' typeParameter)* '>';
 
-shiftExpression:
-	additiveExpression
-	| shiftExpression '<<' additiveExpression
-	| shiftExpression '>>' additiveExpression;
+typeParameter: IDENTIFIER;
 
-relationalExpression:
-	shiftExpression
-	| relationalExpression '<' shiftExpression
-	| relationalExpression '>' shiftExpression
-	| relationalExpression '<=' shiftExpression
-	| relationalExpression '>=' shiftExpression;
+enumDeclaration:
+	ENUM IDENTIFIER '{' enumConstants? ','? enumBodyDeclarations? '}';
 
-equalityExpression:
-	relationalExpression
-	| equalityExpression '==' relationalExpression
-	| equalityExpression '!=' relationalExpression;
+enumConstants: enumConstant (',' enumConstant)*;
 
-andExpression:
-	equalityExpression
-	| andExpression '&' equalityExpression;
+enumConstant: IDENTIFIER arguments? classBody?;
 
-exclusiveOrExpression:
-	andExpression
-	| exclusiveOrExpression '^' andExpression;
+enumBodyDeclarations: ';' classBodyDeclaration*;
 
-inclusiveOrExpression:
-	exclusiveOrExpression
-	| inclusiveOrExpression '|' exclusiveOrExpression;
+classBody: '{' classBodyDeclaration* '}';
 
-logicalAndExpression:
-	inclusiveOrExpression
-	| logicalAndExpression '&&' inclusiveOrExpression;
+classBodyDeclaration:
+	';'
+	| STATIC? block
+	| modifier* memberDeclaration;
 
-logicalOrExpression:
-	logicalAndExpression
-	| logicalOrExpression '||' logicalAndExpression;
+memberDeclaration:
+	methodDeclaration
+	| genericMethodDeclaration
+	| fieldDeclaration
+	| constructorDeclaration
+	| genericConstructorDeclaration
+	| classDeclaration
+	| enumDeclaration;
 
-conditionalExpression:
-	logicalOrExpression (
-		'?' expression ':' conditionalExpression
-	)?;
+/* We use rule this even for void methods which cannot have [] after parameters. This simplifies
+ grammar and we can consider void to be a type, which renders the [] matching as a context-sensitive
+ issue or a semantic check for invalid return type after parsing.
+ */
+methodDeclaration:
+	typeTypeOrVoid IDENTIFIER formalParameters ('[' ']')* methodBody;
 
-assignmentExpression:
-	conditionalExpression
-	| unaryExpression assignmentOperator assignmentExpression
-	| DigitSequence; // for
+methodBody: block | ';';
 
-assignmentOperator:
-	'='
-	| '*='
-	| '/='
-	| '%='
-	| '+='
-	| '-='
-	| '<<='
-	| '>>='
-	| '&='
-	| '^='
-	| '|=';
+typeTypeOrVoid: typeType | VOID;
 
-expression:
-	assignmentExpression
-	| expression ',' assignmentExpression;
+genericMethodDeclaration: typeParameters methodDeclaration;
 
-constantExpression: conditionalExpression;
+genericConstructorDeclaration:
+	typeParameters constructorDeclaration;
 
-declaration:
-	declarationSpecifiers initDeclaratorList ';'
-	| declarationSpecifiers ';';
+constructorDeclaration:
+	IDENTIFIER formalParameters constructorBody = block;
 
-declarationSpecifiers: declarationSpecifier+;
+fieldDeclaration: typeType variableDeclarators ';';
 
-declarationSpecifiers2: declarationSpecifier+;
+constDeclaration:
+	typeType constantDeclarator (',' constantDeclarator)* ';';
 
-declarationSpecifier:
-	storageClassSpecifier
-	| typeSpecifier
-	| typeQualifier
-	| functionSpecifier
-	| alignmentSpecifier;
+constantDeclarator:
+	IDENTIFIER ('[' ']')* '=' variableInitializer;
 
-initDeclaratorList:
-	initDeclarator
-	| initDeclaratorList ',' initDeclarator;
+variableDeclarators:
+	variableDeclarator (',' variableDeclarator)*;
 
-initDeclarator: declarator | declarator '=' initializer;
+variableDeclarator:
+	variableDeclaratorId ('=' variableInitializer)?;
 
-storageClassSpecifier:
-	'typedef'
-	| 'extern'
-	| 'static'
-	| 'auto'
-	| 'register';
+variableDeclaratorId: IDENTIFIER ('[' ']')*;
 
-typeSpecifier: (
-		'void'
-		| 'char'
-		| 'short'
-		| 'int'
-		| 'long'
-		| 'float'
-		| 'double'
-		| 'signed'
-		| 'unsigned'
-	)
-	| atomicTypeSpecifier
-	| structOrUnionSpecifier
-	| enumSpecifier
-	| typedefName;
+variableInitializer: arrayInitializer | expression;
 
-structOrUnionSpecifier:
-	structOrUnion Identifier? '{' structDeclarationList '}'
-	| structOrUnion Identifier;
+arrayInitializer:
+	'{' (variableInitializer (',' variableInitializer)* (',')?)? '}';
 
-structOrUnion: 'struct' | 'union';
+classType:
+	IDENTIFIER typeArguments? ('.' IDENTIFIER typeArguments?)*;
 
-structDeclarationList:
-	structDeclaration
-	| structDeclarationList structDeclaration;
+typeArgument: typeType | '?' ((EXTENDS | SUPER) typeType)?;
 
-structDeclaration:
-	specifierQualifierList structDeclaratorList? ';';
+qualifiedNameList: qualifiedName (',' qualifiedName)*;
 
-specifierQualifierList:
-	typeSpecifier specifierQualifierList?
-	| typeQualifier specifierQualifierList?;
+formalParameters: '(' formalParameterList? ')';
 
-structDeclaratorList:
-	structDeclarator
-	| structDeclaratorList ',' structDeclarator;
+formalParameterList:
+	formalParameter (',' formalParameter)* (
+		',' lastFormalParameter
+	)?
+	| lastFormalParameter;
 
-structDeclarator:
-	declarator
-	| declarator? ':' constantExpression;
+formalParameter: typeType variableDeclaratorId;
 
-enumSpecifier:
-	'enum' Identifier? '{' enumeratorList '}'
-	| 'enum' Identifier? '{' enumeratorList ',' '}'
-	| 'enum' Identifier;
+lastFormalParameter: typeType '...' variableDeclaratorId;
 
-enumeratorList: enumerator | enumeratorList ',' enumerator;
+qualifiedName: IDENTIFIER ('.' IDENTIFIER)*;
 
-enumerator:
-	enumerationConstant
-	| enumerationConstant '=' constantExpression;
+literal:
+	integerLiteral
+	| floatLiteral
+	| CHAR_LITERAL
+	| STRING_LITERAL
+	| BOOL_LITERAL
+	| NULL_LITERAL;
 
-enumerationConstant: Identifier;
+integerLiteral:
+	DECIMAL_LITERAL
+	| HEX_LITERAL
+	| OCT_LITERAL
+	| BINARY_LITERAL;
 
-atomicTypeSpecifier: '_Atomic' '(' typeName ')';
+floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
-typeQualifier: 'const' | 'restrict' | 'volatile' | '_Atomic';
+elementValuePairs: elementValuePair (',' elementValuePair)*;
 
-functionSpecifier: (
-		'inline'
-		| '_Noreturn'
-		| '__inline__' // GCC extension
-		| '__stdcall'
-	)
-	| gccAttributeSpecifier
-	| '__declspec' '(' Identifier ')';
+elementValuePair: IDENTIFIER '=' elementValue;
 
-alignmentSpecifier:
-	'_Alignas' '(' typeName ')'
-	| '_Alignas' '(' constantExpression ')';
+elementValue: expression | elementValueArrayInitializer;
 
-declarator: directDeclarator gccDeclaratorExtension*;
+elementValueArrayInitializer:
+	'{' (elementValue (',' elementValue)*)? (',')? '}';
 
-directDeclarator:
-	Identifier
-	| '(' declarator ')'
-	| directDeclarator '[' typeQualifierList? assignmentExpression? ']'
-	| directDeclarator '[' 'static' typeQualifierList? assignmentExpression ']'
-	| directDeclarator '[' typeQualifierList 'static' assignmentExpression ']'
-	| directDeclarator '[' typeQualifierList? '*' ']'
-	| directDeclarator '(' parameterTypeList ')'
-	| directDeclarator '(' identifierList? ')'
-	| Identifier ':' DigitSequence; // bit field
+defaultValue: DEFAULT elementValue;
 
-gccDeclaratorExtension:
-	'__asm' '(' StringLiteral+ ')'
-	| gccAttributeSpecifier;
+// STATEMENTS / BLOCKS
 
-gccAttributeSpecifier:
-	'__attribute__' '(' '(' gccAttributeList ')' ')';
+block: '{' blockStatement* '}';
 
-gccAttributeList: gccAttribute (',' gccAttribute)* |; // empty
+blockStatement:
+	localVariableDeclaration ';'
+	| statement
+	| localTypeDeclaration;
 
-gccAttribute:
-	~(
-		','
-		| '('
-		| ')'
-	) // relaxed def for "identifier or reserved word"
-	('(' argumentExpressionList? ')')?
-	|; // empty
+localVariableDeclaration: typeType variableDeclarators;
 
-nestedParenthesesBlock: (
-		~('(' | ')')
-		| '(' nestedParenthesesBlock ')'
-	)*;
-
-typeQualifierList:
-	typeQualifier
-	| typeQualifierList typeQualifier;
-
-parameterTypeList: parameterList | parameterList ',' '...';
-
-parameterList:
-	parameterDeclaration
-	| parameterList ',' parameterDeclaration;
-
-parameterDeclaration:
-	declarationSpecifiers declarator
-	| declarationSpecifiers2;
-
-identifierList: Identifier | identifierList ',' Identifier;
-
-typeName: specifierQualifierList;
-
-typedefName: Identifier;
-
-initializer:
-	assignmentExpression
-	| '{' initializerList '}'
-	| '{' initializerList ',' '}';
-
-initializerList:
-	designation? initializer
-	| initializerList ',' designation? initializer;
-
-designation: designatorList '=';
-
-designatorList: designator | designatorList designator;
-
-designator: '[' constantExpression ']' | '.' Identifier;
+localTypeDeclaration: classModifier* classDeclaration | ';';
 
 statement:
-	labeledStatement
-	| compoundStatement
-	| expressionStatement
-	| selectionStatement
-	| iterationStatement
-	| jumpStatement
-	| '(' (logicalOrExpression (',' logicalOrExpression)*)? (
-		':' (logicalOrExpression (',' logicalOrExpression)*)?
-	)* ')' ';';
+	blockLabel = block
+	| IF parExpression statement (ELSE statement)?
+	| FOR '(' forControl ')' statement
+	| WHILE parExpression statement
+	| DO statement WHILE parExpression ';'
+	| TRY block (catchClause+ finallyBlock? | finallyBlock)
+	| TRY resourceSpecification block catchClause* finallyBlock?
+	| SWITCH parExpression '{' switchBlockStatementGroup* switchLabel* '}'
+	| RETURN expression? ';'
+	| THROW expression ';'
+	| BREAK IDENTIFIER? ';'
+	| CONTINUE IDENTIFIER? ';'
+	| SEMI
+	| statementExpression = expression ';'
+	| identifierLabel = IDENTIFIER ':' statement;
 
-labeledStatement:
-	Identifier ':' statement
-	| 'case' constantExpression ':' statement
-	| 'default' ':' statement;
+catchClause: CATCH '(' catchType IDENTIFIER ')' block;
 
-compoundStatement: '{' blockItemList? '}';
+catchType: qualifiedName ('|' qualifiedName)*;
 
-blockItemList: blockItem | blockItemList blockItem;
+finallyBlock: FINALLY block;
 
-blockItem: statement | declaration;
+resourceSpecification: '(' resources ';'? ')';
 
-expressionStatement: expression? ';';
+resources: resource (';' resource)*;
 
-selectionStatement:
-	'if' '(' expression ')' statement ('else' statement)?
-	| 'switch' '(' expression ')' statement;
+resource: classType variableDeclaratorId '=' expression;
 
-iterationStatement:
-	While '(' expression ')' statement
-	| Do statement While '(' expression ')' ';'
-	| For '(' forCondition ')' statement;
+/** Matches cases then statements, both of which are mandatory. To handle empty cases at the end, we
+ * add switchLabel* to statement.
+ */
+switchBlockStatementGroup: switchLabel+ blockStatement+;
 
-// | 'for' '(' expression? ';' expression? ';' forUpdate? ')' statement | For '(' declaration
-// expression? ';' expression? ')' statement
+switchLabel:
+	CASE (
+		constantExpression = expression
+		| enumConstantName = IDENTIFIER
+	) ':'
+	| DEFAULT ':';
 
-forCondition:
-	forDeclaration ';' forExpression? ';' forExpression?
-	| expression? ';' forExpression? ';' forExpression?;
+forControl:
+	enhancedForControl
+	| forInit? ';' expression? ';' forUpdate = expressionList?;
 
-forDeclaration:
-	declarationSpecifiers initDeclaratorList
-	| declarationSpecifiers;
+forInit: localVariableDeclaration | expressionList;
 
-forExpression:
-	assignmentExpression
-	| forExpression ',' assignmentExpression;
+enhancedForControl:
+	typeType variableDeclaratorId ':' expression;
 
-jumpStatement:
-	'continue' ';'
-	| 'break' ';'
-	| 'return' expression? ';';
+// EXPRESSIONS
 
-compilationUnit: translationUnit? EOF;
+parExpression: '(' expression ')';
 
-translationUnit:
-	externalDeclaration
-	| translationUnit externalDeclaration;
+expressionList: expression (',' expression)*;
 
-externalDeclaration:
-	functionDefinition
-	| declaration
-	| ';'; // stray ;
+methodCall:
+	IDENTIFIER '(' expressionList? ')'
+	| THIS '(' expressionList? ')'
+	| SUPER '(' expressionList? ')';
 
-functionDefinition:
-	declarationSpecifiers? declarator declarationList? compoundStatement;
+expression:
+	primary
+	| expression bop = '.' (
+		IDENTIFIER
+		| methodCall
+		| THIS
+		| NEW nonWildcardTypeArguments? innerCreator
+		| SUPER superSuffix
+		| explicitGenericInvocation
+	)
+	| expression '[' expression ']'
+	| methodCall
+	| NEW creator
+	| '(' typeType ')' expression
+	| expression postfix = ('++' | '--')
+	| prefix = ('+' | '-' | '++' | '--') expression
+	| prefix = ('~' | '!') expression
+	| expression bop = ('*' | '/' | '%') expression
+	| expression bop = ('+' | '-') expression
+	| expression bop = ('<=' | '>=' | '>' | '<') expression
+	| expression bop = ('==' | '!=') expression
+	| expression bop = '&' expression
+	| expression bop = '^' expression
+	| expression bop = '|' expression
+	| expression bop = '&&' expression
+	| expression bop = '||' expression
+	| expression bop = ('<<' | '>>') expression
+	| <assoc = right> expression bop = '?' expression ':' expression
+	| <assoc = right> expression bop = (
+		'='
+		| '+='
+		| '-='
+		| '*='
+		| '/='
+		| '&='
+		| '|='
+		| '^='
+		| '>>='
+		| '<<='
+		| '%='
+	) expression
+	| lambdaExpression;
 
-declarationList: declaration | declarationList declaration;
+lambdaExpression: lambdaParameters '=>' lambdaBody;
 
-Auto: 'auto';
-Break: 'break';
-Case: 'case';
-Char: 'char';
-Const: 'const';
-Continue: 'continue';
-Default: 'default';
-Do: 'do';
-Double: 'double';
-Else: 'else';
-Enum: 'enum';
-Extern: 'extern';
-Float: 'float';
-For: 'for';
-Goto: 'goto';
-If: 'if';
-Inline: 'inline';
-Int: 'int';
-Long: 'long';
-Register: 'register';
-Restrict: 'restrict';
-Return: 'return';
-Short: 'short';
-Signed: 'signed';
-Sizeof: 'sizeof';
-Static: 'static';
-Struct: 'struct';
-Switch: 'switch';
-Typedef: 'typedef';
-Union: 'union';
-Unsigned: 'unsigned';
-Void: 'void';
-Volatile: 'volatile';
-While: 'while';
+lambdaParameters:
+	IDENTIFIER
+	| '(' formalParameterList? ')'
+	| '(' IDENTIFIER (',' IDENTIFIER)* ')';
 
-Alignas: '_Alignas';
-Alignof: '_Alignof';
-Atomic: '_Atomic';
-Bool: '_Bool';
-Complex: '_Complex';
-Generic: '_Generic';
-Imaginary: '_Imaginary';
-Noreturn: '_Noreturn';
-StaticAssert: '_Static_assert';
-ThreadLocal: '_Thread_local';
+lambdaBody: expression | block;
 
-LeftParen: '(';
-RightParen: ')';
-LeftBracket: '[';
-RightBracket: ']';
-LeftBrace: '{';
-RightBrace: '}';
+primary:
+	'(' expression ')'
+	| THIS
+	| SUPER
+	| literal
+	| IDENTIFIER
+	| typeTypeOrVoid '.' CLASS
+	| nonWildcardTypeArguments (
+		explicitGenericInvocationSuffix
+		| THIS arguments
+	);
 
-Less: '<';
-LessEqual: '<=';
-Greater: '>';
-GreaterEqual: '>=';
-LeftShift: '<<';
-RightShift: '>>';
+creator:
+	nonWildcardTypeArguments createdName classCreatorRest
+	| createdName (arrayCreatorRest | classCreatorRest);
 
-Plus: '+';
-PlusPlus: '++';
-Minus: '-';
-MinusMinus: '--';
-Star: '*';
-Div: '/';
-Mod: '%';
+createdName:
+	IDENTIFIER typeArgumentsOrDiamond? (
+		'.' IDENTIFIER typeArgumentsOrDiamond?
+	)*
+	| primitiveType;
 
-And: '&';
-Or: '|';
-AndAnd: '&&';
-OrOr: '||';
-Caret: '^';
-Not: '!';
-Tilde: '~';
+innerCreator:
+	IDENTIFIER nonWildcardTypeArgumentsOrDiamond? classCreatorRest;
 
-Question: '?';
-Colon: ':';
-Semi: ';';
-Comma: ',';
+arrayCreatorRest:
+	'[' (
+		']' ('[' ']')* arrayInitializer
+		| expression ']' ('[' expression ']')* ('[' ']')*
+	);
 
-Assign: '=';
-// '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|='
-StarAssign: '*=';
-DivAssign: '/=';
-ModAssign: '%=';
-PlusAssign: '+=';
-MinusAssign: '-=';
-LeftShiftAssign: '<<=';
-RightShiftAssign: '>>=';
-AndAssign: '&=';
-XorAssign: '^=';
-OrAssign: '|=';
+classCreatorRest: arguments classBody?;
 
-Equal: '==';
-NotEqual: '!=';
+explicitGenericInvocation:
+	nonWildcardTypeArguments explicitGenericInvocationSuffix;
 
-Arrow: '->';
-Dot: '.';
-Ellipsis: '...';
+typeArgumentsOrDiamond: '<' '>' | typeArguments;
 
-Identifier: IdentifierNondigit ( IdentifierNondigit | Digit)*;
+nonWildcardTypeArgumentsOrDiamond:
+	'<' '>'
+	| nonWildcardTypeArguments;
 
-fragment IdentifierNondigit:
-	Nondigit
-	| UniversalCharacterName; //|   // other implementation-defined characters...
+nonWildcardTypeArguments: '<' typeList '>';
 
-fragment Nondigit: [a-zA-Z_];
+typeList: typeType (',' typeType)*;
 
-fragment Digit: [0-9];
+typeType: (classType | primitiveType) ('[' ']')*;
 
-fragment UniversalCharacterName:
-	'\\u' HexQuad
-	| '\\U' HexQuad HexQuad;
+primitiveType:
+	BOOL
+	| CHAR
+	| BYTE
+	| SHORT
+	| INT
+	| LONG
+	| FLOAT
+	| DOUBLE;
 
-fragment HexQuad:
-	HexadecimalDigit HexadecimalDigit HexadecimalDigit HexadecimalDigit;
+typeArguments: '<' typeArgument (',' typeArgument)* '>';
 
-Constant:
-	IntegerConstant
-	| FloatingConstant
-	//|   EnumerationConstant
-	| CharacterConstant;
+superSuffix: arguments | '.' IDENTIFIER arguments?;
 
-fragment IntegerConstant:
-	DecimalConstant IntegerSuffix?
-	| OctalConstant IntegerSuffix?
-	| HexadecimalConstant IntegerSuffix?
-	| BinaryConstant;
+explicitGenericInvocationSuffix:
+	SUPER superSuffix
+	| IDENTIFIER arguments;
 
-fragment BinaryConstant: '0' [bB] [0-1]+;
+arguments: '(' expressionList? ')';
 
-fragment DecimalConstant: NonzeroDigit Digit*;
+// Keywords
 
-fragment OctalConstant: '0' OctalDigit*;
+BOOL: 'bool';
+BREAK: 'break';
+BYTE: 'byte';
+CASE: 'case';
+CATCH: 'catch';
+CHAR: 'char';
+CLASS: 'class';
+CONST: 'const';
+CONTINUE: 'continue';
+DEFAULT: 'default';
+DO: 'do';
+DOUBLE: 'double';
+ELSE: 'else';
+ENUM: 'enum';
+EXTENDS: 'extends';
+FINALLY: 'finally';
+FLOAT: 'float';
+FOR: 'for';
+IF: 'if';
+IMPORT: 'import';
+INT: 'int';
+LONG: 'long';
+NEW: 'new';
+PACKAGE: 'package';
+PRIVATE: 'private'; // private
+PROTECTED: 'protected'; // protected
+PUBLIC: 'public'; // public
+RETURN: 'return';
+SHORT: 'short';
+STATIC: 'static';
+SUPER: 'super';
+SWITCH: 'switch';
+THIS: 'this';
+THROW: 'throw';
+TRY: 'try';
+VOID: 'void';
+WHILE: 'while';
 
-fragment HexadecimalConstant:
-	HexadecimalPrefix HexadecimalDigit+;
+// Literals
 
-fragment HexadecimalPrefix: '0' [xX];
+DECIMAL_LITERAL: ('0' | [1-9] (Digits? | '_'+ Digits)) [lL]?;
+HEX_LITERAL:
+	'0' [xX] [0-9a-fA-F] ([0-9a-fA-F_]* [0-9a-fA-F])? [lL]?;
+OCT_LITERAL: '0' '_'* [0-7] ([0-7_]* [0-7])? [lL]?;
+BINARY_LITERAL: '0' [bB] [01] ([01_]* [01])? [lL]?;
 
-fragment NonzeroDigit: [1-9];
+FLOAT_LITERAL: (Digits '.' Digits? | '.' Digits) ExponentPart? [fFdD]?
+	| Digits (ExponentPart [fFdD]? | [fFdD]);
 
-fragment OctalDigit: [0-7];
+HEX_FLOAT_LITERAL:
+	'0' [xX] (HexDigits '.'? | HexDigits? '.' HexDigits) [pP] [+-]? Digits [fFdD]?;
 
-fragment HexadecimalDigit: [0-9a-fA-F];
+BOOL_LITERAL: 'true' | 'false';
 
-fragment IntegerSuffix:
-	UnsignedSuffix LongSuffix?
-	| UnsignedSuffix LongLongSuffix
-	| LongSuffix UnsignedSuffix?
-	| LongLongSuffix UnsignedSuffix?;
+CHAR_LITERAL: '\'' (~['\\\r\n] | EscapeSequence) '\'';
 
-fragment UnsignedSuffix: [uU];
+STRING_LITERAL: '"' (~["\\\r\n] | EscapeSequence)* '"';
+NULL_LITERAL: 'null';
+// Separators
+LPAREN: '(';
+RPAREN: ')';
+LBRACE: '{';
+RBRACE: '}';
+LBRACK: '[';
+RBRACK: ']';
+SEMI: ';';
+COMMA: ',';
+DOT: '.';
+// Operators
+ASSIGN: '=';
+GT: '>';
+LT: '<';
+BANG: '!';
+TILDE: '~';
+QUESTION: '?';
+COLON: ':';
+EQUAL: '==';
+LE: '<=';
+GE: '>=';
+NOTEQUAL: '!=';
+AND: '&&';
+OR: '||';
+INC: '++';
+DEC: '--';
+ADD: '+';
+SUB: '-';
+MUL: '*';
+DIV: '/';
+BITAND: '&';
+BITOR: '|';
+CARET: '^';
+MOD: '%';
+LSHIFT: '<<';
+RSHIFT: '>>';
+ADD_ASSIGN: '+=';
+SUB_ASSIGN: '-=';
+MUL_ASSIGN: '*=';
+DIV_ASSIGN: '/=';
+AND_ASSIGN: '&=';
+OR_ASSIGN: '|=';
+XOR_ASSIGN: '^=';
+MOD_ASSIGN: '%=';
+LSHIFT_ASSIGN: '<<=';
+RSHIFT_ASSIGN: '>>=';
+// Java 8 tokens
+ARROW: '=>';
+// Additional symbols not defined in the lexical specification
+ELLIPSIS: '...';
+// Whitespace and comments
+WS: [ \t\r\n\u000C]+ -> channel(HIDDEN);
+COMMENT: '/*' .*? '*/' -> channel(HIDDEN);
+LINE_COMMENT: '//' ~[\r\n]* -> channel(HIDDEN);
 
-fragment LongSuffix: [lL];
+// Identifiers
 
-fragment LongLongSuffix: 'll' | 'LL';
+IDENTIFIER: Letter LetterOrDigit*;
 
-fragment FloatingConstant:
-	DecimalFloatingConstant
-	| HexadecimalFloatingConstant;
+// Fragment rules
 
-fragment DecimalFloatingConstant:
-	FractionalConstant ExponentPart? FloatingSuffix?
-	| DigitSequence ExponentPart FloatingSuffix?;
-
-fragment HexadecimalFloatingConstant:
-	HexadecimalPrefix HexadecimalFractionalConstant BinaryExponentPart FloatingSuffix?
-	| HexadecimalPrefix HexadecimalDigitSequence BinaryExponentPart FloatingSuffix?;
-
-fragment FractionalConstant:
-	DigitSequence? '.' DigitSequence
-	| DigitSequence '.';
-
-fragment ExponentPart:
-	'e' Sign? DigitSequence
-	| 'E' Sign? DigitSequence;
-
-fragment Sign: '+' | '-';
-
-DigitSequence: Digit+;
-
-fragment HexadecimalFractionalConstant:
-	HexadecimalDigitSequence? '.' HexadecimalDigitSequence
-	| HexadecimalDigitSequence '.';
-
-fragment BinaryExponentPart:
-	'p' Sign? DigitSequence
-	| 'P' Sign? DigitSequence;
-
-fragment HexadecimalDigitSequence: HexadecimalDigit+;
-
-fragment FloatingSuffix: 'f' | 'l' | 'F' | 'L';
-
-fragment CharacterConstant:
-	'\'' CCharSequence '\''
-	| 'L\'' CCharSequence '\''
-	| 'u\'' CCharSequence '\''
-	| 'U\'' CCharSequence '\'';
-
-fragment CCharSequence: CChar+;
-
-fragment CChar: ~['\\\r\n] | EscapeSequence;
+fragment ExponentPart: [eE] [+-]? Digits;
 
 fragment EscapeSequence:
-	SimpleEscapeSequence
-	| OctalEscapeSequence
-	| HexadecimalEscapeSequence
-	| UniversalCharacterName;
-
-fragment SimpleEscapeSequence: '\\' ['"?abfnrtv\\];
-
-fragment OctalEscapeSequence:
-	'\\' OctalDigit
-	| '\\' OctalDigit OctalDigit
-	| '\\' OctalDigit OctalDigit OctalDigit;
-
-fragment HexadecimalEscapeSequence: '\\x' HexadecimalDigit+;
-
-StringLiteral: EncodingPrefix? '"' SCharSequence? '"';
-
-fragment EncodingPrefix: 'u8' | 'u' | 'U' | 'L';
-
-fragment SCharSequence: SChar+;
-
-fragment SChar:
-	~["\\\r\n]
-	| EscapeSequence
-	| '\\\n' // Added line
-	| '\\\r\n'; // Added line
-
-ComplexDefine: '#' Whitespace? 'define' ~[#]* -> skip;
-
-IncludeDirective:
-	'#' Whitespace? 'include' Whitespace? (
-		('"' ~[\r\n]* '"')
-		| ('<' ~[\r\n]* '>')
-	) Whitespace? Newline -> skip;
-
-// ignore the following asm blocks:
-/*
- asm { mfspr x, 286; }
- */
-AsmBlock: 'asm' ~'{'* '{' ~'}'* '}' -> skip;
-
-// ignore the lines generated by c preprocessor sample line : '#line 1 "/home/dm/files/dk1.h" 1'
-LineAfterPreprocessing: '#line' Whitespace* ~[\r\n]* -> skip;
-
-LineDirective:
-	'#' Whitespace? DecimalConstant Whitespace? StringLiteral ~[\r\n]* -> skip;
-
-PragmaDirective:
-	'#' Whitespace? 'pragma' Whitespace ~[\r\n]* -> skip;
-
-Whitespace: [ \t]+ -> skip;
-
-Newline: ( '\r' '\n'? | '\n') -> skip;
-
-BlockComment: '/*' .*? '*/' -> skip;
-
-LineComment: '//' ~[\r\n]* -> skip;
+	'\\' [btnfr"'\\]
+	| '\\' ([0-3]? [0-7])? [0-7]
+	| '\\' 'u'+ HexDigit HexDigit HexDigit HexDigit;
+fragment HexDigits: HexDigit ((HexDigit | '_')* HexDigit)?;
+fragment HexDigit: [0-9a-fA-F];
+fragment Digits: [0-9] ([0-9_]* [0-9])?;
+fragment LetterOrDigit: Letter | [0-9];
+fragment Letter:
+	[a-zA-Z$_] // these are the "pryst letters" below 0x7F
+	| ~[\u0000-\u007F\uD800-\uDBFF] // covers all characters above 0x7F which are not a surrogate
+	| [\uD800-\uDBFF] [\uDC00-\uDFFF];
+// covers UTF-16 surrogate pairs encodings for U+10000 to U+10FFFF

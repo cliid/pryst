@@ -4,11 +4,11 @@ import argparse
 from pathlib import Path
 from antlr4 import *
 from antlr4.tree.Trees import Trees
-
+from pryst.utils.CST import CstFlattened, CstFiltered
 import llvmlite.binding as llvm
 from pryst.generated.PrystLexer import PrystLexer
 from pryst.generated.PrystParser import PrystParser
-from pryst.compiler.listener.ProgramListener import ProgramListener
+from pryst.compiler.listener.CompilationUnitListener import CompilationUnitListener
 
 
 def generate_object_file(module, output_name):
@@ -32,9 +32,12 @@ def main():
                            help='Path to the script file.')
     argParser.add_argument('--tokens',  dest='parse_tree',  action='store_true',
                            help='Show string representation of a parse tree for the input')
+    argParser.add_argument('--cst', dest='cst', action='store_true',
+                           help='Show flattened concreted syntax tree for the input (parse tree)')
     #
     # Parse arguments
     #
+    argParser.set_defaults(cst=False, parse_tree=False)
     args = argParser.parse_args()
     with open(args.filename) as file_contents:
         content = file_contents.read()
@@ -49,15 +52,19 @@ def main():
         tokens = CommonTokenStream(lexer)
 
         parser = PrystParser(tokens)
-        tree = parser.program()
+        parse_tree = parser.compilationUnit()
         # Print parse trees if need (full or flattened)
         if args.parse_tree:
-            parseTreeString = Trees.toStringTree(tree, recog=parser)
+            parseTreeString = Trees.toStringTree(parse_tree, recog=parser)
             print(parseTreeString)
 
-        printer = ProgramListener()
+        if args.cst:
+            cst = CstFiltered(tree=parse_tree)
+            print(cst)
+
+        printer = CompilationUnitListener()
         walker = ParseTreeWalker()
-        walker.walk(printer, tree)
+        walker.walk(printer, parse_tree)
         generate_object_file(printer.module, args.filename)
         os.system(
             'ld ./out/program.o ./out/start.o ./out/stdlib.o -o ' + str(Path(args.filename))[:-4])
