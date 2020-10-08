@@ -1,4 +1,6 @@
 .DS_Store
+/pryst/generated/Pryst.interp
+/pryst/generated/PrystLexer.interp
 /pryst/generated/Pryst.tokens
 /pryst/generated/PrystLexer.py
 /pryst/generated/PrystLexer.tokens
