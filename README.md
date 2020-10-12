@@ -17,17 +17,12 @@
 
 ## Intro
 
-<<<<<<< HEAD
 Pryst is an explicit, strong, static typed language with a beautiful syntax.
-=======
-Pryst is an explicit, weak, static typed, Rust-like language with a beautiful syntax.
->>>>>>> b4eb5db00fbafb9c5465cc47b70b195cf0b56d67
 
 It features variables, types, if and elif/else, switch statements, imports, classes and more! And most of all, Pryst is currently in development so there will be new features!
 
 ## Pryst's Philosophy
 
-<<<<<<< HEAD
 #### `Static` is better than `Dynamic`.
 
 #### `Explicit` is better than `Implicit`.
@@ -37,17 +32,6 @@ It features variables, types, if and elif/else, switch statements, imports, clas
 #### `Syntax` should be beautiful, no exceptions.
 
 #### Most of all, `"Code in a comfortable syntax."`
-=======
-### Static is better than Dynamic.
-
-### Explicit is better than Implicit.
-
-### One's code should be readable by others. No tricks like ol' C/C++.
-
-### Syntax should be beautiful, no exceptions.
-
-### Most of all, "Write once, Read forever"
->>>>>>> b4eb5db00fbafb9c5465cc47b70b195cf0b56d67
 
 ## Example Code
 
