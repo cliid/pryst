@@ -57,7 +57,7 @@ public class PrystFactorialTest {
     public void initEngine() throws Exception {
         context = Context.create();
         // @formatter:off
-        context.eval("sl", "\n" +
+        context.eval("pryst", "\n" +
                 "function fac(n) {\n" +
                 "  if (n <= 1) {\n" +
                 "    return 1;\n" +
@@ -67,7 +67,7 @@ public class PrystFactorialTest {
                 "}\n"
         );
         // @formatter:on
-        factorial = context.getBindings("sl").getMember("fac");
+        factorial = context.getBindings("pryst").getMember("fac");
     }
 
     @After

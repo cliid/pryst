@@ -78,7 +78,7 @@ public final class PrystFunctionRegistry {
     }
 
     public void register(Source newFunctions) {
-        register(PrystParser.parseSL(language, newFunctions));
+        register(PrystParser.parsePryst(language, newFunctions));
     }
 
     public PrystFunction getFunction(String name) {

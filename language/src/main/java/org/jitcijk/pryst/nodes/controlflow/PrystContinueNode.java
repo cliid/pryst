@@ -45,7 +45,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.jitcijk.pryst.nodes.PrystStatementNode;
 
 /**
- * Implementation of the SL continue statement. We need to unwind an unknown number of interpreter
+ * Implementation of the Pryst continue statement. We need to unwind an unknown number of interpreter
  * frames that are between this {@link PrystContinueNode} and the {@link PrystWhileNode} of the loop we
  * are continuing. This is done by throwing an {@link PrystContinueException exception} that is caught
  * by the {@link PrystWhileNode#executeVoid loop node}.

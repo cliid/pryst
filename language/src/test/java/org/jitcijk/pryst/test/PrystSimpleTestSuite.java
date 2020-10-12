@@ -40,41 +40,22 @@
  */
 package org.jitcijk.pryst.test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
-public class ToStringOfEvalTest {
-    Context context;
+@RunWith(PrystTestRunner.class)
+@PrystTestSuite({"tests"})
+public class PrystSimpleTestSuite {
 
-    @Before
-    public void initialize() {
-        context = Context.create();
+    public static void main(String[] args) throws Exception {
+        PrystTestRunner.runInMain(PrystSimpleTestSuite.class, args);
     }
 
-    @After
-    public void dispose() {
-        context.close();
-    }
-
+    /*
+     * Our "mx unittest" command looks for methods that are annotated with @Test. By just defining
+     * an empty method, this class gets included and the test suite is properly executed.
+     */
     @Test
-    public void checkToStringOnAFunction() {
-        context.eval("sl", "function checkName() {}");
-        Value value1 = context.getBindings("sl").getMember("checkName");
-        Value value2 = context.getBindings("sl").getMember("checkName");
-
-        assertNotNull("Symbol is not null", value1);
-        assertNotNull("Symbol is not null either", value2);
-
-        assertFalse("Symbol is not null", value1.isNull());
-        assertFalse("Symbol is not null either", value2.isNull());
-
-        assertTrue("Contans checkName text: " + value2, value2.toString().contains("checkName"));
+    public void unittest() {
     }
 }

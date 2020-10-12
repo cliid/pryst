@@ -73,7 +73,7 @@ public class PrystExceptionTest {
 
     @Before
     public void setUp() {
-        this.ctx = Context.create("sl");
+        this.ctx = Context.create("pryst");
     }
 
     @After
@@ -107,7 +107,7 @@ public class PrystExceptionTest {
     private void assertException(boolean failImmediately, String source, String... expectedFrames) {
         boolean initialExecute = true;
         try {
-            Value value = ctx.eval("sl", source);
+            Value value = ctx.eval("pryst", source);
             initialExecute = false;
             if (failImmediately) {
                 Assert.fail("Should not reach here.");
@@ -128,7 +128,7 @@ public class PrystExceptionTest {
         for (StackFrame frame : e.getPolyglotStackTrace()) {
             if (i < expectedFrames.length && expectedFrames[i] != null) {
                 Assert.assertTrue(frame.isGuestFrame());
-                Assert.assertEquals("sl", frame.getLanguage().getId());
+                Assert.assertEquals("pryst", frame.getLanguage().getId());
                 Assert.assertEquals(expectedFrames[i], frame.getRootName());
                 Assert.assertTrue(frame.getSourceLocation() != null);
                 firstHostFrame = true;
@@ -147,7 +147,7 @@ public class PrystExceptionTest {
         boolean initialExecute = true;
         RuntimeException[] exception = new RuntimeException[1];
         try {
-            Value value = ctx.eval("sl", source);
+            Value value = ctx.eval("pryst", source);
             initialExecute = false;
             ProxyExecutable proxy = (args) -> {
                 throw exception[0] = new RuntimeException();
@@ -167,15 +167,15 @@ public class PrystExceptionTest {
             String source = "function bar() { x = 1 / \"asdf\"; }\n" +
                             "function foo() { return bar(); }\n" +
                             "function main() { foo(); }";
-            ctx.eval(Source.newBuilder("sl", source, "script.sl").buildLiteral());
+            ctx.eval(Source.newBuilder("pryst", source, "script.pst").buildLiteral());
             fail();
         } catch (PolyglotException e) {
             assertTrue(e.isGuestException());
 
             Iterator<StackFrame> frames = e.getPolyglotStackTrace().iterator();
-            assertGuestFrame(frames, "sl", "bar", "script.sl", 21, 31);
-            assertGuestFrame(frames, "sl", "foo", "script.sl", 59, 64);
-            assertGuestFrame(frames, "sl", "main", "script.sl", 86, 91);
+            assertGuestFrame(frames, "pryst", "bar", "script.pst", 21, 31);
+            assertGuestFrame(frames, "pryst", "foo", "script.pst", 59, 64);
+            assertGuestFrame(frames, "pryst", "main", "script.pst", 86, 91);
             assertHostFrame(frames, Context.class.getName(), "eval");
             assertHostFrame(frames, PrystExceptionTest.class.getName(), "testGuestLanguageError");
 
@@ -217,7 +217,7 @@ public class PrystExceptionTest {
 
     @Test
     public void testProxyGuestLanguageStack() {
-        Value bar = ctx.eval("sl", "function foo(f) { f(); } function bar(f) { return foo(f); } function main() { return bar; }");
+        Value bar = ctx.eval("pryst", "function foo(f) { f(); } function bar(f) { return foo(f); } function main() { return bar; }");
 
         TestProxy proxy = new TestProxy(3, bar);
         try {
@@ -244,15 +244,15 @@ public class PrystExceptionTest {
         Iterator<StackFrame> frames = e.getPolyglotStackTrace().iterator();
         assertHostFrame(frames, TestProxy.class.getName(), "execute");
         for (int i = 0; i < 2; i++) {
-            assertGuestFrame(frames, "sl", "foo", "Unnamed", 18, 21);
-            assertGuestFrame(frames, "sl", "bar", "Unnamed", 50, 56);
+            assertGuestFrame(frames, "pryst", "foo", "Unnamed", 18, 21);
+            assertGuestFrame(frames, "pryst", "bar", "Unnamed", 50, 56);
 
             assertHostFrame(frames, Value.class.getName(), "execute");
             assertHostFrame(frames, TestProxy.class.getName(), "execute");
         }
 
-        assertGuestFrame(frames, "sl", "foo", "Unnamed", 18, 21);
-        assertGuestFrame(frames, "sl", "bar", "Unnamed", 50, 56);
+        assertGuestFrame(frames, "pryst", "foo", "Unnamed", 18, 21);
+        assertGuestFrame(frames, "pryst", "bar", "Unnamed", 50, 56);
 
         assertHostFrame(frames, Value.class.getName(), "execute");
         assertHostFrame(frames, PrystExceptionTest.class.getName(), "testProxyGuestLanguageStack");
@@ -311,7 +311,7 @@ public class PrystExceptionTest {
 
     @Test
     public void testGuestOverHostPropagation() {
-        Context context = Context.newBuilder("sl").allowAllAccess(true).build();
+        Context context = Context.newBuilder("pryst").allowAllAccess(true).build();
         String code = "" +
                         "function other(x) {" +
                         "   return invalidFunction();" +
@@ -321,19 +321,19 @@ public class PrystExceptionTest {
                         "test.methodThatTakesFunction(other);" +
                         "}";
 
-        context.eval("sl", code);
+        context.eval("pryst", code);
         try {
-            context.getBindings("sl").getMember("f").execute(this);
+            context.getBindings("pryst").getMember("f").execute(this);
             fail();
         } catch (PolyglotException e) {
             assertFalse(e.isHostException());
             assertTrue(e.isGuestException());
             Iterator<StackFrame> frames = e.getPolyglotStackTrace().iterator();
             assertTrue(frames.next().isGuestFrame());
-            assertGuestFrame(frames, "sl", "other", "Unnamed", 29, 46);
+            assertGuestFrame(frames, "pryst", "other", "Unnamed", 29, 46);
             assertHostFrame(frames, "com.oracle.truffle.polyglot.PolyglotFunction", "apply");
-            assertHostFrame(frames, "com.oracle.truffle.sl.test.SLExceptionTest", "methodThatTakesFunction");
-            assertGuestFrame(frames, "sl", "f", "Unnamed", 66, 101);
+            assertHostFrame(frames, "org.jitcijk.pryst.test.PrystExceptionTest", "methodThatTakesFunction");
+            assertGuestFrame(frames, "pryst", "f", "Unnamed", 66, 101);
 
             // rest is just unit test host frames
             while (frames.hasNext()) {

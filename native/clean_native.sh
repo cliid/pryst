@@ -40,4 +40,4 @@
 # SOFTWARE.
 #
 
-[ -f slnative ] && rm slnative || echo "slnative not found."
+[ -f prystnative ] && rm prystnative || echo "prystnative not found."

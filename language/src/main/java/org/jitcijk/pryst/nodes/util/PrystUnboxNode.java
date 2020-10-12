@@ -55,7 +55,7 @@ import org.jitcijk.pryst.runtime.PrystFunction;
 import org.jitcijk.pryst.runtime.PrystNull;
 
 /**
- * The node to normalize any value to an SL value. This is useful to reduce the number of values
+ * The node to normalize any value to an Pryst value. This is useful to reduce the number of values
  * expression nodes need to expect.
  */
 @TypeSystemReference(PrystTypes.class)

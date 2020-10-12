@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -40,34 +40,43 @@
  */
 package org.jitcijk.pryst.test;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface SLTestSuite {
+public class PrystInteropOperatorTest {
+    private Context context;
 
-    /**
-     * Defines the base path of the test suite. Multiple base paths can be specified. However only
-     * the first base that exists is used to lookup the test cases.
-     */
-    String[] value();
+    @Before
+    public void setUp() {
+        context = Context.create("pryst");
+    }
 
-    /**
-     * A class in the same project (or .jar file) that contains the {@link #value test case
-     * directory}. If the property is not specified, the class that declares the annotation is used,
-     * i.e., the test cases must be in the same project as the test class.
-     */
-    Class<?> testCaseDirectory() default SLTestSuite.class;
+    @After
+    public void tearDown() {
+        context = null;
+    }
 
-    /**
-     * The options passed to {@code Context.Builder} to configure the {@code Context} executing the
-     * tests. The options are given as an string array containing an option name followed by an
-     * option value.
-     *
-     * @since 20.0.0
-     */
-    String[] options() default {};
+    @Test
+    public void testAdd() {
+        final Source src = Source.newBuilder("pryst", "function testAdd(a,b) {return a + b;} function main() {return testAdd;}", "testAdd.pst").buildLiteral();
+        final Value fnc = context.eval(src);
+        Assert.assertTrue(fnc.canExecute());
+        final Value res = fnc.execute(1, 2);
+        Assert.assertTrue(res.isNumber());
+        Assert.assertEquals(3, res.asInt());
+    }
+
+    @Test
+    public void testSub() {
+        final Source src = Source.newBuilder("pryst", "function testSub(a,b) {return a - b;} function main() {return testSub;}", "testSub.pst").buildLiteral();
+        final Value fnc = context.eval(src);
+        final Value res = fnc.execute(1, 2);
+        Assert.assertTrue(res.isNumber());
+        Assert.assertEquals(-1, res.asInt());
+    }
 }

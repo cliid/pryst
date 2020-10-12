@@ -38,7 +38,7 @@ import org.jitcijk.pryst.runtime.PrystFunction;
 import org.jitcijk.pryst.runtime.PrystUndefinedNameException;
 
 /**
- * The node for function invocation in SL. Since SL has first class functions, the {@link PrystFunction
+ * The node for function invocation in Pryst. Since Pryst has first class functions, the {@link PrystFunction
  * target function} can be computed by an arbitrary expression. This node is responsible for
  * evaluating this expression, as well as evaluating the {@link #argumentNodes arguments}. The
  * actual invocation is delegated to a {@link InteropLibrary} instance.

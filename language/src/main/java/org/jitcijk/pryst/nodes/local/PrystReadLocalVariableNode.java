@@ -54,7 +54,7 @@ import org.jitcijk.pryst.nodes.interop.NodeObjectDescriptor;
 /**
  * Node to read a local variable from a function's {@link VirtualFrame frame}. The Truffle frame API
  * allows to store primitive values of all Java primitive types, and Object values. This means that
- * all SL types that are objects are handled by the {@link #readObject} method.
+ * all Pryst types that are objects are handled by the {@link #readObject} method.
  * <p>
  * We use the primitive type only when the same primitive type is uses for all writes. If the local
  * variable is type-polymorphic, then the value is always stored as an Object, i.e., primitive

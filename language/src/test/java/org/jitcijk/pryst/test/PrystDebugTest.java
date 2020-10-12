@@ -100,8 +100,8 @@ public class PrystDebugTest {
         tester.startEval(code);
     }
 
-    private static Source slCode(String code) {
-        return Source.create("sl", code);
+    private static Source prystCode(String code) {
+        return Source.create("pryst", code);
     }
 
     private DebuggerSession startSession() {
@@ -189,7 +189,7 @@ public class PrystDebugTest {
          * Wrappers need to remain inserted for recursive functions to work for debugging. Like in
          * this test case when the breakpoint is in the exit condition and we want to step out.
          */
-        final Source factorial = slCode("function main() {\n" +
+        final Source factorial = prystCode("function main() {\n" +
                         "  return fac(5);\n" +
                         "}\n" +
                         "function fac(n) {\n" +
@@ -259,7 +259,7 @@ public class PrystDebugTest {
 
     @Test
     public void testGuestFunctionBreakpoints() throws Throwable {
-        final Source functions = slCode("function main() {\n" +
+        final Source functions = prystCode("function main() {\n" +
                         "  a = fac;\n" +
                         "  return fac(5);\n" +
                         "}\n" +
@@ -306,7 +306,7 @@ public class PrystDebugTest {
 
     @Test
     public void testBuiltInFunctionBreakpoints() throws Throwable {
-        final Source functions = slCode("function main() {\n" +
+        final Source functions = prystCode("function main() {\n" +
                         "  a = isNull;\n" +
                         "  b = nanoTime;\n" +
                         "  isNull(a);\n" +
@@ -366,7 +366,7 @@ public class PrystDebugTest {
         /*
          * For recursive function we want to ensure that we don't step when we step over a function.
          */
-        final Source factorial = slCode("function main() {\n" +
+        final Source factorial = prystCode("function main() {\n" +
                         "  return fac(5);\n" +
                         "}\n" +
                         "function fac(n) {\n" +
@@ -402,7 +402,7 @@ public class PrystDebugTest {
         /*
          * Test AlwaysHalt is working.
          */
-        final Source factorial = slCode("function main() {\n" +
+        final Source factorial = prystCode("function main() {\n" +
                         "  return fac(5);\n" +
                         "}\n" +
                         "function fac(n) {\n" +
@@ -428,7 +428,7 @@ public class PrystDebugTest {
 
     @Test
     public void testTimeboxing() throws Throwable {
-        final Source endlessLoop = slCode("function main() {\n" +
+        final Source endlessLoop = prystCode("function main() {\n" +
                         "  i = 1; \n" +
                         "  while(i > 0) {\n" +
                         "    i = i + 1;\n" +
@@ -436,7 +436,7 @@ public class PrystDebugTest {
                         "  return i; \n" +
                         "}\n");
 
-        final Context context = Context.create("sl");
+        final Context context = Context.create("pryst");
         Debugger debugger = context.getEngine().getInstruments().get("debugger").lookup(Debugger.class);
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -461,7 +461,7 @@ public class PrystDebugTest {
 
     @Test
     public void testNull() throws Throwable {
-        final Source factorial = slCode("function main() {\n" +
+        final Source factorial = prystCode("function main() {\n" +
                         "  res = doNull();\n" +
                         "  return res;\n" +
                         "}\n" +
@@ -485,7 +485,7 @@ public class PrystDebugTest {
 
     @Test
     public void testDebugValue() throws Throwable {
-        final Source varsSource = slCode("function main() {\n" +
+        final Source varsSource = prystCode("function main() {\n" +
                         "  a = doNull();\n" +
                         "  b = 10 == 10;\n" +
                         "  c = 10;\n" +
@@ -569,7 +569,7 @@ public class PrystDebugTest {
 
     @Test
     public void testValuesScope() throws Throwable {
-        final Source varsSource = slCode("function main() {\n" +
+        final Source varsSource = prystCode("function main() {\n" +
                         "  a = 1;\n" +
                         "  if (a > 0) {\n" +
                         "    b = 10;\n" +
@@ -652,7 +652,7 @@ public class PrystDebugTest {
 
     @Test
     public void testMetaObjects() {
-        final Source varsSource = slCode("function main() {\n" +
+        final Source varsSource = prystCode("function main() {\n" +
                         "  a = doNull();\n" +
                         "  b = 10 == 10;\n" +
                         "  c = 10;\n" +
@@ -694,7 +694,7 @@ public class PrystDebugTest {
 
     @Test
     public void testSourceLocation() {
-        final Source varsSource = slCode("function main() {\n" +
+        final Source varsSource = prystCode("function main() {\n" +
                         "  a = doNull();\n" +
                         "  c = 10;\n" +
                         "  d = \"str\";\n" +
@@ -734,7 +734,7 @@ public class PrystDebugTest {
 
     @Test
     public void testStack() {
-        final Source stackSource = slCode("function main() {\n" +
+        final Source stackSource = prystCode("function main() {\n" +
                         "  return fac(10);\n" +
                         "}\n" +
                         "function fac(n) {\n" +
@@ -781,7 +781,7 @@ public class PrystDebugTest {
 
     @Test
     public void testStackInterop() {
-        final Source stackSource = slCode("function fac(n, multiply) {\n" +
+        final Source stackSource = prystCode("function fac(n, multiply) {\n" +
                         "  if (n <= 1) {\n" +
                         "    debugger;\n" +
                         "    return 1;\n" +
@@ -789,9 +789,9 @@ public class PrystDebugTest {
                         "  return multiply.multiply(n, fac, n - 1);\n" +
                         "}\n");
 
-        Context context = Context.create("sl");
+        Context context = Context.create("pryst");
         context.eval(stackSource);
-        Value fac = context.getBindings("sl").getMember("fac");
+        Value fac = context.getBindings("pryst").getMember("fac");
         Object multiply = new Multiply();
         Debugger debugger = context.getEngine().getInstruments().get("debugger").lookup(Debugger.class);
         boolean[] done = new boolean[1];
@@ -841,7 +841,7 @@ public class PrystDebugTest {
 
     @Test
     public void testUnwindAndReenter() {
-        final Source source = slCode("function main() {\n" +
+        final Source source = prystCode("function main() {\n" +
                         "  return fac(10);\n" +
                         "}\n" +
                         "function fac(n) {\n" +
@@ -884,7 +884,7 @@ public class PrystDebugTest {
     @Test
     public void testArgumentsAndValues() throws Throwable {
         // Test that after a re-enter, arguments are kept and variables are cleared.
-        final Source source = slCode("function main() {\n" +
+        final Source source = prystCode("function main() {\n" +
                         "  i = 10;\n" +
                         "  return fnc(i = i + 1, 20);\n" +
                         "}\n" +
@@ -976,7 +976,7 @@ public class PrystDebugTest {
             public boolean testLineColumn(int line, int column) {
                 return testLine(line);
             }
-        }, "R", "sl");
+        }, "R", "pryst");
     }
 
     @Test
@@ -1013,7 +1013,7 @@ public class PrystDebugTest {
                         "  return invocable(1) + invocable(2);\n" +
                         "}\n" +
                         "\n";
-        tester.assertColumnBreakpointsResolution(sourceStr, "B", "R", "sl");
+        tester.assertColumnBreakpointsResolution(sourceStr, "B", "R", "pryst");
     }
 
     @Test
@@ -1050,7 +1050,7 @@ public class PrystDebugTest {
                         "  return invocable(1) + invocable(2);\n" +
                         "}\n" +
                         "\n";
-        Source source = Source.newBuilder("sl", sourceCode, "testBreakpointsAnywhere.sl").build();
+        Source source = Source.newBuilder("pryst", sourceCode, "testBreakpointsAnywhere.pst").build();
         tester.assertBreakpointsBreakEverywhere(source, new DebuggerTester.PositionPredicate() {
             @Override
             public boolean testLine(int line) {
@@ -1071,7 +1071,7 @@ public class PrystDebugTest {
     }
 
     private void checkExpressionStepPositions(String stepPositions, boolean includeStatements, StepDepth... steps) {
-        Source source = slCode("function main() {\n" +
+        Source source = prystCode("function main() {\n" +
                         "  x = 2;\n" +
                         "  while (x >= 0 && 5 >= 0) {\n" +
                         "    a = 2 * x;\n" +
@@ -1301,7 +1301,7 @@ public class PrystDebugTest {
 
     @Test
     public void testExceptions() {
-        final Source source = slCode("function main() {\n" +
+        final Source source = prystCode("function main() {\n" +
                         "  i = \"0\";\n" +
                         "  return invert(i);\n" +
                         "}\n" +

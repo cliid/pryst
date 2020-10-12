@@ -66,7 +66,7 @@ public class PrystExecutionListenerTest {
 
     @Before
     public void setUp() {
-        context = Context.create("sl");
+        context = Context.create("pryst");
     }
 
     @After
@@ -170,8 +170,8 @@ public class PrystExecutionListenerTest {
                         "  return fac(n - 1) * n;" +
                         "}";
         // @formatter:on
-        context.eval("sl", "function " + characters);
-        Value factorial = context.getBindings("sl").getMember("fac");
+        context.eval("pryst", "function " + characters);
+        Value factorial = context.getBindings("pryst").getMember("fac");
         ExecutionListener.newBuilder().onReturn(this::add).onEnter(this::add).//
                         expressions(true).statements(true).roots(true).//
                         collectExceptions(true).collectInputValues(true).collectReturnValue(true).//
@@ -185,8 +185,8 @@ public class PrystExecutionListenerTest {
 
     private Value eval(String s) {
         expectedRootName = "wrapper";
-        context.eval("sl", wrapInFunction(s));
-        return context.getBindings("sl").getMember("wrapper").execute();
+        context.eval("pryst", wrapInFunction(s));
+        return context.getBindings("pryst").getMember("wrapper").execute();
     }
 
     private static String wrapInFunction(String s) {

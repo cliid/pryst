@@ -40,10 +40,10 @@ import org.jitcijk.pryst.runtime.PrystNull;
  *
  * <ul>
  * <li>Lazily registration of functions on first execution. This fulfills the semantics of
- * "evaluating" source code in SL.</li>
- * <li>Conversion of arguments to types understood by SL. The SL source code can be evaluated from a
+ * "evaluating" source code in Pryst.</li>
+ * <li>Conversion of arguments to types understood by Pryst. The Pryst source code can be evaluated from a
  * different language, i.e., the caller can be a node from a different language that uses types not
- * understood by SL.</li>
+ * understood by Pryst.</li>
  * </ul>
  */
 public final class PrystEvalRootNode extends RootNode {
@@ -93,7 +93,7 @@ public final class PrystEvalRootNode extends RootNode {
             /* The source code did not have a "main" function, so nothing to execute. */
             return PrystNull.SINGLETON;
         } else {
-            /* Conversion of arguments to types understood by SL. */
+            /* Conversion of arguments to types understood by Pryst. */
             Object[] arguments = frame.getArguments();
             for (int i = 0; i < arguments.length; i++) {
                 arguments[i] = PrystContext.fromForeignValue(arguments[i]);

@@ -58,7 +58,7 @@ public abstract class PrystReadPropertyNode extends PrystExpressionNode {
         try {
             return arrays.readArrayElement(receiver, numbers.asLong(index));
         } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-            // read was not successful. In SL we only have basic support for errors.
+            // read was not successful. In Pryst we only have basic support for errors.
             throw PrystUndefinedNameException.undefinedProperty(this, index);
         }
     }
@@ -70,7 +70,7 @@ public abstract class PrystReadPropertyNode extends PrystExpressionNode {
         try {
             return objects.readMember(receiver, asMember.execute(name));
         } catch (UnsupportedMessageException | UnknownIdentifierException e) {
-            // read was not successful. In SL we only have basic support for errors.
+            // read was not successful. In Pryst we only have basic support for errors.
             throw PrystUndefinedNameException.undefinedProperty(this, name);
         }
     }

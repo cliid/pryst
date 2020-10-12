@@ -36,7 +36,7 @@ import org.jitcijk.pryst.runtime.PrystFunctionRegistry;
 
 /**
  * Constant literal for a {@link PrystFunction function} value, created when a function name occurs as
- * a literal in SL source code. Note that function redefinition can change the {@link CallTarget
+ * a literal in Pryst source code. Note that function redefinition can change the {@link CallTarget
  * call target} that is executed when calling the function, but the {@link PrystFunction} for a name
  * never changes. This is guaranteed by the {@link PrystFunctionRegistry}.
  */

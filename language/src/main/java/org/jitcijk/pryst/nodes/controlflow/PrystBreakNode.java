@@ -45,7 +45,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.jitcijk.pryst.nodes.PrystStatementNode;
 
 /**
- * Implementation of the SL break statement. We need to unwind an unknown number of interpreter
+ * Implementation of the Pryst break statement. We need to unwind an unknown number of interpreter
  * frames that are between this {@link PrystBreakNode} and the {@link PrystWhileNode} of the loop we are
  * breaking out. This is done by throwing an {@link PrystBreakException exception} that is caught by
  * the {@link PrystWhileNode#executeVoid loop node}.

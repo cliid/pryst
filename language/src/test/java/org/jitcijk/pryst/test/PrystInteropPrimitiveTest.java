@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -40,22 +40,40 @@
  */
 package org.jitcijk.pryst.test;
 
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-@RunWith(SLTestRunner.class)
-@SLTestSuite({"tests"})
-public class SLSimpleTestSuite {
+public class PrystInteropPrimitiveTest {
+    private Context context;
 
-    public static void main(String[] args) throws Exception {
-        SLTestRunner.runInMain(SLSimpleTestSuite.class, args);
+    @Before
+    public void setUp() {
+        context = Context.create("pryst");
     }
 
-    /*
-     * Our "mx unittest" command looks for methods that are annotated with @Test. By just defining
-     * an empty method, this class gets included and the test suite is properly executed.
-     */
+    @After
+    public void tearDown() {
+        context = null;
+    }
+
     @Test
-    public void unittest() {
+    public void testBoolean() {
+        final Source src = Source.newBuilder("pryst", "function testBoolean(a,b) {return a == b;} function main() {return testBoolean;}", "testBoolean.pst").buildLiteral();
+        final Value fnc = context.eval(src);
+        Assert.assertTrue(fnc.canExecute());
+        fnc.execute(true, false);
+    }
+
+    @Test
+    public void testChar() {
+        final Source src = Source.newBuilder("pryst", "function testChar(a,b) {return a == b;} function main() {return testChar;}", "testChar.pst").buildLiteral();
+        final Value fnc = context.eval(src);
+        Assert.assertTrue(fnc.canExecute());
+        fnc.execute('a', 'b');
     }
 }

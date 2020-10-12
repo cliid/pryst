@@ -37,11 +37,11 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 
 /**
- * The base class of all Truffle nodes for SL. All nodes (even expressions) can be used as
+ * The base class of all Truffle nodes for Pryst. All nodes (even expressions) can be used as
  * statements, i.e., without returning a value. The {@link VirtualFrame} provides access to the
  * local variables.
  */
-@NodeInfo(language = "SL", description = "The abstract base node for all SL statements")
+@NodeInfo(language = "Pryst", description = "The abstract base node for all Pryst statements")
 @GenerateWrapper
 public abstract class PrystStatementNode extends Node implements InstrumentableNode {
 
@@ -139,7 +139,7 @@ public abstract class PrystStatementNode extends Node implements InstrumentableN
     }
 
     public WrapperNode createWrapper(ProbeNode probe) {
-        return new SLStatementNodeWrapper(this, probe);
+        return new PrystStatementNodeWrapper(this, probe);
     }
 
     /**

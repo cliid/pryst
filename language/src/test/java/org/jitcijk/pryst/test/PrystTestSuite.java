@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -40,41 +40,34 @@
  */
 package org.jitcijk.pryst.test;
 
-import static org.junit.Assert.assertNull;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface PrystTestSuite {
 
-public class SLReadPropertyTest {
+    /**
+     * Defines the base path of the test suite. Multiple base paths can be specified. However only
+     * the first base that exists is used to lookup the test cases.
+     */
+    String[] value();
 
-    private Context ctx;
-    private Value slObject;
+    /**
+     * A class in the same project (or .jar file) that contains the {@link #value test case
+     * directory}. If the property is not specified, the class that declares the annotation is used,
+     * i.e., the test cases must be in the same project as the test class.
+     */
+    Class<?> testCaseDirectory() default PrystTestSuite.class;
 
-    @Before
-    public void setUp() {
-        this.ctx = Context.create("sl");
-        this.slObject = ctx.eval("sl", "function createObject() {\n" +
-                        "obj1 = new();\n" +
-                        "obj1.number = 42;\n" +
-                        "return obj1;\n" +
-                        "}\n" +
-                        "function main() {\n" +
-                        "return createObject;\n" +
-                        "}").execute();
-    }
-
-    @After
-    public void tearDown() {
-        this.ctx.close();
-    }
-
-    @Test
-    public void testRead() {
-        Assert.assertEquals(42, slObject.getMember("number").asInt());
-        assertNull(slObject.getMember("nonexistent"));
-    }
+    /**
+     * The options passed to {@code Context.Builder} to configure the {@code Context} executing the
+     * tests. The options are given as an string array containing an option name followed by an
+     * option value.
+     *
+     * @since 20.0.0
+     */
+    String[] options() default {};
 }

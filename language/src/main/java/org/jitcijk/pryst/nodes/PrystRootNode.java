@@ -33,12 +33,12 @@ import org.jitcijk.pryst.builtins.PrystBuiltinNode;
 import org.jitcijk.pryst.nodes.controlflow.PrystFunctionBodyNode;
 
 /**
- * The root of all SL execution trees. It is a Truffle requirement that the tree root extends the
+ * The root of all Pryst execution trees. It is a Truffle requirement that the tree root extends the
  * class {@link RootNode}. This class is used for both builtin and user-defined functions. For
  * builtin functions, the {@link #bodyNode} is a subclass of {@link PrystBuiltinNode}. For user-defined
  * functions, the {@link #bodyNode} is a {@link PrystFunctionBodyNode}.
  */
-@NodeInfo(language = "SL", description = "The root of all SL execution trees")
+@NodeInfo(language = "Pryst", description = "The root of all Pryst execution trees")
 public class PrystRootNode extends RootNode {
     /** The function body that is executed, and specialized during execution. */
     @Child private PrystExpressionNode bodyNode;

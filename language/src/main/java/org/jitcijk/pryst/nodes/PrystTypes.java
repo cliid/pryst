@@ -35,7 +35,7 @@ import org.jitcijk.pryst.runtime.PrystBigNumber;
 import org.jitcijk.pryst.runtime.PrystNull;
 
 /**
- * The type system of SL, as explained in {@link PrystLanguage}. Based on the {@link TypeSystem}
+ * The type system of Pryst, as explained in {@link PrystLanguage}. Based on the {@link TypeSystem}
  * annotation, the Truffle DSL generates the subclass {@link SLTypesGen} with type test and type
  * conversion methods for some types. In this class, we only cover types where the automatically
  * generated ones would not be sufficient.
@@ -50,7 +50,7 @@ public abstract class PrystTypes {
      * singleton} instance.
      */
     @TypeCheck(PrystNull.class)
-    public static boolean isSLNull(Object value) {
+    public static boolean isPrystNull(Object value) {
         return value == PrystNull.SINGLETON;
     }
 
@@ -60,14 +60,14 @@ public abstract class PrystTypes {
      * because we know that there is only a {@link PrystNull#SINGLETON singleton} instance.
      */
     @TypeCast(PrystNull.class)
-    public static PrystNull asSLNull(Object value) {
-        assert isSLNull(value);
+    public static PrystNull asPrystNull(Object value) {
+        assert isPrystNull(value);
         return PrystNull.SINGLETON;
     }
 
     /**
      * Informs the Truffle DSL that a primitive {@code long} value can be used in all
-     * specializations where a {@link PrystBigNumber} is expected. This models the semantic of SL: It
+     * specializations where a {@link PrystBigNumber} is expected. This models the semantic of Pryst: It
      * only has an arbitrary precision Number type (implemented as {@link PrystBigNumber}, and
      * {@code long} is only used as a performance optimization to avoid the costly
      * {@link PrystBigNumber} arithmetic for values that fit into a 64-bit primitive value.

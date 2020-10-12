@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -40,40 +40,41 @@
  */
 package org.jitcijk.pryst.test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SLInteropPrimitiveTest {
-    private Context context;
+public class PrystStringOfEvalTest {
+    Context context;
 
     @Before
-    public void setUp() {
-        context = Context.create("sl");
+    public void initialize() {
+        context = Context.create();
     }
 
     @After
-    public void tearDown() {
-        context = null;
+    public void dispose() {
+        context.close();
     }
 
     @Test
-    public void testBoolean() {
-        final Source src = Source.newBuilder("sl", "function testBoolean(a,b) {return a == b;} function main() {return testBoolean;}", "testBoolean.sl").buildLiteral();
-        final Value fnc = context.eval(src);
-        Assert.assertTrue(fnc.canExecute());
-        fnc.execute(true, false);
-    }
+    public void checkToStringOnAFunction() {
+        context.eval("pryst", "function checkName() {}");
+        Value value1 = context.getBindings("pryst").getMember("checkName");
+        Value value2 = context.getBindings("pryst").getMember("checkName");
 
-    @Test
-    public void testChar() {
-        final Source src = Source.newBuilder("sl", "function testChar(a,b) {return a == b;} function main() {return testChar;}", "testChar.sl").buildLiteral();
-        final Value fnc = context.eval(src);
-        Assert.assertTrue(fnc.canExecute());
-        fnc.execute('a', 'b');
+        assertNotNull("Symbol is not null", value1);
+        assertNotNull("Symbol is not null either", value2);
+
+        assertFalse("Symbol is not null", value1.isNull());
+        assertFalse("Symbol is not null either", value2.isNull());
+
+        assertTrue("Contains checkName text: " + value2, value2.toString().contains("checkName"));
     }
 }

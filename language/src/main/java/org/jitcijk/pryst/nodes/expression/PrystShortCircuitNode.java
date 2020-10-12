@@ -30,7 +30,7 @@ import org.jitcijk.pryst.PrystException;
 import org.jitcijk.pryst.nodes.PrystExpressionNode;
 
 /**
- * Logical operations in SL use short circuit evaluation: if the evaluation of the left operand
+ * Logical operations in Pryst use short circuit evaluation: if the evaluation of the left operand
  * already decides the result of the operation, the right operand must not be executed. This is
  * expressed in using this base class for {@link PrystLogicalAndNode} and {@link PrystLogicalOrNode}.
  */

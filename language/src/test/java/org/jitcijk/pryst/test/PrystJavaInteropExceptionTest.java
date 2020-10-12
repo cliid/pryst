@@ -63,7 +63,7 @@ import org.junit.Test;
 import org.jitcijk.pryst.PrystLanguage;
 import org.graalvm.polyglot.HostAccess;
 
-public class SLJavaInteropExceptionTest {
+public class PrystJavaInteropExceptionTest {
     public static class Validator {
         @HostAccess.Export
         public int validateException() {

@@ -49,7 +49,6 @@ import org.jitcijk.pryst.builtins.PrystDefineFunctionBuiltinFactory;
 import org.jitcijk.pryst.builtins.PrystEvalBuiltinFactory;
 import org.jitcijk.pryst.builtins.PrystGetSizeBuiltinFactory;
 import org.jitcijk.pryst.builtins.PrystHasSizeBuiltinFactory;
-import org.jitcijk.pryst.builtins.PrystHelloEqualsWorldBuiltinFactory;
 import org.jitcijk.pryst.builtins.PrystImportBuiltinFactory;
 import org.jitcijk.pryst.builtins.PrystIsExecutableBuiltinFactory;
 import org.jitcijk.pryst.builtins.PrystIsInstanceBuiltinFactory;
@@ -77,7 +76,7 @@ import org.jitcijk.pryst.nodes.local.PrystReadArgumentNode;
  */
 public final class PrystContext {
 
-    private static final Source BUILTIN_SOURCE = Source.newBuilder(PrystLanguage.ID, "", "SL builtin").build();
+    private static final Source BUILTIN_SOURCE = Source.newBuilder(PrystLanguage.ID, "", "Pryst builtin").build();
 
     private final Env env;
     private final BufferedReader input;
@@ -145,7 +144,6 @@ public final class PrystContext {
         installBuiltin(PrystNanoTimeBuiltinFactory.getInstance());
         installBuiltin(PrystDefineFunctionBuiltinFactory.getInstance());
         installBuiltin(PrystStackTraceBuiltinFactory.getInstance());
-        installBuiltin(PrystHelloEqualsWorldBuiltinFactory.getInstance());
         installBuiltin(PrystNewObjectBuiltinFactory.getInstance());
         installBuiltin(PrystEvalBuiltinFactory.getInstance());
         installBuiltin(PrystImportBuiltinFactory.getInstance());

@@ -53,7 +53,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SLSeparatedClassLoadersTest {
+public class PrystSeparatedClassLoadersTest {
     private ClassLoader loader;
 
     @Before
@@ -62,7 +62,7 @@ public class SLSeparatedClassLoadersTest {
     }
 
     @Test
-    public void sdkAndTruffleLanguageAPIAndSLInSeparateClassLoaders() throws Exception {
+    public void sdkAndTruffleLanguageAPIAndPrystInSeparateClassLoaders() throws Exception {
         final ProtectionDomain sdkDomain = Engine.class.getProtectionDomain();
         Assume.assumeNotNull(sdkDomain);
         Assume.assumeNotNull(sdkDomain.getCodeSource());
@@ -72,8 +72,8 @@ public class SLSeparatedClassLoadersTest {
         URL truffleURL = Truffle.class.getProtectionDomain().getCodeSource().getLocation();
         Assume.assumeNotNull(truffleURL);
 
-        URL slURL = PrystLanguage.class.getProtectionDomain().getCodeSource().getLocation();
-        Assume.assumeNotNull(slURL);
+        URL prystURL = PrystLanguage.class.getProtectionDomain().getCodeSource().getLocation();
+        Assume.assumeNotNull(prystURL);
 
         ClassLoader parent = Engine.class.getClassLoader().getParent();
 
@@ -87,16 +87,16 @@ public class SLSeparatedClassLoadersTest {
         }
         Assume.assumeFalse(sdkLoaderLoadsTruffleLanguage);
         URLClassLoader truffleLoader = new URLClassLoader(new URL[]{truffleURL}, sdkLoader);
-        URLClassLoader slLoader = new URLClassLoader(new URL[]{slURL}, truffleLoader);
-        Thread.currentThread().setContextClassLoader(slLoader);
+        URLClassLoader prystLoader = new URLClassLoader(new URL[]{prystURL}, truffleLoader);
+        Thread.currentThread().setContextClassLoader(prystLoader);
 
         Class<?> engineClass = sdkLoader.loadClass(Engine.class.getName());
         Object engine = engineClass.getMethod("create").invoke(null);
         assertNotNull("Engine has been created", engine);
 
         Map<?, ?> languages = (Map<?, ?>) engineClass.getMethod("getLanguages").invoke(engine);
-        Object lang = languages.get("sl");
-        assertNotNull("SL language found: " + languages, lang);
+        Object lang = languages.get("pryst");
+        assertNotNull("Pryst language found: " + languages, lang);
     }
 
     @After

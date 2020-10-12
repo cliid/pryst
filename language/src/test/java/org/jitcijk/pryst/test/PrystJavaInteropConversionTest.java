@@ -57,7 +57,7 @@ import org.junit.Test;
 import org.jitcijk.pryst.PrystLanguage;
 import org.graalvm.polyglot.HostAccess;
 
-public class SLJavaInteropConversionTest {
+public class PrystJavaInteropConversionTest {
     public static class Validator {
         @HostAccess.Export
         @SuppressWarnings("unchecked")

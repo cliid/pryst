@@ -48,12 +48,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SLParseErrorTest {
+public class PrystParseErrorTest {
     private Context context;
 
     @Before
     public void setUp() {
-        context = Context.create("sl");
+        context = Context.create("pryst");
     }
 
     @After
@@ -64,9 +64,9 @@ public class SLParseErrorTest {
     @Test
     public void testParseError() {
         try {
-            final Source src = Source.newBuilder("sl", "function testSyntaxError(a) {break;} function main() {return testSyntaxError;}", "testSyntaxError.sl").buildLiteral();
+            final Source src = Source.newBuilder("pryst", "function testSyntaxError(a) {break;} function main() {return testSyntaxError;}", "testSyntaxError.pst").buildLiteral();
             context.eval(src);
-            Assert.assertTrue("Should not reach here.", false);
+            Assert.fail("Should not reach here.");
         } catch (PolyglotException e) {
             Assert.assertTrue("Should be a syntax error.", e.isSyntaxError());
             Assert.assertNotNull("Should have source section.", e.getSourceLocation());
@@ -76,9 +76,9 @@ public class SLParseErrorTest {
     @Test
     public void testParseErrorEmpty() {
         try {
-            final Source src = Source.newBuilder("sl", "", "testSyntaxErrorEmpty.sl").buildLiteral();
+            final Source src = Source.newBuilder("pryst", "", "testSyntaxErrorEmpty.pst").buildLiteral();
             context.eval(src);
-            Assert.assertTrue("Should not reach here.", false);
+            Assert.fail("Should not reach here.");
         } catch (PolyglotException e) {
             Assert.assertTrue("Should be a syntax error.", e.isSyntaxError());
             Assert.assertNotNull("Should have source section.", e.getSourceLocation());
@@ -88,9 +88,9 @@ public class SLParseErrorTest {
     @Test
     public void testParseErrorEOF1() {
         try {
-            final Source src = Source.newBuilder("sl", "function main", "testSyntaxErrorEOF1.sl").buildLiteral();
+            final Source src = Source.newBuilder("pryst", "function main", "testSyntaxErrorEOF1.pst").buildLiteral();
             context.eval(src);
-            Assert.assertTrue("Should not reach here.", false);
+            Assert.fail("Should not reach here.");
         } catch (PolyglotException e) {
             Assert.assertTrue("Should be a syntax error.", e.isSyntaxError());
             Assert.assertNotNull("Should have source section.", e.getSourceLocation());
@@ -100,9 +100,9 @@ public class SLParseErrorTest {
     @Test
     public void testParseErrorEOF2() {
         try {
-            final Source src = Source.newBuilder("sl", "function\n", "testSyntaxErrorEOF2.sl").buildLiteral();
+            final Source src = Source.newBuilder("pryst", "function\n", "testSyntaxErrorEOF2.pst").buildLiteral();
             context.eval(src);
-            Assert.assertTrue("Should not reach here.", false);
+            Assert.fail("Should not reach here.");
         } catch (PolyglotException e) {
             Assert.assertTrue("Should be a syntax error.", e.isSyntaxError());
             Assert.assertNotNull("Should have source section.", e.getSourceLocation());

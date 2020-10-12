@@ -78,7 +78,7 @@ public final class PrystLexicalScope {
     private Map<String, FrameSlot> varSlots;
 
     /**
-     * Create a new block SL lexical scope.
+     * Create a new block Pryst lexical scope.
      *
      * @param current the current node
      * @param block a nearest block enclosing the current node
@@ -92,7 +92,7 @@ public final class PrystLexicalScope {
     }
 
     /**
-     * Create a new functional SL lexical scope.
+     * Create a new functional Pryst lexical scope.
      *
      * @param current the current node, or <code>null</code> when it would be above the block
      * @param block a nearest block enclosing the current node
@@ -112,9 +112,9 @@ public final class PrystLexicalScope {
             // We're in the root.
             block = findChildrenBlock(node);
             if (block == null) {
-                // Corrupted SL AST, no block was found
+                // Corrupted Pryst AST, no block was found
                 RootNode root = node.getRootNode();
-                assert root instanceof PrystEvalRootNode || root instanceof PrystRootNode : "Corrupted SL AST under " + node;
+                assert root instanceof PrystEvalRootNode || root instanceof PrystRootNode : "Corrupted Pryst AST under " + node;
                 return new PrystLexicalScope(null, null, (PrystBlockNode) null);
             }
             node = null; // node is above the block
@@ -251,7 +251,7 @@ public final class PrystLexicalScope {
     private Map<String, FrameSlot> collectVars(Node varsBlock, Node currentNode) {
         // Variables are slot-based.
         // To collect declared variables, traverse the block's AST and find slots associated
-        // with SLWriteLocalVariableNode. The traversal stops when we hit the current node.
+        // with PrystWriteLocalVariableNode. The traversal stops when we hit the current node.
         Map<String, FrameSlot> slots = new LinkedHashMap<>(4);
         NodeUtil.forEachChild(varsBlock, new NodeVisitor() {
             @Override
@@ -282,8 +282,8 @@ public final class PrystLexicalScope {
 
     private static Map<String, FrameSlot> collectArgs(Node block) {
         // Arguments are pushed to frame slots at the beginning of the function block.
-        // To collect argument slots, search for SLReadArgumentNode inside of
-        // SLWriteLocalVariableNode.
+        // To collect argument slots, search for PrystReadArgumentNode inside of
+        // PrystWriteLocalVariableNode.
         Map<String, FrameSlot> args = new LinkedHashMap<>(4);
         NodeUtil.forEachChild(block, new NodeVisitor() {
 
@@ -291,7 +291,7 @@ public final class PrystLexicalScope {
 
             @Override
             public boolean visit(Node node) {
-                // When there is a write node, search for SLReadArgumentNode among its children:
+                // When there is a write node, search for PrystReadArgumentNode among its children:
                 if (node instanceof PrystWriteLocalVariableNode) {
                     wn = (PrystWriteLocalVariableNode) node;
                     boolean all = NodeUtil.forEachChild(node, this);
@@ -304,7 +304,7 @@ public final class PrystLexicalScope {
                     args.put(name, slot);
                     return true;
                 } else if (wn == null && (node instanceof PrystStatementNode)) {
-                    // A different SL node - we're done.
+                    // A different Pryst node - we're done.
                     return false;
                 } else {
                     return NodeUtil.forEachChild(node, this);

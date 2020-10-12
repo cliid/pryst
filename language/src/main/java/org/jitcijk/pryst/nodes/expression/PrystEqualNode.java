@@ -37,7 +37,7 @@ import org.jitcijk.pryst.runtime.PrystFunction;
 import org.jitcijk.pryst.runtime.PrystNull;
 
 /**
- * The {@code ==} operator of SL is defined on all types. Therefore, we need a
+ * The {@code ==} operator of Pryst is defined on all types. Therefore, we need a
  * {@link #equal(Object, Object) implementation} that can handle all possible types including
  * interop types.
  * <p>
@@ -70,14 +70,14 @@ public abstract class PrystEqualNode extends PrystBinaryNode {
 
     @Specialization
     protected boolean doNull(PrystNull left, PrystNull right) {
-        /* There is only the singleton instance of SLNull, so we do not need equals(). */
+        /* There is only the singleton instance of PrystNull, so we do not need equals(). */
         return left == right;
     }
 
     @Specialization
     protected boolean doFunction(PrystFunction left, Object right) {
         /*
-         * Our function registry maintains one canonical SLFunction object per function name, so we
+         * Our function registry maintains one canonical PrystFunction object per function name, so we
          * do not need equals().
          */
         return left == right;

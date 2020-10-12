@@ -50,12 +50,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SLInteropObjectTest {
+public class PrystInteropObjectTest {
     private Context context;
 
     @Before
     public void setUp() {
-        context = Context.create("sl");
+        context = Context.create("pryst");
     }
 
     @After
@@ -66,7 +66,7 @@ public class SLInteropObjectTest {
 
     @Test
     public void testObject() {
-        final Source src = Source.newBuilder("sl", "function main() {o = new(); o.a = 10; o.b = \"B\"; return o;}", "testObject.sl").buildLiteral();
+        final Source src = Source.newBuilder("pryst", "function main() {o = new(); o.a = 10; o.b = \"B\"; return o;}", "testObject.pst").buildLiteral();
         final Value obj = context.eval(src);
         Assert.assertTrue(obj.hasMembers());
 
@@ -93,9 +93,9 @@ public class SLInteropObjectTest {
 
     @Test
     public void testNewForeign() {
-        final Source src = Source.newBuilder("sl", "function getValue(type) {o = new(type); o.a = 10; return o.value;}", "testObject.sl").buildLiteral();
+        final Source src = Source.newBuilder("pryst", "function getValue(type) {o = new(type); o.a = 10; return o.value;}", "testObject.pst").buildLiteral();
         context.eval(src);
-        Value getValue = context.getBindings("sl").getMember("getValue");
+        Value getValue = context.getBindings("pryst").getMember("getValue");
         Value ret = getValue.execute(new TestType());
         Assert.assertEquals(20, ret.asLong());
     }

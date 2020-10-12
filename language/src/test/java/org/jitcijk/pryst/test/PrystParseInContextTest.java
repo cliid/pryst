@@ -61,7 +61,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 
-public class SLParseInContextTest {
+public class PrystParseInContextTest {
     private Context context;
 
     @Before
@@ -106,7 +106,7 @@ public class SLParseInContextTest {
                         CompilerDirectives.transferToInterpreterAndInvalidate();
                         this.reference = lookupContextReference(EvalLang.class);
                     }
-                    Source aPlusB = Source.newBuilder("sl", "a + b", "plus.sl").build();
+                    Source aPlusB = Source.newBuilder("pryst", "a + b", "plus.pst").build();
                     return reference.get().parsePublic(aPlusB, "a", "b").call(30, 12);
                 }
             });

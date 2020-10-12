@@ -40,12 +40,12 @@
 # SOFTWARE.
 #
 
-if [[ $SL_BUILD_NATIVE == "false" ]]; then
-    echo "Skipping the native image build because SL_BUILD_NATIVE is set to false."
+if [[ $PRYST_BUILD_NATIVE == "false" ]]; then
+    echo "Skipping the native image build because PRYST_BUILD_NATIVE is set to false."
     exit 0
 fi
 "$JAVA_HOME"/bin/native-image \
     --macro:truffle --no-fallback --initialize-at-build-time \
-    -cp ../language/target/simplelanguage.jar:../launcher/target/sl-launcher.jar \
-    com.oracle.truffle.sl.launcher.SLMain \
-    slnative
+    -cp ../language/target/pryst.jar:../launcher/target/pryst-launcher.jar \
+    org.jitcijk.pryst.launcher.PrystMain \
+    prystnative

@@ -49,7 +49,7 @@ import org.jitcijk.pryst.nodes.PrystStatementNode;
 import org.jitcijk.pryst.runtime.PrystNull;
 
 /**
- * The body of a user-defined SL function. This is the node referenced by a {@link PrystRootNode} for
+ * The body of a user-defined Pryst function. This is the node referenced by a {@link PrystRootNode} for
  * user-defined functions. It handles the return value of a function: the {@link PrystReturnNode return
  * statement} throws an {@link PrystReturnException exception} with the return value. This node catches
  * the exception. If the method ends without an explicit {@code return}, return the

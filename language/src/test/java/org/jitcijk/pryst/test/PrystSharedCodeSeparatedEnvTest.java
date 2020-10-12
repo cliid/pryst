@@ -40,7 +40,7 @@
  */
 package org.jitcijk.pryst.test;
 
-import static org.jitcijk.pryst.test.SLJavaInteropTest.toUnixString;
+import static org.jitcijk.pryst.test.PrystJavaInteropTest.toUnixString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -59,7 +59,7 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import org.jitcijk.pryst.PrystLanguage;
 
-public class SLSharedCodeSeparatedEnvTest {
+public class PrystSharedCodeSeparatedEnvTest {
 
     private ByteArrayOutputStream osRuntime;
     private ByteArrayOutputStream os1;
@@ -78,13 +78,13 @@ public class SLSharedCodeSeparatedEnvTest {
 
         int instances = PrystLanguage.counter;
         // @formatter:off
-        e1 = Context.newBuilder("sl").engine(engine).out(os1).allowPolyglotAccess(PolyglotAccess.ALL).build();
+        e1 = Context.newBuilder("pryst").engine(engine).out(os1).allowPolyglotAccess(PolyglotAccess.ALL).build();
         e1.getPolyglotBindings().putMember("extra", 1);
-        e2 = Context.newBuilder("sl").engine(engine).out(os2).allowPolyglotAccess(PolyglotAccess.ALL).build();
+        e2 = Context.newBuilder("pryst").engine(engine).out(os2).allowPolyglotAccess(PolyglotAccess.ALL).build();
         e2.getPolyglotBindings().putMember("extra", 2);
-        e1.initialize("sl");
-        e2.initialize("sl");
-        assertEquals("One SLLanguage instance created", instances + 1, PrystLanguage.counter);
+        e1.initialize("pryst");
+        e2.initialize("pryst");
+        assertEquals("One PrystLanguage instance created", instances + 1, PrystLanguage.counter);
     }
 
     @After
@@ -101,11 +101,11 @@ public class SLSharedCodeSeparatedEnvTest {
             "}";
         // @formatter:on
 
-        e1.eval("sl", sayHello);
+        e1.eval("pryst", sayHello);
         assertEquals("Ahoj1\n", toUnixString(os1));
         assertEquals("", toUnixString(os2));
 
-        e2.eval("sl", sayHello);
+        e2.eval("pryst", sayHello);
         assertEquals("Ahoj1\n", toUnixString(os1));
         assertEquals("Ahoj2\n", toUnixString(os2));
     }
@@ -121,11 +121,11 @@ public class SLSharedCodeSeparatedEnvTest {
                         "}";
         // @formatter:on
 
-        e1.eval("sl", sayHello);
+        e1.eval("pryst", sayHello);
         assertEquals("Ahoj1\n", toUnixString(os1));
         assertEquals("", toUnixString(os2));
 
-        e2.eval("sl", sayHello);
+        e2.eval("pryst", sayHello);
         assertEquals("Ahoj1\n", toUnixString(os1));
         assertEquals("Ahoj2\n", toUnixString(os2));
 

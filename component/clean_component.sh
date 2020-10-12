@@ -40,4 +40,4 @@
 # SOFTWARE.
 #
 
-[[ -f sl-component.jar ]] && rm sl-component.jar || echo "sl-component.jar not found"
+[[ -f pryst-component.jar ]] && rm pryst-component.jar || echo "pryst-component.jar not found"

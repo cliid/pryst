@@ -41,4 +41,4 @@
 #
 
 curl -O https://www.antlr.org/download/antlr-4.8-complete.jar
-java -cp antlr-4.8-complete.jar org.antlr.v4.Tool -package org.jitcijk.pryst.parser -no-listener language/src/main/java/com/oracle/truffle/sl/parser/SimpleLanguage.g4
+java -cp antlr-4.8-complete.jar org.antlr.v4.Tool -package org.jitcijk.pryst.parser -no-listener language/src/main/java/org/jitcijk/pryst/parser/Pryst.g4

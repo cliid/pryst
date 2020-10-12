@@ -40,7 +40,7 @@
  */
 package org.jitcijk.pryst.test;
 
-import static org.jitcijk.pryst.test.SLJavaInteropTest.toUnixString;
+import static org.jitcijk.pryst.test.PrystJavaInteropTest.toUnixString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -96,7 +96,7 @@ import org.jitcijk.pryst.runtime.PrystBigNumber;
 import com.oracle.truffle.tck.DebuggerTester;
 
 /**
- * Test of SL instrumentation.
+ * Test of Pryst instrumentation.
  */
 public class PrystInstrumentTest {
 
@@ -128,7 +128,7 @@ public class PrystInstrumentTest {
                         "function main() {\n" +
                         "  test(\"n_n\");\n" +
                         "}";
-        Source source = Source.newBuilder("sl", code, "testing").build();
+        Source source = Source.newBuilder("pryst", code, "testing").build();
         List<Throwable> throwables;
         try (Engine engine = Engine.newBuilder().out(new java.io.OutputStream() {
             // null output stream
@@ -514,7 +514,7 @@ public class PrystInstrumentTest {
         String fullOutput = "5\n4\n3\n2\n1\n120\n";
         String fullLines = "[5, 4, 3, 2, 1, 120]";
         // Pure exec:
-        Source source = Source.newBuilder("sl", code, "testing").build();
+        Source source = Source.newBuilder("pryst", code, "testing").build();
         ByteArrayOutputStream engineOut = new ByteArrayOutputStream();
         Engine engine = Engine.newBuilder().out(engineOut).build();
         Context context = Context.newBuilder().engine(engine).build();
@@ -594,7 +594,7 @@ public class PrystInstrumentTest {
                         "  a = readln();\n" +
                         "  return a;\n" +
                         "}\n";
-        final Source ioWait = Source.newBuilder("sl", code, "testing").build();
+        final Source ioWait = Source.newBuilder("pryst", code, "testing").build();
         final TestRedoIO[] redoIOPtr = new TestRedoIO[1];
         InputStream strIn = new ByteArrayInputStream("O.K.".getBytes());
         InputStream delegateInputStream = new InputStream() {
@@ -707,7 +707,7 @@ public class PrystInstrumentTest {
                         "function fce(x) {\n" +
                         "  return x + 1;\n" +
                         "}\n";
-        final Source source = Source.newBuilder("sl", code, "testing").build();
+        final Source source = Source.newBuilder("pryst", code, "testing").build();
         ByteArrayOutputStream engineOut = new ByteArrayOutputStream();
         Engine engine = Engine.newBuilder().err(engineOut).build();
         Context context = Context.newBuilder().engine(engine).build();
@@ -822,7 +822,7 @@ public class PrystInstrumentTest {
                         "  b = a.rp1;\n" +
                         "  return b;\n" +
                         "}\n";
-        final Source source = Source.newBuilder("sl", code, "testing").build();
+        final Source source = Source.newBuilder("pryst", code, "testing").build();
         SourceSection ss = DebuggerTester.getSourceImpl(source).createSection(24, 5);
         Context context = Context.create();
         NewReplacedInstrument replaced = context.getEngine().getInstruments().get("testNewNodeReplaced").lookup(NewReplacedInstrument.class);
@@ -952,7 +952,7 @@ public class PrystInstrumentTest {
                         "    return y;\n" +
                         "  }\n" +
                         "}\n";
-        final Source source = Source.newBuilder("sl", code, "testing").build();
+        final Source source = Source.newBuilder("pryst", code, "testing").build();
         Context context = Context.create();
         IncreaseArgOnErrorInstrument incOnError = context.getEngine().getInstruments().get("testIncreaseArgumentOnError").lookup(IncreaseArgOnErrorInstrument.class);
         incOnError.attachOn("A bad error");

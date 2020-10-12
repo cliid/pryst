@@ -47,7 +47,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.jitcijk.pryst.nodes.PrystStatementNode;
 
 /**
- * Implementation of the SL debugger statement. When under the debugger, execution suspends here.
+ * Implementation of the Pryst debugger statement. When under the debugger, execution suspends here.
  */
 @NodeInfo(shortName = "debugger", description = "The node implementing a debugger statement")
 public class PrystDebuggerNode extends PrystStatementNode {

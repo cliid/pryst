@@ -40,7 +40,7 @@
  */
 package org.jitcijk.pryst.test;
 
-import static org.jitcijk.pryst.test.SLJavaInteropTest.toUnixString;
+import static org.jitcijk.pryst.test.PrystJavaInteropTest.toUnixString;
 import static com.oracle.truffle.tck.DebuggerTester.getSourceImpl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -109,7 +109,7 @@ public class PrystDebugDirectTest {
     }
 
     private static Source createFactorial() {
-        return Source.newBuilder("sl", "function test() {\n" +
+        return Source.newBuilder("pryst", "function test() {\n" +
                         "  res = fac(2);\n" + "  println(res);\n" +
                         "  return res;\n" +
                         "}\n" +
@@ -119,11 +119,11 @@ public class PrystDebugDirectTest {
                         "  nMinusOne = n - 1;\n" +
                         "  nMOFact = fac(nMinusOne);\n" +
                         "  res = n * nMOFact;\n" +
-                        "  return res;\n" + "}\n", "factorial.sl").buildLiteral();
+                        "  return res;\n" + "}\n", "factorial.pst").buildLiteral();
     }
 
     private static Source createFactorialWithDebugger() {
-        return Source.newBuilder("sl", "function test() {\n" +
+        return Source.newBuilder("pryst", "function test() {\n" +
                         "  res = fac(2);\n" +
                         "  println(res);\n" +
                         "  return res;\n" +
@@ -137,11 +137,11 @@ public class PrystDebugDirectTest {
                         "  debugger;\n" +
                         "  res = n * nMOFact;\n" +
                         "  return res;\n" +
-                        "}\n", "factorial.sl").buildLiteral();
+                        "}\n", "factorial.pst").buildLiteral();
     }
 
     private static Source createInteropComputation() {
-        return Source.newBuilder("sl", "function test() {\n" +
+        return Source.newBuilder("pryst", "function test() {\n" +
                         "}\n" +
                         "function interopFunction(notifyHandler) {\n" +
                         "  executing = true;\n" +
@@ -149,7 +149,7 @@ public class PrystDebugDirectTest {
                         "    executing = notifyHandler.isExecuting;\n" +
                         "  }\n" +
                         "  return executing;\n" +
-                        "}\n", "interopComputation.sl").buildLiteral();
+                        "}\n", "interopComputation.pst").buildLiteral();
     }
 
     protected final String getOut() {
@@ -179,7 +179,7 @@ public class PrystDebugDirectTest {
                         UNASSIGNED, "res", UNASSIGNED);
         continueExecution();
 
-        Value value = context.getBindings("sl").getMember("test").execute();
+        Value value = context.getBindings("pryst").getMember("test").execute();
         assertExecutedOK();
         Assert.assertEquals("2\n", getOut());
         Assert.assertTrue(value.isNumber());
@@ -201,7 +201,7 @@ public class PrystDebugDirectTest {
                         "1", "res", UNASSIGNED);
         continueExecution();
 
-        Value value = context.getBindings("sl").getMember("test").execute();
+        Value value = context.getBindings("pryst").getMember("test").execute();
         assertExecutedOK();
         Assert.assertEquals("2\n", getOut());
         Assert.assertTrue(value.isNumber());
@@ -252,7 +252,7 @@ public class PrystDebugDirectTest {
         assertLocation("test", 3, true, "println(res)", "res", "2");
         stepOut();
 
-        Value value = context.getBindings("sl").getMember("test");
+        Value value = context.getBindings("pryst").getMember("test");
         assertTrue(value.canExecute());
         Value resultValue = value.execute();
         String resultStr = resultValue.toString();
@@ -299,7 +299,7 @@ public class PrystDebugDirectTest {
             nh.pauseDone();
         });
 
-        Value value = context.getBindings("sl").getMember("interopFunction").execute(nh);
+        Value value = context.getBindings("pryst").getMember("interopFunction").execute(nh);
 
         assertExecutedOK();
         assertTrue(value.isBoolean());
@@ -308,12 +308,12 @@ public class PrystDebugDirectTest {
     }
 
     private static Source createNull() {
-        return Source.newBuilder("sl", "function nullTest() {\n" +
+        return Source.newBuilder("pryst", "function nullTest() {\n" +
                         "  res = doNull();\n" +
                         "  return res;\n" +
                         "}\n" +
                         "function doNull() {\n" +
-                        "}\n", "nullTest.sl").buildLiteral();
+                        "}\n", "nullTest.pst").buildLiteral();
     }
 
     @Test
@@ -328,12 +328,12 @@ public class PrystDebugDirectTest {
         assertLocation("nullTest", 3, true, "return res", "res", "NULL");
         continueExecution();
 
-        Value value = context.getBindings("sl").getMember("nullTest").execute();
+        Value value = context.getBindings("pryst").getMember("nullTest").execute();
         assertExecutedOK();
 
         String val = value.toString();
         assertNotNull(val);
-        assertEquals("SL displays null as NULL", "NULL", val);
+        assertEquals("Pryst displays null as NULL", "NULL", val);
     }
 
     private void performWork() {

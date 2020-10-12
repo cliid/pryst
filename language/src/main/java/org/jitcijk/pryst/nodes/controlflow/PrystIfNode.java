@@ -47,7 +47,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.jitcijk.pryst.PrystException;
 import org.jitcijk.pryst.nodes.PrystExpressionNode;
 import org.jitcijk.pryst.nodes.PrystStatementNode;
-import com.oracle.truffle.sl.nodes.util.SLUnboxNodeGen;
+import org.jitcijk.pryst.nodes.util.PrystUnboxNodeGen;
 
 @NodeInfo(shortName = "if", description = "The node implementing a condional statement")
 public final class PrystIfNode extends PrystStatementNode {
@@ -75,7 +75,7 @@ public final class PrystIfNode extends PrystStatementNode {
     private final ConditionProfile condition = ConditionProfile.createCountingProfile();
 
     public PrystIfNode(PrystExpressionNode conditionNode, PrystStatementNode thenPartNode, PrystStatementNode elsePartNode) {
-        this.conditionNode = SLUnboxNodeGen.create(conditionNode);
+        this.conditionNode = PrystUnboxNodeGen.create(conditionNode);
         this.thenPartNode = thenPartNode;
         this.elsePartNode = elsePartNode;
     }
@@ -90,7 +90,7 @@ public final class PrystIfNode extends PrystStatementNode {
             /* Execute the then-branch. */
             thenPartNode.executeVoid(frame);
         } else {
-            /* Execute the else-branch (which is optional according to the SL syntax). */
+            /* Execute the else-branch (which is optional according to the Pryst syntax). */
             if (elsePartNode != null) {
                 elsePartNode.executeVoid(frame);
             }
@@ -106,7 +106,7 @@ public final class PrystIfNode extends PrystStatementNode {
             return conditionNode.executeBoolean(frame);
         } catch (UnexpectedResultException ex) {
             /*
-             * The condition evaluated to a non-boolean result. This is a type error in the SL
+             * The condition evaluated to a non-boolean result. This is a type error in the Pryst
              * program.
              */
             throw PrystException.typeError(this, ex.getResult());

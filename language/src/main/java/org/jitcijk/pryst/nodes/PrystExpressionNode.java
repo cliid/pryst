@@ -33,8 +33,8 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 
 /**
- * Base class for all SL nodes that produce a value and therefore benefit from type specialization.
- * The annotation {@link TypeSystemReference} specifies the SL types. Specifying it here defines the
+ * Base class for all Pryst nodes that produce a value and therefore benefit from type specialization.
+ * The annotation {@link TypeSystemReference} specifies the Pryst types. Specifying it here defines the
  * type system for all subclasses.
  */
 @TypeSystemReference(PrystTypes.class)
@@ -61,7 +61,7 @@ public abstract class PrystExpressionNode extends PrystStatementNode {
 
     @Override
     public WrapperNode createWrapper(ProbeNode probe) {
-        return new SLExpressionNodeWrapper(this, probe);
+        return new PrystExpressionNodeWrapper(this, probe);
     }
 
     @Override
@@ -86,10 +86,10 @@ public abstract class PrystExpressionNode extends PrystStatementNode {
      */
 
     public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
-        return SLTypesGen.expectLong(executeGeneric(frame));
+        return PrystTypesGen.expectLong(executeGeneric(frame));
     }
 
     public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
-        return SLTypesGen.expectBoolean(executeGeneric(frame));
+        return PrystTypesGen.expectBoolean(executeGeneric(frame));
     }
 }

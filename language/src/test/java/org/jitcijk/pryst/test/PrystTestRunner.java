@@ -83,11 +83,11 @@ import org.junit.runners.model.InitializationError;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import org.jitcijk.pryst.PrystLanguage;
 import org.jitcijk.pryst.builtins.PrystBuiltinNode;
-import org.jitcijk.pryst.test.SLTestRunner.TestCase;
+import org.jitcijk.pryst.test.PrystTestRunner.TestCase;
 
-public class SLTestRunner extends ParentRunner<TestCase> {
+public class PrystTestRunner extends ParentRunner<TestCase> {
 
-    private static final String SOURCE_SUFFIX = ".sl";
+    private static final String SOURCE_SUFFIX = ".pst";
     private static final String INPUT_SUFFIX = ".input";
     private static final String OUTPUT_SUFFIX = ".output";
 
@@ -114,7 +114,7 @@ public class SLTestRunner extends ParentRunner<TestCase> {
 
     private final List<TestCase> testCases;
 
-    public SLTestRunner(Class<?> runningClass) throws InitializationError {
+    public PrystTestRunner(Class<?> runningClass) throws InitializationError {
         super(runningClass);
         try {
             testCases = createTests(runningClass);
@@ -134,9 +134,9 @@ public class SLTestRunner extends ParentRunner<TestCase> {
     }
 
     protected static List<TestCase> createTests(final Class<?> c) throws IOException, InitializationError {
-        SLTestSuite suite = c.getAnnotation(SLTestSuite.class);
+        PrystTestSuite suite = c.getAnnotation(PrystTestSuite.class);
         if (suite == null) {
-            throw new InitializationError(String.format("@%s annotation required on class '%s' to run with '%s'.", SLTestSuite.class.getSimpleName(), c.getName(), SLTestRunner.class.getSimpleName()));
+            throw new InitializationError(String.format("@%s annotation required on class '%s' to run with '%s'.", PrystTestSuite.class.getSimpleName(), c.getName(), PrystTestRunner.class.getSimpleName()));
         }
 
         String[] paths = suite.value();
@@ -147,7 +147,7 @@ public class SLTestRunner extends ParentRunner<TestCase> {
         }
 
         Class<?> testCaseDirectory = c;
-        if (suite.testCaseDirectory() != SLTestSuite.class) {
+        if (suite.testCaseDirectory() != PrystTestSuite.class) {
             testCaseDirectory = suite.testCaseDirectory();
         }
         Path root = getRootViaResourceURL(testCaseDirectory, paths);
@@ -324,7 +324,7 @@ public class SLTestRunner extends ParentRunner<TestCase> {
 
     private static void run(Context context, Path path, PrintWriter out) throws IOException {
         try {
-            /* Parse the SL source file. */
+            /* Parse the Pryst source file. */
             Source source = Source.newBuilder(PrystLanguage.ID, path.toFile()).interactive(true).build();
 
             /* Call the main entry point, without any arguments. */
@@ -341,7 +341,7 @@ public class SLTestRunner extends ParentRunner<TestCase> {
     public static void runInMain(Class<?> testClass, String[] args) throws InitializationError, NoTestsRemainException {
         JUnitCore core = new JUnitCore();
         core.addListener(new TextListener(System.out));
-        SLTestRunner suite = new SLTestRunner(testClass);
+        PrystTestRunner suite = new PrystTestRunner(testClass);
         if (args.length > 0) {
             suite.filter(new NameFilter(args[0]));
         }

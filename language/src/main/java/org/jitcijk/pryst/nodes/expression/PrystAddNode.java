@@ -34,7 +34,7 @@ import org.jitcijk.pryst.nodes.PrystTypes;
 import org.jitcijk.pryst.runtime.PrystBigNumber;
 
 /**
- * SL node that performs the "+" operation, which performs addition on arbitrary precision numbers,
+ * Pryst node that performs the "+" operation, which performs addition on arbitrary precision numbers,
  * as well as String concatenation if one of the operands is a String.
  * <p>
  * Type specialization on the input values is essential for the performance. This is achieved via
@@ -85,7 +85,7 @@ public abstract class PrystAddNode extends PrystBinaryNode {
     }
 
     /**
-     * Specialization for String concatenation. The SL specification says that String concatenation
+     * Specialization for String concatenation. The Pryst specification says that String concatenation
      * works if either the left or the right operand is a String. The non-string operand is
      * converted then automatically converted to a String.
      * <p>

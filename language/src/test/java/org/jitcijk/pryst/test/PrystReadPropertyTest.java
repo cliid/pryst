@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -40,43 +40,41 @@
  */
 package org.jitcijk.pryst.test;
 
+import static org.junit.Assert.assertNull;
+
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SLInteropOperatorTest {
-    private Context context;
+public class PrystReadPropertyTest {
+
+    private Context ctx;
+    private Value prystObject;
 
     @Before
     public void setUp() {
-        context = Context.create("sl");
+        this.ctx = Context.create("pryst");
+        this.prystObject = ctx.eval("pryst", "function createObject() {\n" +
+                        "obj1 = new();\n" +
+                        "obj1.number = 42;\n" +
+                        "return obj1;\n" +
+                        "}\n" +
+                        "function main() {\n" +
+                        "return createObject;\n" +
+                        "}").execute();
     }
 
     @After
     public void tearDown() {
-        context = null;
+        this.ctx.close();
     }
 
     @Test
-    public void testAdd() {
-        final Source src = Source.newBuilder("sl", "function testAdd(a,b) {return a + b;} function main() {return testAdd;}", "testAdd.sl").buildLiteral();
-        final Value fnc = context.eval(src);
-        Assert.assertTrue(fnc.canExecute());
-        final Value res = fnc.execute(1, 2);
-        Assert.assertTrue(res.isNumber());
-        Assert.assertEquals(3, res.asInt());
-    }
-
-    @Test
-    public void testSub() {
-        final Source src = Source.newBuilder("sl", "function testSub(a,b) {return a - b;} function main() {return testSub;}", "testSub.sl").buildLiteral();
-        final Value fnc = context.eval(src);
-        final Value res = fnc.execute(1, 2);
-        Assert.assertTrue(res.isNumber());
-        Assert.assertEquals(-1, res.asInt());
+    public void testRead() {
+        Assert.assertEquals(42, prystObject.getMember("number").asInt());
+        assertNull(prystObject.getMember("nonexistent"));
     }
 }

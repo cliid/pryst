@@ -49,7 +49,7 @@ import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.jitcijk.pryst.nodes.PrystExpressionNode;
 import org.jitcijk.pryst.nodes.PrystStatementNode;
-import com.oracle.truffle.sl.nodes.util.SLUnboxNodeGen;
+import org.jitcijk.pryst.nodes.util.PrystUnboxNodeGen;
 
 /**
  * The loop body of a {@link PrystWhileNode while loop}. A Truffle framework {@link LoopNode} between
@@ -77,7 +77,7 @@ public final class PrystWhileRepeatingNode extends Node implements RepeatingNode
     private final BranchProfile breakTaken = BranchProfile.create();
 
     public PrystWhileRepeatingNode(PrystExpressionNode conditionNode, PrystStatementNode bodyNode) {
-        this.conditionNode = SLUnboxNodeGen.create(conditionNode);
+        this.conditionNode = PrystUnboxNodeGen.create(conditionNode);
         this.bodyNode = bodyNode;
     }
 
@@ -117,7 +117,7 @@ public final class PrystWhileRepeatingNode extends Node implements RepeatingNode
             return conditionNode.executeBoolean(frame);
         } catch (UnexpectedResultException ex) {
             /*
-             * The condition evaluated to a non-boolean result. This is a type error in the SL
+             * The condition evaluated to a non-boolean result. This is a type error in the Pryst
              * program. We report it with the same exception that Truffle DSL generated nodes use to
              * report type errors.
              */

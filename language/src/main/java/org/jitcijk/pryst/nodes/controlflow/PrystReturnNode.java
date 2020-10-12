@@ -47,7 +47,7 @@ import org.jitcijk.pryst.nodes.PrystStatementNode;
 import org.jitcijk.pryst.runtime.PrystNull;
 
 /**
- * Implementation of the SL return statement. We need to unwind an unknown number of interpreter
+ * Implementation of the Pryst return statement. We need to unwind an unknown number of interpreter
  * frames that are between this {@link PrystReturnNode} and the {@link PrystFunctionBodyNode} of the
  * method we are exiting. This is done by throwing an {@link PrystReturnException exception} that is
  * caught by the {@link PrystFunctionBodyNode#executeGeneric function body}. The exception transports
@@ -69,7 +69,7 @@ public final class PrystReturnNode extends PrystStatementNode {
             result = valueNode.executeGeneric(frame);
         } else {
             /*
-             * Return statement that was not followed by an expression, so return the SL null value.
+             * Return statement that was not followed by an expression, so return the Pryst null value.
              */
             result = PrystNull.SINGLETON;
         }
