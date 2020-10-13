@@ -9,8 +9,8 @@ jdk:
     - openjdk11
 
 env:
-    - GRAALVM_VERSION="20.1.0" GRAALVM_JAVA_VERSION="8"
-    - GRAALVM_VERSION="20.1.0" GRAALVM_JAVA_VERSION="11"
+    - GRAALVM_VERSION="20.2.0" GRAALVM_JAVA_VERSION="8"
+    - GRAALVM_VERSION="20.2.0" GRAALVM_JAVA_VERSION="11"
     - GRAALVM_VERSION="NONE" PRYST_BUILD_NATIVE="false"
 
 matrix:
@@ -19,6 +19,12 @@ matrix:
           jdk: openjdk11
           os: linux
         - env: GRAALVM_VERSION="20.0" GRAALVM_JAVA_VERSION="11"
+          jdk: openjdk11
+          os: linux
+        - env: GRAALVM_VERSION="20.1.0" GRAALVM_JAVA_VERSION="8"
+          jdk: openjdk11
+          os: linux
+        - env: GRAALVM_VERSION="20.1.0" GRAALVM_JAVA_VERSION="11"
           jdk: openjdk11
           os: linux
           # Travis does not provide an adequate jdk8 on mac (mac versioning issue)
@@ -30,7 +36,6 @@ matrix:
           env: GRAALVM_VERSION="NONE" PRYST_BUILD_NATIVE="false"
 
 install:
-    - cd .. && mv simplelanguage "simple language" && cd "simple language"
     - |
         if [[ "$GRAALVM_VERSION" != "NONE" ]]; then
           if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then DOWNLOAD_OS_NAME="darwin"; fi
