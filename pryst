@@ -41,7 +41,8 @@
 #
 
 # If you update this number make sure the graalvm.version value in ./pom.xml matches
-VERSION="20.2.0"
+LOCAL_GRAALVM_VERSION="20.2.0"
+PRYST_VERSION="0.0.1"
 
 MAIN_CLASS="org.jitcijk.pryst.launcher.PrystMain"
 SCRIPT_HOME="$(cd "$(dirname "$0")" && pwd -P)"
@@ -55,7 +56,7 @@ function extractGraalVMVersion() {
 
 function versionCheck() {
     local -r message="${1:-Wrong GraalVM version.}"
-    if [[ "$GRAALVM_VERSION" != "$VERSION" ]]; then
+    if [[ "$GRAALVM_VERSION" != "$LOCAL_GRAALVM_VERSION" ]]; then
         fail "$message"
     fi
 }
@@ -77,15 +78,15 @@ if [[ "$GRAALVM_VERSION" != "" ]]; then
     # contains paths for both jdk8 and jdk11
     LAUNCHER_PATH="$SCRIPT_HOME/../jre/languages/pryst/launcher/pryst-launcher.jar:$SCRIPT_HOME/../languages/pryst/launcher/pryst-launcher.jar"
     JAVACMD="$SCRIPT_HOME/java"
-    versionCheck "Installed in wrong version of GraalVM. Expected: $VERSION, found $GRAALVM_VERSION"
+    versionCheck "Installed in wrong version of GraalVM. Expected: $LOCAL_GRAALVM_VERSION, found $GRAALVM_VERSION"
 else
     LANGUAGE_PATH="$SCRIPT_HOME/language/target/pryst.jar"
-    LAUNCHER_PATH="$SCRIPT_HOME/launcher/target/launcher-$VERSION.jar"
+    LAUNCHER_PATH="$SCRIPT_HOME/launcher/target/launcher-$PRYST_VERSION.jar"
     # Check the GraalVM version in JAVA_HOME
     if [[ "$JAVA_HOME" != "" ]]; then
         GRAALVM_VERSION=$(extractGraalVMVersion "$JAVA_HOME"/release)
         if [[ "$GRAALVM_VERSION" != "" ]]; then
-            versionCheck "Wrong version of GraalVM in \$JAVA_HOME. Expected: $VERSION, found $GRAALVM_VERSION"
+            versionCheck "Wrong version of GraalVM in \$JAVA_HOME. Expected: $LOCAL_GRAALVM_VERSION, found $GRAALVM_VERSION"
         fi
         JAVACMD=${JAVACMD:=$JAVA_HOME/bin/java}
         if [[ ! -f $LANGUAGE_PATH ]]; then
@@ -150,7 +151,7 @@ else
         echo "Could not find mvn cache at $HOME/.m2"
         exit 1
     fi
-    GRAAL_SDK_PATH="$HOME/.m2/repository/org/graalvm/sdk/graal-sdk/$VERSION/graal-sdk-$VERSION.jar"
-    TRUFFLE_API_PATH="$HOME/.m2/repository/org/graalvm/truffle/truffle-api/$VERSION/truffle-api-$VERSION.jar"
+    GRAAL_SDK_PATH="$HOME/.m2/repository/org/graalvm/sdk/graal-sdk/$LOCAL_GRAALVM_VERSION/graal-sdk-$LOCAL_GRAALVM_VERSION.jar"
+    TRUFFLE_API_PATH="$HOME/.m2/repository/org/graalvm/truffle/truffle-api/$LOCAL_GRAALVM_VERSION/truffle-api-$LOCAL_GRAALVM_VERSION.jar"
     "$JAVACMD" "${JAVA_ARGS[@]}" -cp "$GRAAL_SDK_PATH":"$LAUNCHER_PATH":"$LANGUAGE_PATH":"$TRUFFLE_API_PATH" "$MAIN_CLASS" "${PROGRAM_ARGS[@]}"
 fi
