@@ -2,16 +2,16 @@
 <h3 align="center">A static explicit language with beautiful syntax and a bit of sugar :)</h3>
 <p align="center">
   <a href="https://ci.appveyor.com/project/cliid/pryst/branch/master">
-    <img src="https://ci.appveyor.com/api/projects/status/github/pryst/pryst?branch=master&svg=true" />
+    <img src="https://ci.appveyor.com/api/projects/status/github/jitcijk/pryst?branch=master&svg=true" />
   </a>
-  <a href="https://travis-ci.com/github/pryst/pryst/builds">
-    <img src="https://travis-ci.org/pryst/pryst.svg?branch=master" />
+  <a href="https://travis-ci.com/github/jitcijk/pryst/builds">
+    <img src="https://travis-ci.org/jitcijk/pryst.svg?branch=master" />
   </a>
   <a href="https://github.com/pryst/pryst/blob/master/LICENSE">
     <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg" target="_blank" />
   </a>
   <a href="https://codecov.io/gh/pryst/pryst">
-    <img src="https://codecov.io/gh/pryst/pryst/branch/master/graph/badge.svg" />
+    <img src="https://codecov.io/gh/jitcijk/pryst/branch/master/graph/badge.svg" />
   </a>
 </p>
 
