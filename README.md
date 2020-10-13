@@ -7,10 +7,10 @@
   <a href="https://travis-ci.com/github/jitcijk/pryst/builds">
     <img src="https://travis-ci.org/jitcijk/pryst.svg?branch=master" />
   </a>
-  <a href="https://github.com/pryst/pryst/blob/master/LICENSE">
+  <a href="https://github.com/jitcijk/pryst/blob/master/LICENSE">
     <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg" target="_blank" />
   </a>
-  <a href="https://codecov.io/gh/pryst/pryst">
+  <a href="https://codecov.io/gh/jitcijk/pryst">
     <img src="https://codecov.io/gh/jitcijk/pryst/branch/master/graph/badge.svg" />
   </a>
 </p>
