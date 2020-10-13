@@ -1,26 +1,4 @@
-/*
- * The MIT License
- *
- * Copyright (c) 2020 Jitcijk Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+// Generated from language/src/main/java/org/jitcijk/pryst/parser/Pryst.g4 by ANTLR 4.8
 package org.jitcijk.pryst.parser;
 
 // DO NOT MODIFY - generated from Pryst.g4 using "mx create-pryst-parser"
@@ -33,16 +11,22 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.RootCallTarget;
 import org.jitcijk.pryst.PrystLanguage;
 import org.jitcijk.pryst.nodes.PrystExpressionNode;
+import org.jitcijk.pryst.nodes.PrystRootNode;
 import org.jitcijk.pryst.nodes.PrystStatementNode;
+import org.jitcijk.pryst.parser.PrystParseError;
 
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.*;
 import org.antlr.v4.runtime.tree.*;
+import java.util.List;
+import java.util.Iterator;
+import java.util.ArrayList;
 
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class PrystParser extends Parser {
-	static { RuntimeMetaData.checkVersion("4.7.2", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.8", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
@@ -54,15 +38,15 @@ public class PrystParser extends Parser {
 		T__24=25, T__25=26, T__26=27, T__27=28, T__28=29, T__29=30, WS=31, COMMENT=32, 
 		LINE_COMMENT=33, IDENTIFIER=34, STRING_LITERAL=35, NUMERIC_LITERAL=36;
 	public static final int
-		RULE_simplelanguage = 0, RULE_function = 1, RULE_block = 2, RULE_statement = 3, 
+		RULE_pryst = 0, RULE_function = 1, RULE_block = 2, RULE_statement = 3, 
 		RULE_while_statement = 4, RULE_if_statement = 5, RULE_return_statement = 6, 
 		RULE_expression = 7, RULE_logic_term = 8, RULE_logic_factor = 9, RULE_arithmetic = 10, 
 		RULE_term = 11, RULE_factor = 12, RULE_member_expression = 13;
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"simplelanguage", "function", "block", "statement", "while_statement", 
-			"if_statement", "return_statement", "expression", "logic_term", "logic_factor", 
-			"arithmetic", "term", "factor", "member_expression"
+			"pryst", "function", "block", "statement", "while_statement", "if_statement", 
+			"return_statement", "expression", "logic_term", "logic_factor", "arithmetic", 
+			"term", "factor", "member_expression"
 		};
 	}
 	public static final String[] ruleNames = makeRuleNames();
@@ -167,7 +151,7 @@ public class PrystParser extends Parser {
 	    parser.addErrorListener(listener);
 	    parser.factory = new PrystNodeFactory(language, source);
 	    parser.source = source;
-	    parser.simplelanguage();
+	    parser.pryst();
 	    return parser.factory.getAllFunctions();
 	}
 
@@ -176,7 +160,7 @@ public class PrystParser extends Parser {
 		_interp = new ParserATNSimulator(this,_ATN,_decisionToDFA,_sharedContextCache);
 	}
 
-	public static class SimplelanguageContext extends ParserRuleContext {
+	public static class PrystContext extends ParserRuleContext {
 		public List<FunctionContext> function() {
 			return getRuleContexts(FunctionContext.class);
 		}
@@ -184,15 +168,15 @@ public class PrystParser extends Parser {
 			return getRuleContext(FunctionContext.class,i);
 		}
 		public TerminalNode EOF() { return getToken(PrystParser.EOF, 0); }
-		public SimplelanguageContext(ParserRuleContext parent, int invokingState) {
+		public PrystContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
-		@Override public int getRuleIndex() { return RULE_simplelanguage; }
+		@Override public int getRuleIndex() { return RULE_pryst; }
 	}
 
-	public final SimplelanguageContext simplelanguage() throws RecognitionException {
-		SimplelanguageContext _localctx = new SimplelanguageContext(_ctx, getState());
-		enterRule(_localctx, 0, RULE_simplelanguage);
+	public final PrystContext pryst() throws RecognitionException {
+		PrystContext _localctx = new PrystContext(_ctx, getState());
+		enterRule(_localctx, 0, RULE_pryst);
 		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
@@ -255,18 +239,18 @@ public class PrystParser extends Parser {
 			setState(37);
 			match(T__0);
 			setState(38);
-			_localctx.IDENTIFIER = match(IDENTIFIER);
+			((FunctionContext)_localctx).IDENTIFIER = match(IDENTIFIER);
 			setState(39);
-			_localctx.s = match(T__1);
-			 factory.startFunction(_localctx.IDENTIFIER, _localctx.s); 
+			((FunctionContext)_localctx).s = match(T__1);
+			 factory.startFunction(((FunctionContext)_localctx).IDENTIFIER, ((FunctionContext)_localctx).s); 
 			setState(51);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			if (_la==IDENTIFIER) {
 				{
 				setState(41);
-				_localctx.IDENTIFIER = match(IDENTIFIER);
-				 factory.addFormalParameter(_localctx.IDENTIFIER); 
+				((FunctionContext)_localctx).IDENTIFIER = match(IDENTIFIER);
+				 factory.addFormalParameter(((FunctionContext)_localctx).IDENTIFIER); 
 				setState(48);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
@@ -276,8 +260,8 @@ public class PrystParser extends Parser {
 					setState(43);
 					match(T__2);
 					setState(44);
-					_localctx.IDENTIFIER = match(IDENTIFIER);
-					 factory.addFormalParameter(_localctx.IDENTIFIER); 
+					((FunctionContext)_localctx).IDENTIFIER = match(IDENTIFIER);
+					 factory.addFormalParameter(((FunctionContext)_localctx).IDENTIFIER); 
 					}
 					}
 					setState(50);
@@ -290,8 +274,8 @@ public class PrystParser extends Parser {
 			setState(53);
 			match(T__3);
 			setState(54);
-			_localctx.body = block(false);
-			 factory.finishFunction(_localctx.body.result); 
+			((FunctionContext)_localctx).body = block(false);
+			 factory.finishFunction(((FunctionContext)_localctx).body.result); 
 			}
 		}
 		catch (RecognitionException re) {
@@ -333,9 +317,9 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			 factory.startBlock();
-			                                                  List<PrystStatementNode> body = new ArrayList<>();
+			                                                  List<PrystStatementNode> body = new ArrayList<>(); 
 			setState(58);
-			_localctx.s = match(T__4);
+			((BlockContext)_localctx).s = match(T__4);
 			setState(64);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
@@ -343,8 +327,8 @@ public class PrystParser extends Parser {
 				{
 				{
 				setState(59);
-				_localctx.statement = statement(inLoop);
-				 body.add(_localctx.statement.result); 
+				((BlockContext)_localctx).statement = statement(inLoop);
+				 body.add(((BlockContext)_localctx).statement.result); 
 				}
 				}
 				setState(66);
@@ -352,8 +336,8 @@ public class PrystParser extends Parser {
 				_la = _input.LA(1);
 			}
 			setState(67);
-			_localctx.e = match(T__5);
-			 _localctx.result =  factory.finishBlock(body, _localctx.s.getStartIndex(), _localctx.e.getStopIndex() - _localctx.s.getStartIndex() + 1); 
+			((BlockContext)_localctx).e = match(T__5);
+			 ((BlockContext)_localctx).result =  factory.finishBlock(body, ((BlockContext)_localctx).s.getStartIndex(), ((BlockContext)_localctx).e.getStopIndex() - ((BlockContext)_localctx).s.getStartIndex() + 1); 
 			}
 		}
 		catch (RecognitionException re) {
@@ -409,15 +393,15 @@ public class PrystParser extends Parser {
 			case T__10:
 				{
 				setState(70);
-				_localctx.while_statement = while_statement();
-				 _localctx.result =  _localctx.while_statement.result; 
+				((StatementContext)_localctx).while_statement = while_statement();
+				 ((StatementContext)_localctx).result =  ((StatementContext)_localctx).while_statement.result; 
 				}
 				break;
 			case T__6:
 				{
 				setState(73);
-				_localctx.b = match(T__6);
-				 if (inLoop) { _localctx.result =  factory.createBreak(_localctx.b); } else { SemErr(_localctx.b, "break used outside of loop"); } 
+				((StatementContext)_localctx).b = match(T__6);
+				 if (inLoop) { ((StatementContext)_localctx).result =  factory.createBreak(((StatementContext)_localctx).b); } else { SemErr(((StatementContext)_localctx).b, "break used outside of loop"); } 
 				setState(75);
 				match(T__7);
 				}
@@ -425,8 +409,8 @@ public class PrystParser extends Parser {
 			case T__8:
 				{
 				setState(76);
-				_localctx.c = match(T__8);
-				 if (inLoop) { _localctx.result =  factory.createContinue(_localctx.c); } else { SemErr(_localctx.c, "continue used outside of loop"); } 
+				((StatementContext)_localctx).c = match(T__8);
+				 if (inLoop) { ((StatementContext)_localctx).result =  factory.createContinue(((StatementContext)_localctx).c); } else { SemErr(((StatementContext)_localctx).c, "continue used outside of loop"); } 
 				setState(78);
 				match(T__7);
 				}
@@ -434,15 +418,15 @@ public class PrystParser extends Parser {
 			case T__11:
 				{
 				setState(79);
-				_localctx.if_statement = if_statement(inLoop);
-				 _localctx.result =  _localctx.if_statement.result; 
+				((StatementContext)_localctx).if_statement = if_statement(inLoop);
+				 ((StatementContext)_localctx).result =  ((StatementContext)_localctx).if_statement.result; 
 				}
 				break;
 			case T__13:
 				{
 				setState(82);
-				_localctx.return_statement = return_statement();
-				 _localctx.result =  _localctx.return_statement.result; 
+				((StatementContext)_localctx).return_statement = return_statement();
+				 ((StatementContext)_localctx).result =  ((StatementContext)_localctx).return_statement.result; 
 				}
 				break;
 			case T__1:
@@ -451,17 +435,17 @@ public class PrystParser extends Parser {
 			case NUMERIC_LITERAL:
 				{
 				setState(85);
-				_localctx.expression = expression();
+				((StatementContext)_localctx).expression = expression();
 				setState(86);
 				match(T__7);
-				 _localctx.result =  _localctx.expression.result; 
+				 ((StatementContext)_localctx).result =  ((StatementContext)_localctx).expression.result; 
 				}
 				break;
 			case T__9:
 				{
 				setState(89);
-				_localctx.d = match(T__9);
-				 _localctx.result =  factory.createDebugger(_localctx.d); 
+				((StatementContext)_localctx).d = match(T__9);
+				 ((StatementContext)_localctx).result =  factory.createDebugger(((StatementContext)_localctx).d); 
 				setState(91);
 				match(T__7);
 				}
@@ -506,16 +490,16 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(94);
-			_localctx.w = match(T__10);
+			((While_statementContext)_localctx).w = match(T__10);
 			setState(95);
 			match(T__1);
 			setState(96);
-			_localctx.condition = expression();
+			((While_statementContext)_localctx).condition = expression();
 			setState(97);
 			match(T__3);
 			setState(98);
-			_localctx.body = block(true);
-			 _localctx.result =  factory.createWhile(_localctx.w, _localctx.condition.result, _localctx.body.result); 
+			((While_statementContext)_localctx).body = block(true);
+			 ((While_statementContext)_localctx).result =  factory.createWhile(((While_statementContext)_localctx).w, ((While_statementContext)_localctx).condition.result, ((While_statementContext)_localctx).body.result); 
 			}
 		}
 		catch (RecognitionException re) {
@@ -561,16 +545,16 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(101);
-			_localctx.i = match(T__11);
+			((If_statementContext)_localctx).i = match(T__11);
 			setState(102);
 			match(T__1);
 			setState(103);
-			_localctx.condition = expression();
+			((If_statementContext)_localctx).condition = expression();
 			setState(104);
 			match(T__3);
 			setState(105);
-			_localctx.then = _localctx.block = block(inLoop);
-			 PrystStatementNode elsePart = null;
+			((If_statementContext)_localctx).then = ((If_statementContext)_localctx).block = block(inLoop);
+			 PrystStatementNode elsePart = null; 
 			setState(111);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
@@ -579,12 +563,12 @@ public class PrystParser extends Parser {
 				setState(107);
 				match(T__12);
 				setState(108);
-				_localctx.block = block(inLoop);
-				 elsePart = _localctx.block.result; 
+				((If_statementContext)_localctx).block = block(inLoop);
+				 elsePart = ((If_statementContext)_localctx).block.result; 
 				}
 			}
 
-			 _localctx.result =  factory.createIf(_localctx.i, _localctx.condition.result, _localctx.then.result, elsePart); 
+			 ((If_statementContext)_localctx).result =  factory.createIf(((If_statementContext)_localctx).i, ((If_statementContext)_localctx).condition.result, ((If_statementContext)_localctx).then.result, elsePart); 
 			}
 		}
 		catch (RecognitionException re) {
@@ -619,20 +603,20 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(115);
-			_localctx.r = match(T__13);
-			 PrystExpressionNode value = null;
+			((Return_statementContext)_localctx).r = match(T__13);
+			 PrystExpressionNode value = null; 
 			setState(120);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__1) | (1L << IDENTIFIER) | (1L << STRING_LITERAL) | (1L << NUMERIC_LITERAL))) != 0)) {
 				{
 				setState(117);
-				_localctx.expression = expression();
-				 value = _localctx.expression.result; 
+				((Return_statementContext)_localctx).expression = expression();
+				 value = ((Return_statementContext)_localctx).expression.result; 
 				}
 			}
 
-			 _localctx.result =  factory.createReturn(_localctx.r, value); 
+			 ((Return_statementContext)_localctx).result =  factory.createReturn(((Return_statementContext)_localctx).r, value); 
 			setState(123);
 			match(T__7);
 			}
@@ -672,8 +656,8 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(125);
-			_localctx.logic_term = logic_term();
-			 _localctx.result =  _localctx.logic_term.result; 
+			((ExpressionContext)_localctx).logic_term = logic_term();
+			 ((ExpressionContext)_localctx).result =  ((ExpressionContext)_localctx).logic_term.result; 
 			setState(133);
 			_errHandler.sync(this);
 			_alt = getInterpreter().adaptivePredict(_input,7,_ctx);
@@ -682,10 +666,10 @@ public class PrystParser extends Parser {
 					{
 					{
 					setState(127);
-					_localctx.op = match(T__14);
+					((ExpressionContext)_localctx).op = match(T__14);
 					setState(128);
-					_localctx.logic_term = logic_term();
-					 _localctx.result =  factory.createBinary(_localctx.op, _localctx.result, _localctx.logic_term.result); 
+					((ExpressionContext)_localctx).logic_term = logic_term();
+					 ((ExpressionContext)_localctx).result =  factory.createBinary(((ExpressionContext)_localctx).op, _localctx.result, ((ExpressionContext)_localctx).logic_term.result); 
 					}
 					} 
 				}
@@ -730,8 +714,8 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(136);
-			_localctx.logic_factor = logic_factor();
-			 _localctx.result =  _localctx.logic_factor.result; 
+			((Logic_termContext)_localctx).logic_factor = logic_factor();
+			 ((Logic_termContext)_localctx).result =  ((Logic_termContext)_localctx).logic_factor.result; 
 			setState(144);
 			_errHandler.sync(this);
 			_alt = getInterpreter().adaptivePredict(_input,8,_ctx);
@@ -740,10 +724,10 @@ public class PrystParser extends Parser {
 					{
 					{
 					setState(138);
-					_localctx.op = match(T__15);
+					((Logic_termContext)_localctx).op = match(T__15);
 					setState(139);
-					_localctx.logic_factor = logic_factor();
-					 _localctx.result =  factory.createBinary(_localctx.op, _localctx.result, _localctx.logic_factor.result); 
+					((Logic_termContext)_localctx).logic_factor = logic_factor();
+					 ((Logic_termContext)_localctx).result =  factory.createBinary(((Logic_termContext)_localctx).op, _localctx.result, ((Logic_termContext)_localctx).logic_factor.result); 
 					}
 					} 
 				}
@@ -788,18 +772,18 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(147);
-			_localctx.arithmetic = arithmetic();
-			 _localctx.result =  _localctx.arithmetic.result; 
+			((Logic_factorContext)_localctx).arithmetic = arithmetic();
+			 ((Logic_factorContext)_localctx).result =  ((Logic_factorContext)_localctx).arithmetic.result; 
 			setState(153);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,9,_ctx) ) {
 			case 1:
 				{
 				setState(149);
-				_localctx.op = _input.LT(1);
+				((Logic_factorContext)_localctx).op = _input.LT(1);
 				_la = _input.LA(1);
 				if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__16) | (1L << T__17) | (1L << T__18) | (1L << T__19) | (1L << T__20) | (1L << T__21))) != 0)) ) {
-					_localctx.op = _errHandler.recoverInline(this);
+					((Logic_factorContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 				}
 				else {
 					if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -807,8 +791,8 @@ public class PrystParser extends Parser {
 					consume();
 				}
 				setState(150);
-				_localctx.arithmetic = arithmetic();
-				 _localctx.result =  factory.createBinary(_localctx.op, _localctx.result, _localctx.arithmetic.result); 
+				((Logic_factorContext)_localctx).arithmetic = arithmetic();
+				 ((Logic_factorContext)_localctx).result =  factory.createBinary(((Logic_factorContext)_localctx).op, _localctx.result, ((Logic_factorContext)_localctx).arithmetic.result); 
 				}
 				break;
 			}
@@ -850,8 +834,8 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(155);
-			_localctx.term = term();
-			 _localctx.result =  _localctx.term.result; 
+			((ArithmeticContext)_localctx).term = term();
+			 ((ArithmeticContext)_localctx).result =  ((ArithmeticContext)_localctx).term.result; 
 			setState(163);
 			_errHandler.sync(this);
 			_alt = getInterpreter().adaptivePredict(_input,10,_ctx);
@@ -860,10 +844,10 @@ public class PrystParser extends Parser {
 					{
 					{
 					setState(157);
-					_localctx.op = _input.LT(1);
+					((ArithmeticContext)_localctx).op = _input.LT(1);
 					_la = _input.LA(1);
 					if ( !(_la==T__22 || _la==T__23) ) {
-						_localctx.op = _errHandler.recoverInline(this);
+						((ArithmeticContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 					}
 					else {
 						if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -871,8 +855,8 @@ public class PrystParser extends Parser {
 						consume();
 					}
 					setState(158);
-					_localctx.term = term();
-					 _localctx.result =  factory.createBinary(_localctx.op, _localctx.result, _localctx.term.result); 
+					((ArithmeticContext)_localctx).term = term();
+					 ((ArithmeticContext)_localctx).result =  factory.createBinary(((ArithmeticContext)_localctx).op, _localctx.result, ((ArithmeticContext)_localctx).term.result); 
 					}
 					} 
 				}
@@ -918,8 +902,8 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(166);
-			_localctx.factor = factor();
-			 _localctx.result =  _localctx.factor.result; 
+			((TermContext)_localctx).factor = factor();
+			 ((TermContext)_localctx).result =  ((TermContext)_localctx).factor.result; 
 			setState(174);
 			_errHandler.sync(this);
 			_alt = getInterpreter().adaptivePredict(_input,11,_ctx);
@@ -928,10 +912,10 @@ public class PrystParser extends Parser {
 					{
 					{
 					setState(168);
-					_localctx.op = _input.LT(1);
+					((TermContext)_localctx).op = _input.LT(1);
 					_la = _input.LA(1);
 					if ( !(_la==T__24 || _la==T__25) ) {
-						_localctx.op = _errHandler.recoverInline(this);
+						((TermContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 					}
 					else {
 						if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -939,8 +923,8 @@ public class PrystParser extends Parser {
 						consume();
 					}
 					setState(169);
-					_localctx.factor = factor();
-					 _localctx.result =  factory.createBinary(_localctx.op, _localctx.result, _localctx.factor.result); 
+					((TermContext)_localctx).factor = factor();
+					 ((TermContext)_localctx).result =  factory.createBinary(((TermContext)_localctx).op, _localctx.result, ((TermContext)_localctx).factor.result); 
 					}
 					} 
 				}
@@ -997,21 +981,21 @@ public class PrystParser extends Parser {
 			case IDENTIFIER:
 				{
 				setState(177);
-				_localctx.IDENTIFIER = match(IDENTIFIER);
-				 PrystExpressionNode assignmentName = factory.createStringLiteral(_localctx.IDENTIFIER, false);
+				((FactorContext)_localctx).IDENTIFIER = match(IDENTIFIER);
+				 PrystExpressionNode assignmentName = factory.createStringLiteral(((FactorContext)_localctx).IDENTIFIER, false); 
 				setState(183);
 				_errHandler.sync(this);
 				switch ( getInterpreter().adaptivePredict(_input,12,_ctx) ) {
 				case 1:
 					{
 					setState(179);
-					_localctx.member_expression = member_expression(null, null, assignmentName);
-					 _localctx.result =  _localctx.member_expression.result; 
+					((FactorContext)_localctx).member_expression = member_expression(null, null, assignmentName);
+					 ((FactorContext)_localctx).result =  ((FactorContext)_localctx).member_expression.result; 
 					}
 					break;
 				case 2:
 					{
-					 _localctx.result =  factory.createRead(assignmentName); 
+					 ((FactorContext)_localctx).result =  factory.createRead(assignmentName); 
 					}
 					break;
 				}
@@ -1020,26 +1004,26 @@ public class PrystParser extends Parser {
 			case STRING_LITERAL:
 				{
 				setState(185);
-				_localctx.STRING_LITERAL = match(STRING_LITERAL);
-				 _localctx.result =  factory.createStringLiteral(_localctx.STRING_LITERAL, true); 
+				((FactorContext)_localctx).STRING_LITERAL = match(STRING_LITERAL);
+				 ((FactorContext)_localctx).result =  factory.createStringLiteral(((FactorContext)_localctx).STRING_LITERAL, true); 
 				}
 				break;
 			case NUMERIC_LITERAL:
 				{
 				setState(187);
-				_localctx.NUMERIC_LITERAL = match(NUMERIC_LITERAL);
-				 _localctx.result =  factory.createNumericLiteral(_localctx.NUMERIC_LITERAL); 
+				((FactorContext)_localctx).NUMERIC_LITERAL = match(NUMERIC_LITERAL);
+				 ((FactorContext)_localctx).result =  factory.createNumericLiteral(((FactorContext)_localctx).NUMERIC_LITERAL); 
 				}
 				break;
 			case T__1:
 				{
 				setState(189);
-				_localctx.s = match(T__1);
+				((FactorContext)_localctx).s = match(T__1);
 				setState(190);
-				_localctx.expr = expression();
+				((FactorContext)_localctx).expr = expression();
 				setState(191);
-				_localctx.e = match(T__3);
-				 _localctx.result =  factory.createParenExpression(_localctx.expr.result, _localctx.s.getStartIndex(), _localctx.e.getStopIndex() - _localctx.s.getStartIndex() + 1); 
+				((FactorContext)_localctx).e = match(T__3);
+				 ((FactorContext)_localctx).result =  factory.createParenExpression(((FactorContext)_localctx).expr.result, ((FactorContext)_localctx).s.getStartIndex(), ((FactorContext)_localctx).e.getStopIndex() - ((FactorContext)_localctx).s.getStartIndex() + 1); 
 				}
 				break;
 			default:
@@ -1087,7 +1071,7 @@ public class PrystParser extends Parser {
 		@Override public int getRuleIndex() { return RULE_member_expression; }
 	}
 
-	public final Member_expressionContext member_expression(PrystExpressionNode r, PrystExpressionNode assignmentReceiver, PrystExpressionNode assignmentName) throws RecognitionException {
+	public final Member_expressionContext member_expression(PrystExpressionNode r,PrystExpressionNode assignmentReceiver,PrystExpressionNode assignmentName) throws RecognitionException {
 		Member_expressionContext _localctx = new Member_expressionContext(_ctx, getState(), r, assignmentReceiver, assignmentName);
 		enterRule(_localctx, 26, RULE_member_expression);
 		int _la;
@@ -1095,7 +1079,7 @@ public class PrystParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			 PrystExpressionNode receiver = r;
-			                                                  PrystExpressionNode nestedAssignmentName = null;
+			                                                  PrystExpressionNode nestedAssignmentName = null; 
 			setState(228);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
@@ -1113,8 +1097,8 @@ public class PrystParser extends Parser {
 				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__1) | (1L << IDENTIFIER) | (1L << STRING_LITERAL) | (1L << NUMERIC_LITERAL))) != 0)) {
 					{
 					setState(199);
-					_localctx.expression = expression();
-					 parameters.add(_localctx.expression.result); 
+					((Member_expressionContext)_localctx).expression = expression();
+					 parameters.add(((Member_expressionContext)_localctx).expression.result); 
 					setState(207);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
@@ -1124,8 +1108,8 @@ public class PrystParser extends Parser {
 						setState(201);
 						match(T__2);
 						setState(202);
-						_localctx.expression = expression();
-						 parameters.add(_localctx.expression.result); 
+						((Member_expressionContext)_localctx).expression = expression();
+						 parameters.add(((Member_expressionContext)_localctx).expression.result); 
 						}
 						}
 						setState(209);
@@ -1136,8 +1120,8 @@ public class PrystParser extends Parser {
 				}
 
 				setState(212);
-				_localctx.e = match(T__3);
-				 _localctx.result =  factory.createCall(receiver, parameters, _localctx.e); 
+				((Member_expressionContext)_localctx).e = match(T__3);
+				 ((Member_expressionContext)_localctx).result =  factory.createCall(receiver, parameters, ((Member_expressionContext)_localctx).e); 
 				}
 				break;
 			case T__26:
@@ -1145,13 +1129,13 @@ public class PrystParser extends Parser {
 				setState(214);
 				match(T__26);
 				setState(215);
-				_localctx.expression = expression();
+				((Member_expressionContext)_localctx).expression = expression();
 				 if (assignmentName == null) {
-				                                                      SemErr((_localctx.expression!=null?(_localctx.expression.start):null), "invalid assignment target");
+				                                                      SemErr((((Member_expressionContext)_localctx).expression!=null?(((Member_expressionContext)_localctx).expression.start):null), "invalid assignment target");
 				                                                  } else if (assignmentReceiver == null) {
-				                                                      _localctx.result =  factory.createAssignment(assignmentName, _localctx.expression.result);
+				                                                      ((Member_expressionContext)_localctx).result =  factory.createAssignment(assignmentName, ((Member_expressionContext)_localctx).expression.result);
 				                                                  } else {
-				                                                      _localctx.result =  factory.createWriteProperty(assignmentReceiver, assignmentName, _localctx.expression.result);
+				                                                      ((Member_expressionContext)_localctx).result =  factory.createWriteProperty(assignmentReceiver, assignmentName, ((Member_expressionContext)_localctx).expression.result);
 				                                                  } 
 				}
 				break;
@@ -1163,9 +1147,9 @@ public class PrystParser extends Parser {
 				                                                       receiver = factory.createRead(assignmentName);
 				                                                  } 
 				setState(220);
-				_localctx.IDENTIFIER = match(IDENTIFIER);
-				 nestedAssignmentName = factory.createStringLiteral(_localctx.IDENTIFIER, false);
-				                                                  _localctx.result =  factory.createReadProperty(receiver, nestedAssignmentName); 
+				((Member_expressionContext)_localctx).IDENTIFIER = match(IDENTIFIER);
+				 nestedAssignmentName = factory.createStringLiteral(((Member_expressionContext)_localctx).IDENTIFIER, false);
+				                                                  ((Member_expressionContext)_localctx).result =  factory.createReadProperty(receiver, nestedAssignmentName); 
 				}
 				break;
 			case T__28:
@@ -1176,9 +1160,9 @@ public class PrystParser extends Parser {
 				                                                      receiver = factory.createRead(assignmentName);
 				                                                  } 
 				setState(224);
-				_localctx.expression = expression();
-				 nestedAssignmentName = _localctx.expression.result;
-				                                                  _localctx.result =  factory.createReadProperty(receiver, nestedAssignmentName); 
+				((Member_expressionContext)_localctx).expression = expression();
+				 nestedAssignmentName = ((Member_expressionContext)_localctx).expression.result;
+				                                                  ((Member_expressionContext)_localctx).result =  factory.createReadProperty(receiver, nestedAssignmentName); 
 				setState(226);
 				match(T__29);
 				}
@@ -1192,8 +1176,8 @@ public class PrystParser extends Parser {
 			case 1:
 				{
 				setState(230);
-				_localctx.member_expression = member_expression(_localctx.result, receiver, nestedAssignmentName);
-				 _localctx.result =  _localctx.member_expression.result; 
+				((Member_expressionContext)_localctx).member_expression = member_expression(_localctx.result, receiver, nestedAssignmentName);
+				 ((Member_expressionContext)_localctx).result =  ((Member_expressionContext)_localctx).member_expression.result; 
 				}
 				break;
 			}

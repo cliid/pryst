@@ -55,11 +55,11 @@ import java.util.Map;
 
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.RootCallTarget;
-import PrystLanguage;
-import PrystExpressionNode;
-import PrystRootNode;
-import PrystStatementNode;
-import PrystParseError;
+import org.jitcijk.pryst.PrystLanguage;
+import org.jitcijk.pryst.nodes.PrystExpressionNode;
+import org.jitcijk.pryst.nodes.PrystRootNode;
+import org.jitcijk.pryst.nodes.PrystStatementNode;
+import org.jitcijk.pryst.parser.PrystParseError;
 }
 
 @lexer::header

@@ -41,19 +41,19 @@ import com.oracle.truffle.api.utilities.TriState;
 import org.jitcijk.pryst.PrystLanguage;
 
 /**
- * Represents an SL object.
+ * Represents an Pryst object.
  *
- * This class defines operations that can be performed on SL Objects. While we could define all
+ * This class defines operations that can be performed on Pryst Objects. While we could define all
  * these operations as individual AST nodes, we opted to define those operations by using
  * {@link com.oracle.truffle.api.library.Library a Truffle library}, or more concretely the
- * {@link InteropLibrary}. This has several advantages, but the primary one is that it allows SL
+ * {@link InteropLibrary}. This has several advantages, but the primary one is that it allows Pryst
  * objects to be used in the interoperability message protocol, i.e. It allows other languages and
- * tools to operate on SL objects without necessarily knowing they are SL objects.
+ * tools to operate on Pryst objects without necessarily knowing they are Pryst objects.
  *
- * SL Objects are essentially instances of {@link DynamicObject} (objects whose members can be
+ * Pryst Objects are essentially instances of {@link DynamicObject} (objects whose members can be
  * dynamically added and removed). We also annotate the class with {@link ExportLibrary} with value
  * {@link InteropLibrary InteropLibrary.class}. This essentially ensures that the build system and
- * runtime know that this class specifies the interop messages (i.e. operations) that SL can do on
+ * runtime know that this class specifies the interop messages (i.e. operations) that Pryst can do on
  * {@link PrystObject} instances.
  *
  * @see ExportLibrary
@@ -83,7 +83,7 @@ public final class PrystObject extends DynamicObject implements TruffleObject {
     @SuppressWarnings("unused")
     static final class IsIdenticalOrUndefined {
         @Specialization
-        static TriState doSLObject(PrystObject receiver, PrystObject other) {
+        static TriState doPrystObject(PrystObject receiver, PrystObject other) {
             return TriState.valueOf(receiver == other);
         }
 

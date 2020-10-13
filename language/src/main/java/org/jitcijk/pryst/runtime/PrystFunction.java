@@ -171,7 +171,7 @@ public final class PrystFunction implements TruffleObject {
     @SuppressWarnings("unused")
     static final class IsIdenticalOrUndefined {
         @Specialization
-        static TriState doSLFunction(PrystFunction receiver, PrystFunction other) {
+        static TriState doPrystFunction(PrystFunction receiver, PrystFunction other) {
             /*
              * SLFunctions are potentially identical to other SLFunctions.
              */

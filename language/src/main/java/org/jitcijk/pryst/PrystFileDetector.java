@@ -32,7 +32,7 @@ public final class PrystFileDetector implements TruffleFile.FileTypeDetector {
     @Override
     public String findMimeType(TruffleFile file) throws IOException {
         String name = file.getName();
-        if (name != null && name.endsWith(".sl")) {
+        if (name != null && name.endsWith(".pst")) {
             return PrystLanguage.MIME_TYPE;
         }
         return null;

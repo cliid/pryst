@@ -51,7 +51,7 @@ else
     exit 1
 fi
 readonly COMPONENT_DIR="component_temp_dir"
-readonly LANGUAGE_PATH="$COMPONENT_DIR/$JRE/languages/sl"
+readonly LANGUAGE_PATH="$COMPONENT_DIR/$JRE/languages/pryst"
 if [[ -f ../native/prystnative ]]; then
     INCLUDE_PRYSTNATIVE="TRUE"
 fi
@@ -65,8 +65,8 @@ mkdir -p "$LANGUAGE_PATH/launcher"
 cp ../launcher/target/pryst-launcher.jar "$LANGUAGE_PATH/launcher/"
 
 mkdir -p "$LANGUAGE_PATH/bin"
-cp ../sl $LANGUAGE_PATH/bin/
-if [[ $INCLUDE_SLNATIVE = "TRUE" ]]; then
+cp ../pryst $LANGUAGE_PATH/bin/
+if [[ $INCLUDE_PRYSTNATIVE = "TRUE" ]]; then
     cp ../native/prystnative $LANGUAGE_PATH/bin/
 fi
 
@@ -83,10 +83,10 @@ mkdir -p "$COMPONENT_DIR/META-INF"
 
 (
 cd $COMPONENT_DIR || exit 1
-jar cfm ../sl-component.jar META-INF/MANIFEST.MF .
+jar cfm ../pryst-component.jar META-INF/MANIFEST.MF .
 
 echo "bin/pryst = ../$JRE/languages/pryst/bin/pryst" > META-INF/symlinks
-if [[ $INCLUDE_SLNATIVE = "TRUE" ]]; then
+if [[ $INCLUDE_PRYSTNATIVE = "TRUE" ]]; then
     echo "bin/prystnative = ../$JRE/languages/pryst/bin/prystnative" >> META-INF/symlinks
 fi
 jar uf ../pryst-component.jar META-INF/symlinks

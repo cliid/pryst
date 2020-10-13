@@ -98,7 +98,7 @@ import org.jitcijk.pryst.runtime.PrystObject;
  * simple and clean as possible in order to help understanding the ideas and concepts of Truffle.
  * The language has first class functions, and objects are key-value stores.
  * <p>
- * Pryst is dynamically typed, i.e., there are no type names specified by the programmer. Pryst is
+ * Pryst is statically typed, i.e., there are type names specified by the programmer. Pryst is
  * strongly typed, i.e., there is no automatic conversion between types. If an operation is not
  * available for the types encountered at run time, a type error is reported and execution is
  * stopped. For example, {@code 4 - "2"} results in a type error because subtraction is only defined

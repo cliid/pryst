@@ -134,7 +134,7 @@ public final class PrystType implements TruffleObject {
 
     @Override
     public String toString() {
-        return "SLType[" + name + "]";
+        return "PrystType[" + name + "]";
     }
 
     /*

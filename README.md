@@ -25,18 +25,6 @@ And most of all, Pryst is `currently in development` so there will be new featur
 
 ## Technologies
 
-Technologies that makes Pryst happier:
-
-<p align="center">
-  <a href="https://www.graalvm.org/">
-    <img src="https://www.graalvm.org/resources/img/home/logo-coloured.svg" width="40%" height="40%"/>
-  </a>
-  <a href="https://www.antlr.org/">
-    <img src="https://raw.githubusercontent.com/mike-lischke/vscode-antlr4/master/misc/antlr-logo.png" width="40%" height="40%"/>
-  </a>
-</p>
-
-### Technologies that Pryst can do:
 #### JIT compilation (`./pryst`)
 #### AOT compilation (`./native/prystnative`)
 #### Debugger
