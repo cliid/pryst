@@ -63,3 +63,5 @@ script:
     - ./pryst language/tests/Add.pst
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then shellcheck pryst; fi
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then (find . -name '*.sh' | grep -v graalvm | xargs shellcheck); fi
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
