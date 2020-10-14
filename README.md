@@ -17,6 +17,8 @@
 
 ## Intro
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/6d95bf216d034dedba45256ee102c19a)](https://app.codacy.com/gh/jitcijk/pryst?utm_source=github.com&utm_medium=referral&utm_content=jitcijk/pryst&utm_campaign=Badge_Grade)
+
 Pryst is an explicit, strong, static typed language with a beautiful C-style syntax.
 
 It features variables, types, if statements, switch statements, imports, classes and more! 
