@@ -1,9 +1,6 @@
 <h1 align="center">Pryst Language</h1>
 <h3 align="center">A static explicit language with beautiful syntax and a bit of sugar :)</h3>
 <p align="center">
-  <a href="https://ci.appveyor.com/project/cliid/pryst/branch/master">
-    <img src="https://ci.appveyor.com/api/projects/status/github/jitcijk/pryst?branch=master&svg=true" />
-  </a>
   <a href="https://travis-ci.com/github/jitcijk/pryst/builds">
     <img src="https://travis-ci.org/jitcijk/pryst.svg?branch=master" />
   </a>
