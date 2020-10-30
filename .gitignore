@@ -17,4 +17,4 @@ graalvm/
 component/pryst-component.jar
 language/dependency-reduced-pom.xml
 native/prystnative
-antlr-4.8-complete.jar
+antlr-4.7.2-complete.jar

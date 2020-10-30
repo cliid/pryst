@@ -94,7 +94,7 @@ public final class PrystMain {
             err.println(e.getMessage());
             return 1;
         }
-        out.println("== running on " + context.getEngine());
+        out.println("=== running on " + context.getEngine() + " ===");
 
         try {
             Value result = context.eval(source);
