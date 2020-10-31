@@ -211,12 +211,14 @@ public final class PrystContext {
      */
 
     public static Object fromForeignValue(Object a) {
-        if (a instanceof Long || a instanceof PrystBigNumber || a instanceof String || a instanceof Boolean) {
+        if (a instanceof Long || a instanceof PrystBigInteger || a instanceof Double || a instanceof String || a instanceof Boolean) {
             return a;
         } else if (a instanceof Character) {
             return fromForeignCharacter((Character) a);
-        } else if (a instanceof Number) {
-            return fromForeignNumber(a);
+        } else if (a instanceof Integer || a instanceof Short || a instanceof Byte) {
+            return fromForeignInteger(a);
+        } else if (a instanceof Float) {
+            return fromForeignFloat(a);
         } else if (a instanceof TruffleObject) {
             return a;
         } else if (a instanceof PrystContext) {
@@ -226,8 +228,13 @@ public final class PrystContext {
     }
 
     @TruffleBoundary
-    private static long fromForeignNumber(Object a) {
+    private static long fromForeignInteger(Object a) {
         return ((Number) a).longValue();
+    }
+
+    @TruffleBoundary
+    private static double fromForeignFloat(Object a) {
+        return ((Number) a).doubleValue();
     }
 
     @TruffleBoundary

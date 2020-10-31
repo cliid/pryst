@@ -31,7 +31,7 @@ import com.oracle.truffle.api.dsl.TypeCast;
 import com.oracle.truffle.api.dsl.TypeCheck;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import org.jitcijk.pryst.PrystLanguage;
-import org.jitcijk.pryst.runtime.PrystBigNumber;
+import org.jitcijk.pryst.runtime.PrystBigInteger;
 import org.jitcijk.pryst.runtime.PrystNull;
 
 /**
@@ -40,7 +40,7 @@ import org.jitcijk.pryst.runtime.PrystNull;
  * conversion methods for some types. In this class, we only cover types where the automatically
  * generated ones would not be sufficient.
  */
-@TypeSystem({long.class, boolean.class})
+@TypeSystem({long.class, double.class, boolean.class})
 public abstract class PrystTypes {
 
     /**
@@ -67,14 +67,14 @@ public abstract class PrystTypes {
 
     /**
      * Informs the Truffle DSL that a primitive {@code long} value can be used in all
-     * specializations where a {@link PrystBigNumber} is expected. This models the semantic of Pryst: It
-     * only has an arbitrary precision Number type (implemented as {@link PrystBigNumber}, and
+     * specializations where a {@link PrystBigInteger} is expected. This models the semantic of Pryst: It
+     * only has an arbitrary precision Number type (implemented as {@link PrystBigInteger}, and
      * {@code long} is only used as a performance optimization to avoid the costly
-     * {@link PrystBigNumber} arithmetic for values that fit into a 64-bit primitive value.
+     * {@link PrystBigInteger} arithmetic for values that fit into a 64-bit primitive value.
      */
     @ImplicitCast
     @TruffleBoundary
-    public static PrystBigNumber castBigNumber(long value) {
-        return new PrystBigNumber(BigInteger.valueOf(value));
+    public static PrystBigInteger castBigInteger(long value) {
+        return new PrystBigInteger(BigInteger.valueOf(value));
     }
 }

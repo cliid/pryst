@@ -65,6 +65,11 @@ public abstract class PrystBuiltinNode extends PrystExpressionNode {
     }
 
     @Override
+    public final double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        return super.executeDouble(frame);
+    }
+
+    @Override
     public final void executeVoid(VirtualFrame frame) {
         super.executeVoid(frame);
     }

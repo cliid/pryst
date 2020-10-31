@@ -36,7 +36,7 @@ import org.jitcijk.pryst.PrystLanguage;
 
 @ExportLibrary(InteropLibrary.class)
 @SuppressWarnings("static-method")
-public final class PrystBigNumber implements TruffleObject, Comparable<PrystBigNumber> {
+public final class PrystBigInteger implements TruffleObject, Comparable<PrystBigInteger> {
 
     private static final long LONG_MAX_SAFE_DOUBLE = 9007199254740991L; // 2 ** 53 - 1
     private static final int INT_MAX_SAFE_FLOAT = 16777215; // 2 ** 24 - 1
@@ -51,11 +51,11 @@ public final class PrystBigNumber implements TruffleObject, Comparable<PrystBigN
 
     private final BigInteger value;
 
-    public PrystBigNumber(BigInteger value) {
+    public PrystBigInteger(BigInteger value) {
         this.value = value;
     }
 
-    public PrystBigNumber(long value) {
+    public PrystBigInteger(long value) {
         this.value = BigInteger.valueOf(value);
     }
 
@@ -64,7 +64,7 @@ public final class PrystBigNumber implements TruffleObject, Comparable<PrystBigN
     }
 
     @TruffleBoundary
-    public int compareTo(PrystBigNumber o) {
+    public int compareTo(PrystBigInteger o) {
         return value.compareTo(o.getValue());
     }
 
@@ -77,8 +77,8 @@ public final class PrystBigNumber implements TruffleObject, Comparable<PrystBigN
     @Override
     @TruffleBoundary
     public boolean equals(Object obj) {
-        if (obj instanceof PrystBigNumber) {
-            return value.equals(((PrystBigNumber) obj).getValue());
+        if (obj instanceof PrystBigInteger) {
+            return value.equals(((PrystBigInteger) obj).getValue());
         }
         return false;
     }
@@ -207,7 +207,7 @@ public final class PrystBigNumber implements TruffleObject, Comparable<PrystBigN
 
     @ExportMessage
     Object getMetaObject() {
-        return PrystType.NUMBER;
+        return PrystType.INTEGER;
     }
 
     @ExportMessage

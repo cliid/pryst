@@ -32,7 +32,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.jitcijk.pryst.nodes.PrystBinaryNode;
-import org.jitcijk.pryst.runtime.PrystBigNumber;
+import org.jitcijk.pryst.runtime.PrystBigInteger;
 import org.jitcijk.pryst.runtime.PrystFunction;
 import org.jitcijk.pryst.runtime.PrystNull;
 
@@ -53,8 +53,13 @@ public abstract class PrystEqualNode extends PrystBinaryNode {
     }
 
     @Specialization
+    protected boolean doDouble(double left, double right) {
+        return Double.compare(left, right) == 0;
+    }
+
+    @Specialization
     @TruffleBoundary
-    protected boolean doBigNumber(PrystBigNumber left, PrystBigNumber right) {
+    protected boolean doBigInteger(PrystBigInteger left, PrystBigInteger right) {
         return left.equals(right);
     }
 
@@ -118,8 +123,10 @@ public abstract class PrystEqualNode extends PrystBinaryNode {
                 return true;
             } else if (leftInterop.fitsInLong(left) && rightInterop.fitsInLong(right)) {
                 return doLong(leftInterop.asLong(left), (rightInterop.asLong(right)));
-            } else if (left instanceof PrystBigNumber && right instanceof PrystBigNumber) {
-                return doBigNumber((PrystBigNumber) left, (PrystBigNumber) right);
+            } else if (left instanceof PrystBigInteger && right instanceof PrystBigInteger) {
+                return doBigInteger((PrystBigInteger) left, (PrystBigInteger) right);
+            } else if (leftInterop.fitsInDouble(left) && rightInterop.fitsInDouble(right)) {
+                return doDouble(leftInterop.asDouble(left), (rightInterop.asDouble(right)));
             } else if (leftInterop.hasIdentity(left) && rightInterop.hasIdentity(right)) {
                 return leftInterop.isIdentical(left, right, rightInterop);
             } else {

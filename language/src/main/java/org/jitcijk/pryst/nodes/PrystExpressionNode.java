@@ -89,6 +89,10 @@ public abstract class PrystExpressionNode extends PrystStatementNode {
         return PrystTypesGen.expectLong(executeGeneric(frame));
     }
 
+    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        return PrystTypesGen.expectDouble(executeGeneric(frame));
+    }
+
     public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
         return PrystTypesGen.expectBoolean(executeGeneric(frame));
     }

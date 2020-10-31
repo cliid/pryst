@@ -65,9 +65,7 @@ public final class PrystMain {
         Map<String, String> options = new HashMap<>();
         String file = null;
         for (String arg : args) {
-            if (parseOption(options, arg)) {
-                continue;
-            } else {
+            if (!parseOption(options, arg)) {
                 if (file == null) {
                     file = arg;
                 }
@@ -145,5 +143,4 @@ public final class PrystMain {
         options.put(key, value);
         return true;
     }
-
 }

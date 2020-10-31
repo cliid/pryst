@@ -1,0 +1,11 @@
+function main() {
+  x = 3;
+  y = 4000000000000;
+  println(x + 4);
+  println(x + "4");
+  println("3" + 4);
+  println("3" + "4");
+  println(x + y);
+  println(x + y * 2);
+  println(3000000000000 + 4000000000000);
+}

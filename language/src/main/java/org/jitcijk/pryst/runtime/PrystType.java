@@ -60,14 +60,15 @@ public final class PrystType implements TruffleObject {
     /*
      * These are the sets of builtin types in simple languages. In case of simple language the types
      * nicely match those of the types in InteropLibrary. This might not be the case and more
-     * additional checks need to be performed (similar to number checking for PrystBigNumber).
+     * additional checks need to be performed (similar to number checking for PrystBigInteger).
      */
-    public static final PrystType NUMBER = new PrystType("Number", (l, v) -> l.fitsInLong(v) || v instanceof PrystBigNumber);
-    public static final PrystType NULL = new PrystType("NULL", (l, v) -> l.isNull(v));
-    public static final PrystType STRING = new PrystType("String", (l, v) -> l.isString(v));
-    public static final PrystType BOOLEAN = new PrystType("Boolean", (l, v) -> l.isBoolean(v));
-    public static final PrystType OBJECT = new PrystType("Object", (l, v) -> l.hasMembers(v));
-    public static final PrystType FUNCTION = new PrystType("Function", (l, v) -> l.isExecutable(v));
+    public static final PrystType INTEGER = new PrystType("Integer", (l, v) -> l.fitsInLong(v) || v instanceof PrystBigInteger);
+    public static final PrystType FLOAT = new PrystType("Float", InteropLibrary::fitsInDouble);
+    public static final PrystType NULL = new PrystType("Null", InteropLibrary::isNull);
+    public static final PrystType STRING = new PrystType("String", InteropLibrary::isString);
+    public static final PrystType BOOLEAN = new PrystType("Boolean", InteropLibrary::isBoolean);
+    public static final PrystType OBJECT = new PrystType("Object", InteropLibrary::hasMembers);
+    public static final PrystType FUNCTION = new PrystType("Function", InteropLibrary::isExecutable);
 
     /*
      * This array is used when all types need to be checked in a certain order. While most interop
@@ -75,7 +76,7 @@ public final class PrystType implements TruffleObject {
      * example, an object might be a function. In Pryst we decided to make functions,
      * functions and not objects.
      */
-    @CompilationFinal(dimensions = 1) public static final PrystType[] PRECEDENCE = new PrystType[]{NULL, NUMBER, STRING, BOOLEAN, FUNCTION, OBJECT};
+    @CompilationFinal(dimensions = 1) public static final PrystType[] PRECEDENCE = new PrystType[]{NULL, INTEGER, FLOAT, STRING, BOOLEAN, FUNCTION, OBJECT};
 
     private final String name;
     private final TypeCheck isInstance;

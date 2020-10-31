@@ -49,6 +49,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -56,11 +57,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -200,7 +197,7 @@ public class PrystTestRunner extends ParentRunner<TestCase> {
      */
     private static void delete(File f) {
         if (f.isDirectory()) {
-            for (File c : f.listFiles()) {
+            for (File c : Objects.requireNonNull(f.listFiles())) {
                 delete(c);
             }
         }
@@ -250,7 +247,7 @@ public class PrystTestRunner extends ParentRunner<TestCase> {
             char sep = File.separatorChar;
             String externalForm = url.toExternalForm();
             String classPart = sep + c.getName().replace('.', sep) + ".class";
-            String prefix = null;
+            String prefix;
             String base;
             if (externalForm.startsWith("jar:file:")) {
                 prefix = "jar:file:";
@@ -286,6 +283,7 @@ public class PrystTestRunner extends ParentRunner<TestCase> {
 
     private static final List<NodeFactory<? extends PrystBuiltinNode>> builtins = new ArrayList<>();
 
+    @SuppressWarnings("unused")
     public static void installBuiltin(NodeFactory<? extends PrystBuiltinNode> builtin) {
         builtins.add(builtin);
     }
@@ -301,7 +299,7 @@ public class PrystTestRunner extends ParentRunner<TestCase> {
                 PrystLanguage.installBuiltin(builtin);
             }
 
-            Context.Builder builder = Context.newBuilder().allowExperimentalOptions(true).in(new ByteArrayInputStream(testCase.testInput.getBytes("UTF-8"))).out(out);
+            Context.Builder builder = Context.newBuilder().allowExperimentalOptions(true).in(new ByteArrayInputStream(testCase.testInput.getBytes(StandardCharsets.UTF_8))).out(out);
             for (Map.Entry<String, String> e : testCase.options.entrySet()) {
                 builder.option(e.getKey(), e.getValue());
             }
@@ -338,6 +336,7 @@ public class PrystTestRunner extends ParentRunner<TestCase> {
         }
     }
 
+    @SuppressWarnings("unused")
     public static void runInMain(Class<?> testClass, String[] args) throws InitializationError, NoTestsRemainException {
         JUnitCore core = new JUnitCore();
         core.addListener(new TextListener(System.out));

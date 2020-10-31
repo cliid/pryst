@@ -29,7 +29,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.jitcijk.pryst.PrystException;
 import org.jitcijk.pryst.nodes.PrystBinaryNode;
-import org.jitcijk.pryst.runtime.PrystBigNumber;
+import org.jitcijk.pryst.runtime.PrystBigInteger;
 
 /**
  * This class is similar to the extensively documented {@link PrystAddNode}.
@@ -42,10 +42,15 @@ public abstract class PrystMulNode extends PrystBinaryNode {
         return Math.multiplyExact(left, right);
     }
 
+    @Specialization(rewriteOn = ArithmeticException.class)
+    protected double mul(double left, double right) {
+        return left * right;
+    }
+
     @Specialization
     @TruffleBoundary
-    protected PrystBigNumber mul(PrystBigNumber left, PrystBigNumber right) {
-        return new PrystBigNumber(left.getValue().multiply(right.getValue()));
+    protected PrystBigInteger mul(PrystBigInteger left, PrystBigInteger right) {
+        return new PrystBigInteger(left.getValue().multiply(right.getValue()));
     }
 
     @Fallback

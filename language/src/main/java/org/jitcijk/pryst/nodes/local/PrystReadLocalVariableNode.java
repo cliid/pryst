@@ -80,6 +80,15 @@ public abstract class PrystReadLocalVariableNode extends PrystExpressionNode {
         return FrameUtil.getLongSafe(frame, getSlot());
     }
 
+    @Specialization(guards = "frame.isDouble(getSlot())")
+    protected double readDouble(VirtualFrame frame) {
+        /*
+         * When the FrameSlotKind is Double, we know that only primitive double values have ever been
+         * written to the local variable. So we do not need to check that the frame really contains
+         * a primitive long value.
+         */
+        return FrameUtil.getDoubleSafe(frame, getSlot());
+    }
     @Specialization(guards = "frame.isBoolean(getSlot())")
     protected boolean readBoolean(VirtualFrame frame) {
         return FrameUtil.getBooleanSafe(frame, getSlot());

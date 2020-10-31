@@ -51,25 +51,16 @@ import org.jitcijk.pryst.nodes.controlflow.PrystFunctionBodyNode;
 import org.jitcijk.pryst.nodes.controlflow.PrystIfNode;
 import org.jitcijk.pryst.nodes.controlflow.PrystReturnNode;
 import org.jitcijk.pryst.nodes.controlflow.PrystWhileNode;
+import org.jitcijk.pryst.nodes.expression.*;
 import org.jitcijk.pryst.nodes.expression.PrystAddNodeGen;
-import org.jitcijk.pryst.nodes.expression.PrystBigIntegerLiteralNode;
 import org.jitcijk.pryst.nodes.expression.PrystDivNodeGen;
 import org.jitcijk.pryst.nodes.expression.PrystEqualNodeGen;
-import org.jitcijk.pryst.nodes.expression.PrystFunctionLiteralNode;
-import org.jitcijk.pryst.nodes.expression.PrystInvokeNode;
 import org.jitcijk.pryst.nodes.expression.PrystLessOrEqualNodeGen;
 import org.jitcijk.pryst.nodes.expression.PrystLessThanNodeGen;
-import org.jitcijk.pryst.nodes.expression.PrystLogicalAndNode;
 import org.jitcijk.pryst.nodes.expression.PrystLogicalNotNodeGen;
-import org.jitcijk.pryst.nodes.expression.PrystLogicalOrNode;
-import org.jitcijk.pryst.nodes.expression.PrystLongLiteralNode;
 import org.jitcijk.pryst.nodes.expression.PrystMulNodeGen;
-import org.jitcijk.pryst.nodes.expression.PrystParenExpressionNode;
-import org.jitcijk.pryst.nodes.expression.PrystReadPropertyNode;
 import org.jitcijk.pryst.nodes.expression.PrystReadPropertyNodeGen;
-import org.jitcijk.pryst.nodes.expression.PrystStringLiteralNode;
 import org.jitcijk.pryst.nodes.expression.PrystSubNodeGen;
-import org.jitcijk.pryst.nodes.expression.PrystWritePropertyNode;
 import org.jitcijk.pryst.nodes.expression.PrystWritePropertyNodeGen;
 import org.jitcijk.pryst.nodes.local.PrystReadArgumentNode;
 import org.jitcijk.pryst.nodes.local.PrystReadLocalVariableNode;
@@ -495,7 +486,7 @@ public class PrystNodeFactory {
         return result;
     }
 
-    public PrystExpressionNode createNumericLiteral(Token literalToken) {
+    public PrystExpressionNode createIntegerLiteral(Token literalToken) {
         PrystExpressionNode result;
         try {
             /* Try if the literal is small enough to fit into a long value. */
@@ -504,6 +495,14 @@ public class PrystNodeFactory {
             /* Overflow of long value, so fall back to BigInteger. */
             result = new PrystBigIntegerLiteralNode(new BigInteger(literalToken.getText()));
         }
+        srcFromToken(result, literalToken);
+        result.addExpressionTag();
+        return result;
+    }
+
+    public PrystExpressionNode createDoubleLiteral(Token literalToken) {
+        PrystExpressionNode result;
+        result = new PrystDoubleLiteralNode(Double.parseDouble(literalToken.getText()));
         srcFromToken(result, literalToken);
         result.addExpressionTag();
         return result;

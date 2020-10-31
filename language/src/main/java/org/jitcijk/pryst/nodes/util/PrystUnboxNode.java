@@ -50,7 +50,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import org.jitcijk.pryst.nodes.PrystExpressionNode;
 import org.jitcijk.pryst.nodes.PrystTypes;
-import org.jitcijk.pryst.runtime.PrystBigNumber;
+import org.jitcijk.pryst.runtime.PrystBigInteger;
 import org.jitcijk.pryst.runtime.PrystFunction;
 import org.jitcijk.pryst.runtime.PrystNull;
 
@@ -80,7 +80,7 @@ public abstract class PrystUnboxNode extends PrystExpressionNode {
     }
 
     @Specialization
-    protected static PrystBigNumber fromBigNumber(PrystBigNumber value) {
+    protected static PrystBigInteger fromBigInteger(PrystBigInteger value) {
         return value;
     }
 
@@ -100,7 +100,7 @@ public abstract class PrystUnboxNode extends PrystExpressionNode {
             if (interop.fitsInLong(value)) {
                 return interop.asLong(value);
             } else if (interop.fitsInDouble(value)) {
-                return (long) interop.asDouble(value);
+                return interop.asDouble(value);
             } else if (interop.isString(value)) {
                 return interop.asString(value);
             } else if (interop.isBoolean(value)) {

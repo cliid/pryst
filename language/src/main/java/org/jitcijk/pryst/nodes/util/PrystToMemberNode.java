@@ -52,7 +52,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.jitcijk.pryst.nodes.PrystTypes;
-import org.jitcijk.pryst.runtime.PrystBigNumber;
+import org.jitcijk.pryst.runtime.PrystBigInteger;
 
 /**
  * The node to normalize any value to an Pryst value. This is useful to reduce the number of values
@@ -84,7 +84,13 @@ public abstract class PrystToMemberNode extends Node {
 
     @Specialization
     @TruffleBoundary
-    protected static String fromBigNumber(PrystBigNumber value) {
+    protected static String fromDouble(double value) {
+        return String.valueOf(value);
+    }
+
+    @Specialization
+    @TruffleBoundary
+    protected static String fromBigInteger(PrystBigInteger value) {
         return value.toString();
     }
 
@@ -93,10 +99,12 @@ public abstract class PrystToMemberNode extends Node {
         try {
             if (interop.fitsInLong(value)) {
                 return longToString(interop.asLong(value));
+            } else if (interop.fitsInDouble(value)) {
+                return doubleToString(interop.asDouble(value));
             } else if (interop.isString(value)) {
                 return interop.asString(value);
-            } else if (interop.isNumber(value) && value instanceof PrystBigNumber) {
-                return bigNumberToString((PrystBigNumber) value);
+            } else if (interop.isNumber(value) && value instanceof PrystBigInteger) {
+                return bigIntegerToString((PrystBigInteger) value);
             } else {
                 throw error(value);
             }
@@ -111,13 +119,18 @@ public abstract class PrystToMemberNode extends Node {
     }
 
     @TruffleBoundary
-    private static String bigNumberToString(PrystBigNumber value) {
+    private static String bigIntegerToString(PrystBigInteger value) {
         return value.toString();
     }
 
     @TruffleBoundary
     private static String longToString(long longValue) {
         return String.valueOf(longValue);
+    }
+
+    @TruffleBoundary
+    private static String doubleToString(double doubleValue) {
+        return String.valueOf(doubleValue);
     }
 
 }

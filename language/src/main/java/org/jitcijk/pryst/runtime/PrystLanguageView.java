@@ -115,8 +115,10 @@ public final class PrystLanguageView implements TruffleObject {
                      * The type is a partial evaluation constant here as we use @ExplodeLoop. So
                      * this if-else cascade should fold after partial evaluation.
                      */
-                    if (type == PrystType.NUMBER) {
+                    if (type == PrystType.INTEGER) {
                         return longToString(interop.asLong(delegate));
+                    } else if (type == PrystType.FLOAT) {
+                        return doubleToString(interop.asDouble(delegate));
                     } else if (type == PrystType.BOOLEAN) {
                         return Boolean.toString(interop.asBoolean(delegate));
                     } else if (type == PrystType.STRING) {
@@ -140,6 +142,11 @@ public final class PrystLanguageView implements TruffleObject {
     @TruffleBoundary
     private static String longToString(long l) {
         return Long.toString(l);
+    }
+
+    @TruffleBoundary
+    private static String doubleToString(double f) {
+        return Double.toString(f);
     }
 
     public static Object create(Object value) {

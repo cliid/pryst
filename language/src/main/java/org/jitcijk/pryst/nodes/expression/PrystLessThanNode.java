@@ -29,7 +29,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.jitcijk.pryst.PrystException;
 import org.jitcijk.pryst.nodes.PrystBinaryNode;
-import org.jitcijk.pryst.runtime.PrystBigNumber;
+import org.jitcijk.pryst.runtime.PrystBigInteger;
 
 /**
  * This class is similar to the extensively documented {@link PrystAddNode}. The only difference: the
@@ -44,8 +44,13 @@ public abstract class PrystLessThanNode extends PrystBinaryNode {
     }
 
     @Specialization
+    protected boolean lessThan(double left, double right) {
+        return Double.compare(left, right) < 0;
+    }
+
+    @Specialization
     @TruffleBoundary
-    protected boolean lessThan(PrystBigNumber left, PrystBigNumber right) {
+    protected boolean lessThan(PrystBigInteger left, PrystBigInteger right) {
         return left.compareTo(right) < 0;
     }
 

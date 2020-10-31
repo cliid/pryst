@@ -23,38 +23,32 @@
  */
 package org.jitcijk.pryst.nodes.expression;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.jitcijk.pryst.PrystException;
-import org.jitcijk.pryst.nodes.PrystBinaryNode;
-import org.jitcijk.pryst.runtime.PrystBigInteger;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import org.jitcijk.pryst.nodes.PrystExpressionNode;
 
 /**
- * This class is similar to the {@link PrystLessThanNode}.
+ * Constant literal for a primitive {@code long} value. The unboxed value can be returned when the
+ * parent expects a long value and calls {@link PrystLongLiteralNode#executeLong}. In the generic case,
+ * the primitive value is automatically boxed by Java.
  */
-@NodeInfo(shortName = "<=")
-public abstract class PrystLessOrEqualNode extends PrystBinaryNode {
+@NodeInfo(shortName = "const")
+public final class PrystDoubleLiteralNode extends PrystExpressionNode {
 
-    @Specialization
-    protected boolean lessOrEqual(long left, long right) {
-        return left <= right;
+    private final double value;
+
+    public PrystDoubleLiteralNode(double value) {
+        this.value = value;
     }
 
-    @Specialization
-    protected boolean lessOrEqual(double left, double right) {
-        return Double.compare(left, right) <= 0;
+    @Override
+    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        return value;
     }
 
-    @Specialization
-    @TruffleBoundary
-    protected boolean lessOrEqual(PrystBigInteger left, PrystBigInteger right) {
-        return left.compareTo(right) <= 0;
-    }
-
-    @Fallback
-    protected Object typeError(Object left, Object right) {
-        throw PrystException.typeError(this, left, right);
+    @Override
+    public Object executeGeneric(VirtualFrame frame) {
+        return value;
     }
 }

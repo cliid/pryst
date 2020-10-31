@@ -269,7 +269,9 @@ factor returns [PrystExpressionNode result]
 |
     STRING_LITERAL                              { $result = factory.createStringLiteral($STRING_LITERAL, true); }
 |
-    NUMERIC_LITERAL                             { $result = factory.createNumericLiteral($NUMERIC_LITERAL); }
+    INTEGER_LITERAL                             { $result = factory.createIntegerLiteral($INTEGER_LITERAL); }
+|
+    DOUBLE_LITERAL                              { $result = factory.createDoubleLiteral($DOUBLE_LITERAL); }
 |
     s='('
     expr=expression
@@ -327,6 +329,7 @@ member_expression [PrystExpressionNode r, PrystExpressionNode assignmentReceiver
 
 // lexer
 
+
 WS : [ \t\r\n\u000C]+ -> skip;
 COMMENT : '/*' .*? '*/' -> skip;
 LINE_COMMENT : '//' ~[\r\n]* -> skip;
@@ -334,6 +337,7 @@ LINE_COMMENT : '//' ~[\r\n]* -> skip;
 fragment LETTER : [A-Z] | [a-z] | '_' | '$';
 fragment NON_ZERO_DIGIT : [1-9];
 fragment DIGIT : [0-9];
+fragment DIGITS : [0-9] ([0-9_]* [0-9])?;
 fragment HEX_DIGIT : [0-9] | [a-f] | [A-F];
 fragment OCT_DIGIT : [0-7];
 fragment BINARY_DIGIT : '0' | '1';
@@ -342,5 +346,6 @@ fragment STRING_CHAR : ~('"' | '\\' | '\r' | '\n');
 
 IDENTIFIER : LETTER (LETTER | DIGIT)*;
 STRING_LITERAL : '"' STRING_CHAR* '"';
-NUMERIC_LITERAL : '0' | NON_ZERO_DIGIT DIGIT*;
+INTEGER_LITERAL : ('0' | [1-9] (DIGITS? | '_'+ DIGITS));
+DOUBLE_LITERAL : DIGITS '.' DIGITS? | '.' DIGITS+;
 

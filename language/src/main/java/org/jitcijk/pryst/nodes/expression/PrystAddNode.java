@@ -31,7 +31,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.jitcijk.pryst.PrystException;
 import org.jitcijk.pryst.nodes.PrystBinaryNode;
 import org.jitcijk.pryst.nodes.PrystTypes;
-import org.jitcijk.pryst.runtime.PrystBigNumber;
+import org.jitcijk.pryst.runtime.PrystBigInteger;
 
 /**
  * Pryst node that performs the "+" operation, which performs addition on arbitrary precision numbers,
@@ -49,7 +49,7 @@ public abstract class PrystAddNode extends PrystBinaryNode {
     /**
      * Specialization for primitive {@code long} values. This is the fast path of the
      * arbitrary-precision arithmetic. We need to check for overflows of the addition, and switch to
-     * the {@link #add(PrystBigNumber, PrystBigNumber) slow path}. Therefore, we use an
+     * the {@link #add(PrystBigInteger, PrystBigInteger) slow path}. Therefore, we use an
      * {@link Math#addExact(long, long) addition method that throws an exception on overflow}. The
      * {@code rewriteOn} attribute on the {@link Specialization} annotation automatically triggers
      * the node rewriting on the exception.
@@ -66,22 +66,27 @@ public abstract class PrystAddNode extends PrystBinaryNode {
         return Math.addExact(left, right);
     }
 
+    @Specialization(rewriteOn = ArithmeticException.class)
+    protected double add(double left, double right) {
+        return left + right;
+    }
+
     /**
-     * This is the slow path of the arbitrary-precision arithmetic. The {@link PrystBigNumber} type of
+     * This is the slow path of the arbitrary-precision arithmetic. The {@link PrystBigInteger} type of
      * Java is doing everything we need.
      * <p>
      * This specialization is automatically selected by the Truffle DSL if both the left and right
-     * operand are {@link PrystBigNumber} values. Because the type system defines an
-     * {@link ImplicitCast implicit conversion} from {@code long} to {@link PrystBigNumber} in
-     * {@link PrystTypes#castBigNumber(long)}, this specialization is also taken if the left or the
+     * operand are {@link PrystBigInteger} values. Because the type system defines an
+     * {@link ImplicitCast implicit conversion} from {@code long} to {@link PrystBigInteger} in
+     * {@link PrystTypes#castBigInteger(long)}, this specialization is also taken if the left or the
      * right operand is a {@code long} value. Because the {@link #add(long, long) long}
      * specialization} has the {@code rewriteOn} attribute, this specialization is also taken if
      * both input values are {@code long} values but the primitive addition overflows.
      */
     @Specialization
     @TruffleBoundary
-    protected PrystBigNumber add(PrystBigNumber left, PrystBigNumber right) {
-        return new PrystBigNumber(left.getValue().add(right.getValue()));
+    protected PrystBigInteger add(PrystBigInteger left, PrystBigInteger right) {
+        return new PrystBigInteger(left.getValue().add(right.getValue()));
     }
 
     /**

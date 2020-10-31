@@ -29,7 +29,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.jitcijk.pryst.PrystException;
 import org.jitcijk.pryst.nodes.PrystBinaryNode;
-import org.jitcijk.pryst.runtime.PrystBigNumber;
+import org.jitcijk.pryst.runtime.PrystBigInteger;
 
 /**
  * This class is similar to the extensively documented {@link PrystAddNode}. Divisions by 0 throw the
@@ -51,10 +51,15 @@ public abstract class PrystDivNode extends PrystBinaryNode {
         return result;
     }
 
+    @Specialization(rewriteOn = ArithmeticException.class)
+    protected double div(double left, double right) throws ArithmeticException {
+        return left / right;
+    }
+
     @Specialization
     @TruffleBoundary
-    protected PrystBigNumber div(PrystBigNumber left, PrystBigNumber right) {
-        return new PrystBigNumber(left.getValue().divide(right.getValue()));
+    protected PrystBigInteger div(PrystBigInteger left, PrystBigInteger right) {
+        return new PrystBigInteger(left.getValue().divide(right.getValue()));
     }
 
     @Fallback

@@ -54,6 +54,11 @@ public class PrystParenExpressionNode extends PrystExpressionNode {
     }
 
     @Override
+    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        return expression.executeDouble(frame);
+    }
+
+    @Override
     public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
         return expression.executeBoolean(frame);
     }

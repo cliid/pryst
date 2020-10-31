@@ -89,9 +89,18 @@ public abstract class PrystWriteLocalVariableNode extends PrystExpressionNode {
         return value;
     }
 
+    @Specialization(guards = "isDoubleOrIllegal(frame)")
+    protected double writeDouble(VirtualFrame frame, double value) {
+        /* Initialize type on first write of the local variable. No-op if kind is already Double. */
+        frame.getFrameDescriptor().setFrameSlotKind(getSlot(), FrameSlotKind.Double);
+
+        frame.setDouble(getSlot(), value);
+        return value;
+    }
+
     @Specialization(guards = "isBooleanOrIllegal(frame)")
     protected boolean writeBoolean(VirtualFrame frame, boolean value) {
-        /* Initialize type on first write of the local variable. No-op if kind is already Long. */
+        /* Initialize type on first write of the local variable. No-op if kind is already Boolean. */
         frame.getFrameDescriptor().setFrameSlotKind(getSlot(), FrameSlotKind.Boolean);
 
         frame.setBoolean(getSlot(), value);
@@ -108,7 +117,7 @@ public abstract class PrystWriteLocalVariableNode extends PrystExpressionNode {
      * {@link Object}, it is guaranteed to never fail, i.e., once we are in this specialization the
      * node will never be re-specialized.
      */
-    @Specialization(replaces = {"writeLong", "writeBoolean"})
+    @Specialization(replaces = {"writeLong", "writeDouble", "writeBoolean"})
     protected Object write(VirtualFrame frame, Object value) {
         /*
          * Regardless of the type before, the new and final type of the local variable is Object.
@@ -134,6 +143,11 @@ public abstract class PrystWriteLocalVariableNode extends PrystExpressionNode {
     protected boolean isLongOrIllegal(VirtualFrame frame) {
         final FrameSlotKind kind = frame.getFrameDescriptor().getFrameSlotKind(getSlot());
         return kind == FrameSlotKind.Long || kind == FrameSlotKind.Illegal;
+    }
+
+    protected boolean isDoubleOrIllegal(VirtualFrame frame) {
+        final FrameSlotKind kind = frame.getFrameDescriptor().getFrameSlotKind(getSlot());
+        return kind == FrameSlotKind.Double || kind == FrameSlotKind.Illegal;
     }
 
     protected boolean isBooleanOrIllegal(VirtualFrame frame) {

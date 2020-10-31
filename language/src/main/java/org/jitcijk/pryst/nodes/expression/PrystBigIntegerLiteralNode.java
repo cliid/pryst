@@ -28,7 +28,7 @@ import java.math.BigInteger;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.jitcijk.pryst.nodes.PrystExpressionNode;
-import org.jitcijk.pryst.runtime.PrystBigNumber;
+import org.jitcijk.pryst.runtime.PrystBigInteger;
 
 /**
  * Constant literal for a arbitrary-precision number that exceeds the range of
@@ -37,14 +37,14 @@ import org.jitcijk.pryst.runtime.PrystBigNumber;
 @NodeInfo(shortName = "const")
 public final class PrystBigIntegerLiteralNode extends PrystExpressionNode {
 
-    private final PrystBigNumber value;
+    private final PrystBigInteger value;
 
     public PrystBigIntegerLiteralNode(BigInteger value) {
-        this.value = new PrystBigNumber(value);
+        this.value = new PrystBigInteger(value);
     }
 
     @Override
-    public PrystBigNumber executeGeneric(VirtualFrame frame) {
+    public PrystBigInteger executeGeneric(VirtualFrame frame) {
         return value;
     }
 }
