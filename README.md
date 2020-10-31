@@ -18,6 +18,8 @@
   </a>
 </p>
 
+[!Pryst](https://raw.githubusercontent.com/cliid/pryst-logos/main/Pryst.png)
+
 ## Intro
 
 Pryst is an explicit, kinda-strong, static typed language with a beautiful C-style syntax.
