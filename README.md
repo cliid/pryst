@@ -18,7 +18,7 @@
   </a>
 </p>
 
-![Pryst](https://raw.githubusercontent.com/cliid/pryst-logos/main/Pryst.png | width=100)
+![Pryst Logo](https://raw.githubusercontent.com/cliid/pryst-logos/main/rsz_pryst.png)
 
 ## Intro
 
