@@ -22,7 +22,7 @@
 
 ## Intro
 
-Pryst (spoken as \[ˈpraɪst\]) is a static-typed language with a beautiful C-like syntax.
+Pryst (spoken as [ˈprɪst](http://ipa-reader.xyz/)) is a static-typed language with a beautiful C-like syntax.
 
 It features variables, types, conditionals, loops, arrays and more! 
 
