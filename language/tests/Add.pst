@@ -1,7 +1,0 @@
-int main() {
-    int x = 3;
-    str y = "Hello!";
-    println(y);
-    println(x);
-    return 0;
-}
