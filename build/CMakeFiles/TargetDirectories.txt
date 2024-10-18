@@ -1,0 +1,10 @@
+/Users/cliid/dev/pryst/build/CMakeFiles/intrinsics_gen.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/vt_gen.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/omp_gen.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/acc_gen.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/ARMTargetParserTableGen.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/AArch64TargetParserTableGen.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/RISCVTargetParserTableGen.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/pryst.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/edit_cache.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/rebuild_cache.dir
