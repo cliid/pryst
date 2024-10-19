@@ -1,66 +1,56 @@
-# Pryst Compiler
+# pryst compiler
 
-Welcome to the Pryst Compiler project! This is an exciting journey into the world of programming language design and implementation. Pryst is a custom language that combines simplicity with powerful features, aiming to provide a smooth coding experience.
+a compiler for pryst, a statically-typed, object-oriented language inspired by TypeScript and C++.
 
-## What is Pryst?
+## features
 
-Pryst is a statically-typed, object-oriented language with a syntax inspired by TypeScript and C++. It supports:
+- basic types: `int`, `float`, `bool`, `str`
+- functions and classes
+- control structures: `if-else`, `while`, `for`
+- inheritance
 
-- Basic types: int, float, bool, str
-- Functions and classes
-- Control structures: if-else, while, for
-- Object-oriented programming with inheritance
+## tech stack
 
-## Project Structure
-
-The compiler is built using C++ and leverages several key technologies:
-
-- ANTLR4 for lexing and parsing
+- developed in C/C++
+- ANTLR4 for lexing/parsing
 - LLVM for code generation and optimization
 - CMake for build management
 
-Key components include:
+## key components
 
-- `Pryst.g4`: The ANTLR4 grammar definition for Pryst
-- `semantic_analyzer.cpp`: Performs semantic analysis on the AST
-- `llvm_codegen.cpp`: Generates LLVM IR from the analyzed AST
-- `jit_compiler.cpp`: Provides Just-In-Time compilation capabilities
-- `aot_compiler.cpp`: Provides Ahead-Of-Time compilation capabilities
+- `Pryst.g4`: antlr4 grammar
+- `semantic_analyzer.cpp`: ast analysis
+- `llvm_codegen.cpp`: llvm ir generation
+- `jit_compiler.cpp`: jit compilation
+- `aot_compiler.cpp`: aot compilation
 
-## Building the Project
+## build instructions
 
-To build the Pryst compiler:
-
-1. Ensure you have CMake, ANTLR4, and LLVM installed.
-2. Clone this repository.
-3. Run the following commands:
+prerequisites: `cmake`, `antlr4`, `llvm`
 
 ```bash
-mkdir build
-cd build
-cmake ..
-make
+mkdir build && cd build
+cmake .. && make
 ```
 
-## Running Pryst Programs
+## usage
 
-After building, you can run Pryst programs using:
+```bash
+./pryst path/to/program.pst
+```
 
-`./pryst path/to/your/program.pst --aot`
+## development status
 
-## Current State and Future Work
-This project is a work in progress. While basic functionality is implemented, there's still much to explore and improve. Some areas for future development include:
+work in progress:
 
-- Expanding the standard library
-- Implementing more advanced OOP features
-- Optimizing the code generation process
-- Adding support for modules and imports
+- multiline quotes
+- standard library
+- advanced OOP features
+- optimization
+- module system
 
-## Contributing
-We're always excited to welcome new contributors! If you're interested in helping develop Pryst, feel free to fork the repository, make your changes, and submit a pull request.
+contributions welcome. feel free to open issues or submit PRs.
 
-## Acknowledgments
-This project wouldn't be possible without the amazing open-source communities behind ANTLR4, LLVM, and CMake. Their tools and documentation have been invaluable in bringing Pryst to life.
+## acknowledgments
 
-_Thank you for your interest in Pryst. Happy coding!_
-
+built with ANTLR4 and LLVM.

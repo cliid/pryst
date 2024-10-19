@@ -1,5 +1,5 @@
 
-// Generated from Pryst.g4 by ANTLR 4.13.2
+// Generated from /Users/cliid/dev/pryst/Pryst.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -517,8 +517,6 @@ public:
     PostfixContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     PrimaryContext *primary();
-    std::vector<CallSuffixContext *> callSuffix();
-    CallSuffixContext* callSuffix(size_t i);
     antlr4::tree::TerminalNode *INCREMENT();
     antlr4::tree::TerminalNode *DECREMENT();
 

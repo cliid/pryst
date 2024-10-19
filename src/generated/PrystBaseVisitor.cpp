@@ -1,5 +1,5 @@
 
-// Generated from Pryst.g4 by ANTLR 4.13.2
+// Generated from /Users/cliid/dev/pryst/Pryst.g4 by ANTLR 4.13.2
 
 
 #include "PrystBaseVisitor.h"

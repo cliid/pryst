@@ -142,6 +142,9 @@ SymbolTable::ClassInfo SymbolTable::getClassInfo(const std::string& name) const 
 
 // ******************** SemanticAnalyzer Implementation *********************
 
+bool areTypesCompatibleForEquality(const std::string& type1, const std::string& type2);
+bool areTypesCompatibleForComparison(const std::string& type1, const std::string& type2);
+
 SemanticAnalyzer::SemanticAnalyzer() : currentFunction("") {
     symbolTable.addFunction("print", "void", {"str"});
 }
@@ -212,6 +215,8 @@ std::any SemanticAnalyzer::visitFunctionDecl(PrystParser::FunctionDeclContext* c
 std::any SemanticAnalyzer::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
     std::string varName = ctx->IDENTIFIER()->getText();
     std::string varType = ctx->type()->getText();
+
+    std::cout << varName << " " << varType << std::endl;
 
     if (symbolTable.variableExistsInCurrentScope(varName)) {
         throw std::runtime_error("Variable '" + varName + "' already declared in this scope");
@@ -296,10 +301,16 @@ std::any SemanticAnalyzer::visitAssignment(PrystParser::AssignmentContext* ctx) 
         }
         std::string objectType = std::any_cast<std::string>(callResult);
 
+        if (ctx->IDENTIFIER() == nullptr) {
+            throw std::runtime_error("Expected identifier in member assignment");
+        }
         std::string memberName = ctx->IDENTIFIER()->getText();
 
         varType = getMemberVariableType(objectType, memberName);
     } else {
+        if (ctx->IDENTIFIER() == nullptr) {
+            throw std::runtime_error("Expected identifier in assignment");
+        }
         std::string varName = ctx->IDENTIFIER()->getText();
 
         if (!symbolTable.variableExists(varName)) {
@@ -314,6 +325,7 @@ std::any SemanticAnalyzer::visitAssignment(PrystParser::AssignmentContext* ctx) 
         throw std::runtime_error("Expression did not return a type string");
     }
     std::string exprType = std::any_cast<std::string>(exprResult);
+    std::cout << exprType << std::endl;
 
     checkTypes(varType, exprType, "Type mismatch in assignment");
 
@@ -321,85 +333,111 @@ std::any SemanticAnalyzer::visitAssignment(PrystParser::AssignmentContext* ctx) 
 }
 
 std::any SemanticAnalyzer::visitLogicOr(PrystParser::LogicOrContext* ctx) {
-    auto typeResult = visit(ctx->logicAnd(0));
-    if (typeResult.type() != typeid(std::string)) {
+    auto leftType = visit(ctx->logicAnd(0));
+    if (leftType.type() != typeid(std::string)) {
         throw std::runtime_error("LogicAnd did not return a type string");
     }
-    std::string type = std::any_cast<std::string>(typeResult);
-    checkTypes(type, "bool", "Logical OR operation requires boolean operands");
+    std::string type = std::any_cast<std::string>(leftType);
 
-    for (size_t i = 1; i < ctx->logicAnd().size(); ++i) {
-        auto rightTypeResult = visit(ctx->logicAnd(i));
-        if (rightTypeResult.type() != typeid(std::string)) {
-            throw std::runtime_error("LogicAnd did not return a type string");
+    if (ctx->logicAnd().size() > 1) {
+        checkTypes(type, "bool", "Left operand of logical OR must be boolean");
+        for (size_t i = 1; i < ctx->logicAnd().size(); ++i) {
+            auto rightType = visit(ctx->logicAnd(i));
+            if (rightType.type() != typeid(std::string)) {
+                throw std::runtime_error("LogicAnd did not return a type string");
+            }
+            std::string rightTypeStr = std::any_cast<std::string>(rightType);
+            checkTypes(rightTypeStr, "bool", "Right operand of logical OR must be boolean");
         }
-        std::string rightType = std::any_cast<std::string>(rightTypeResult);
-        checkTypes(rightType, "bool", "Logical OR operation requires boolean operands");
+        type = "bool";
     }
 
-    return std::any(std::string("bool"));
+    return std::any(type);
 }
 
 std::any SemanticAnalyzer::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
-    auto typeResult = visit(ctx->equality(0));
-    if (typeResult.type() != typeid(std::string)) {
+    auto leftType = visit(ctx->equality(0));
+    if (leftType.type() != typeid(std::string)) {
         throw std::runtime_error("Equality did not return a type string");
     }
-    std::string type = std::any_cast<std::string>(typeResult);
-    checkTypes(type, "bool", "Logical AND operation requires boolean operands");
+    std::string type = std::any_cast<std::string>(leftType);
 
-    for (size_t i = 1; i < ctx->equality().size(); ++i) {
-        auto rightTypeResult = visit(ctx->equality(i));
-        if (rightTypeResult.type() != typeid(std::string)) {
-            throw std::runtime_error("Equality did not return a type string");
+    if (ctx->equality().size() > 1) {
+        checkTypes(type, "bool", "Left operand of logical AND must be boolean");
+        for (size_t i = 1; i < ctx->equality().size(); ++i) {
+            auto rightType = visit(ctx->equality(i));
+            if (rightType.type() != typeid(std::string)) {
+                throw std::runtime_error("Equality did not return a type string");
+            }
+            std::string rightTypeStr = std::any_cast<std::string>(rightType);
+            checkTypes(rightTypeStr, "bool", "Right operand of logical AND must be boolean");
         }
-        std::string rightType = std::any_cast<std::string>(rightTypeResult);
-        checkTypes(rightType, "bool", "Logical AND operation requires boolean operands");
+        type = "bool";
     }
 
-    return std::any(std::string("bool"));
+    return std::any(type);
 }
 
 std::any SemanticAnalyzer::visitEquality(PrystParser::EqualityContext* ctx) {
-    auto typeResult = visit(ctx->comparison(0));
-    if (typeResult.type() != typeid(std::string)) {
+    auto leftType = visit(ctx->comparison(0));
+    if (leftType.type() != typeid(std::string)) {
         throw std::runtime_error("Comparison did not return a type string");
     }
-    std::string type = std::any_cast<std::string>(typeResult);
+    std::string type = std::any_cast<std::string>(leftType);
 
     for (size_t i = 1; i < ctx->comparison().size(); ++i) {
-        auto rightTypeResult = visit(ctx->comparison(i));
-        if (rightTypeResult.type() != typeid(std::string)) {
+        auto rightType = visit(ctx->comparison(i));
+        if (rightType.type() != typeid(std::string)) {
             throw std::runtime_error("Comparison did not return a type string");
         }
-        std::string rightType = std::any_cast<std::string>(rightTypeResult);
-        checkTypes(type, rightType, "Type mismatch in equality comparison");
+        std::string rightTypeStr = std::any_cast<std::string>(rightType);
+        
+        if (!areTypesCompatibleForEquality(type, rightTypeStr)) {
+            throw std::runtime_error("Type mismatch in equality comparison: '" + type + "' and '" + rightTypeStr + "'");
+        }
+        
+        type = "bool";
     }
 
-    return std::any(std::string("bool"));
+    return std::any(type);
 }
 
 std::any SemanticAnalyzer::visitComparison(PrystParser::ComparisonContext* ctx) {
-    auto typeResult = visit(ctx->addition(0));
-    if (typeResult.type() != typeid(std::string)) {
+    auto leftType = visit(ctx->addition(0));
+    if (leftType.type() != typeid(std::string)) {
         throw std::runtime_error("Addition did not return a type string");
     }
-    std::string type = std::any_cast<std::string>(typeResult);
+    std::string type = std::any_cast<std::string>(leftType);
 
     for (size_t i = 1; i < ctx->addition().size(); ++i) {
-        auto rightTypeResult = visit(ctx->addition(i));
-        if (rightTypeResult.type() != typeid(std::string)) {
+        auto rightType = visit(ctx->addition(i));
+        if (rightType.type() != typeid(std::string)) {
             throw std::runtime_error("Addition did not return a type string");
         }
-        std::string rightType = std::any_cast<std::string>(rightTypeResult);
-        checkTypes(type, rightType, "Type mismatch in comparison");
-        if (type != "int" && type != "float") {
-            throw std::runtime_error("Comparison operations require numeric operands");
+        std::string rightTypeStr = std::any_cast<std::string>(rightType);
+        
+        if (!areTypesCompatibleForComparison(type, rightTypeStr)) {
+            throw std::runtime_error("Type mismatch in comparison: '" + type + "' and '" + rightTypeStr + "'");
         }
+        
+        type = "bool";
     }
 
-    return std::any(std::string("bool"));
+    return std::any(type);
 }
+
+// Helper functions
+
+bool areTypesCompatibleForEquality(const std::string& type1, const std::string& type2) {
+    if (type1 == type2) return true;
+    if ((type1 == "int" || type1 == "float") && (type2 == "int" || type2 == "float")) return true;
+    return false;
+}
+
+bool areTypesCompatibleForComparison(const std::string& type1, const std::string& type2) {
+    return (type1 == "int" || type1 == "float") && (type2 == "int" || type2 == "float");
+}
+
 
 std::any SemanticAnalyzer::visitAddition(PrystParser::AdditionContext* ctx) {
     auto typeResult = visit(ctx->multiplication(0));

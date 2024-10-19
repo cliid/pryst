@@ -409,8 +409,10 @@ std::any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
         return nullptr;
     }
 
-    // Implement short-circuit evaluation
     llvm::Function* function = builder->GetInsertBlock()->getParent();
+    if (!function) {
+        throw std::runtime_error("Invalid function context in logical OR");
+    }
 
     llvm::BasicBlock* lhsBlock = builder->GetInsertBlock();
     llvm::BasicBlock* rhsBlock = llvm::BasicBlock::Create(*context, "lor.rhs", function);
@@ -419,14 +421,19 @@ std::any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
     // Evaluate LHS
     visit(ctx->logicAnd(0));
     llvm::Value* lhsValue = lastValue;
+    if (!lhsValue) {
+        throw std::runtime_error("Invalid left-hand side in logical OR");
+    }
     lhsValue = builder->CreateICmpNE(lhsValue, llvm::ConstantInt::get(lhsValue->getType(), 0), "lor.lhs");
-
     builder->CreateCondBr(lhsValue, mergeBlock, rhsBlock);
 
     // Evaluate RHS
     builder->SetInsertPoint(rhsBlock);
     visit(ctx->logicAnd(1));
     llvm::Value* rhsValue = lastValue;
+    if (!rhsValue) {
+        throw std::runtime_error("Invalid right-hand side in logical OR");
+    }
     rhsValue = builder->CreateICmpNE(rhsValue, llvm::ConstantInt::get(rhsValue->getType(), 0), "lor.rhs");
     builder->CreateBr(mergeBlock);
 
@@ -439,6 +446,7 @@ std::any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
     lastValue = phiNode;
     return nullptr;
 }
+
 
 // Logical AND: Handles logical AND operations
 std::any LLVMCodegen::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
