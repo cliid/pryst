@@ -72,7 +72,9 @@
         "variant": "cpp",
         "tuple": "cpp",
         "codecvt": "cpp",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "regex": "cpp",
+        "any": "cpp"
     },
     "search.exclude": {
         "**/node_modules": true,

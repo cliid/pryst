@@ -31,6 +31,9 @@ int main(int argc, char* argv[]) {
 
     auto programContext = parser.program();
 
+    std::cout << "Printing parse tree...\n\n";
+    std::cout << programContext->toStringTree(true) << std::endl;
+
     SemanticAnalyzer semanticAnalyzer;
     semanticAnalyzer.visitProgram(programContext);
 

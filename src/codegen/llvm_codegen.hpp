@@ -62,5 +62,5 @@ private:
     llvm::Value* lastValue;
     llvm::Function* currentFunction;
 
-    llvm::Function* declarePrintf(); 
+    llvm::Function* declarePrintf();
 };
