@@ -69,123 +69,196 @@ include CMakeFiles/pryst.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/pryst.dir/flags.make
 
+/Users/cliid/dev/pryst/src/generated/PrystLexer.cpp: /Users/cliid/dev/pryst/Pryst.g4
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp, /Users/cliid/dev/pryst/src/generated/PrystParser.cpp, /Users/cliid/dev/pryst/src/generated/PrystVisitor.cpp, /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.cpp, /Users/cliid/dev/pryst/src/generated/PrystLexer.h, /Users/cliid/dev/pryst/src/generated/PrystParser.h, /Users/cliid/dev/pryst/src/generated/PrystVisitor.h, /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.h"
+	antlr4 -Dlanguage=Cpp -no-listener -visitor -o /Users/cliid/dev/pryst/src/generated /Users/cliid/dev/pryst/Pryst.g4
+
+/Users/cliid/dev/pryst/src/generated/PrystParser.cpp: /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+	@$(CMAKE_COMMAND) -E touch_nocreate /Users/cliid/dev/pryst/src/generated/PrystParser.cpp
+
+/Users/cliid/dev/pryst/src/generated/PrystVisitor.cpp: /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+	@$(CMAKE_COMMAND) -E touch_nocreate /Users/cliid/dev/pryst/src/generated/PrystVisitor.cpp
+
+/Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.cpp: /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+	@$(CMAKE_COMMAND) -E touch_nocreate /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.cpp
+
+/Users/cliid/dev/pryst/src/generated/PrystLexer.h: /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+	@$(CMAKE_COMMAND) -E touch_nocreate /Users/cliid/dev/pryst/src/generated/PrystLexer.h
+
+/Users/cliid/dev/pryst/src/generated/PrystParser.h: /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+	@$(CMAKE_COMMAND) -E touch_nocreate /Users/cliid/dev/pryst/src/generated/PrystParser.h
+
+/Users/cliid/dev/pryst/src/generated/PrystVisitor.h: /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+	@$(CMAKE_COMMAND) -E touch_nocreate /Users/cliid/dev/pryst/src/generated/PrystVisitor.h
+
+/Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.h: /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+	@$(CMAKE_COMMAND) -E touch_nocreate /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.h
+
 CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o: CMakeFiles/pryst.dir/flags.make
 CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o: /Users/cliid/dev/pryst/src/aot/aot_compiler.cpp
 CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o -MF CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o.d -o CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o -c /Users/cliid/dev/pryst/src/aot/aot_compiler.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o -MF CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o.d -o CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o -c /Users/cliid/dev/pryst/src/aot/aot_compiler.cpp
 
 CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.i"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/aot/aot_compiler.cpp > CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/aot/aot_compiler.cpp > CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.i
 
 CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.s"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/aot/aot_compiler.cpp -o CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/aot/aot_compiler.cpp -o CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.s
 
-CMakeFiles/pryst.dir/src/ast/ast.cpp.o: CMakeFiles/pryst.dir/flags.make
-CMakeFiles/pryst.dir/src/ast/ast.cpp.o: /Users/cliid/dev/pryst/src/ast/ast.cpp
-CMakeFiles/pryst.dir/src/ast/ast.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/pryst.dir/src/ast/ast.cpp.o"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/ast/ast.cpp.o -MF CMakeFiles/pryst.dir/src/ast/ast.cpp.o.d -o CMakeFiles/pryst.dir/src/ast/ast.cpp.o -c /Users/cliid/dev/pryst/src/ast/ast.cpp
+CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o: CMakeFiles/pryst.dir/flags.make
+CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o: /Users/cliid/dev/pryst/src/codegen/builtin_functions.cpp
+CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o -MF CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o.d -o CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o -c /Users/cliid/dev/pryst/src/codegen/builtin_functions.cpp
 
-CMakeFiles/pryst.dir/src/ast/ast.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/ast/ast.cpp.i"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/ast/ast.cpp > CMakeFiles/pryst.dir/src/ast/ast.cpp.i
+CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.i"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/codegen/builtin_functions.cpp > CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.i
 
-CMakeFiles/pryst.dir/src/ast/ast.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/ast/ast.cpp.s"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/ast/ast.cpp -o CMakeFiles/pryst.dir/src/ast/ast.cpp.s
+CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.s"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/codegen/builtin_functions.cpp -o CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.s
 
 CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o: CMakeFiles/pryst.dir/flags.make
 CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o: /Users/cliid/dev/pryst/src/codegen/llvm_codegen.cpp
 CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o -MF CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o.d -o CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o -c /Users/cliid/dev/pryst/src/codegen/llvm_codegen.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o -MF CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o.d -o CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o -c /Users/cliid/dev/pryst/src/codegen/llvm_codegen.cpp
 
 CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.i"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/codegen/llvm_codegen.cpp > CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/codegen/llvm_codegen.cpp > CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.i
 
 CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.s"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/codegen/llvm_codegen.cpp -o CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/codegen/llvm_codegen.cpp -o CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.s
 
-CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o: CMakeFiles/pryst.dir/flags.make
-CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o: /Users/cliid/dev/pryst/src/lexer/lexer.cpp
-CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o -MF CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o.d -o CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o -c /Users/cliid/dev/pryst/src/lexer/lexer.cpp
+CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o: CMakeFiles/pryst.dir/flags.make
+CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o: /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.cpp
+CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o -MF CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o.d -o CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o -c /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.cpp
 
-CMakeFiles/pryst.dir/src/lexer/lexer.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/lexer/lexer.cpp.i"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/lexer/lexer.cpp > CMakeFiles/pryst.dir/src/lexer/lexer.cpp.i
+CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.i"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.cpp > CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.i
 
-CMakeFiles/pryst.dir/src/lexer/lexer.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/lexer/lexer.cpp.s"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/lexer/lexer.cpp -o CMakeFiles/pryst.dir/src/lexer/lexer.cpp.s
+CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.s"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.cpp -o CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.s
+
+CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o: CMakeFiles/pryst.dir/flags.make
+CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o: /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o -MF CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o.d -o CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o -c /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+
+CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.i"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp > CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.i
+
+CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.s"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp -o CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.s
+
+CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o: CMakeFiles/pryst.dir/flags.make
+CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o: /Users/cliid/dev/pryst/src/generated/PrystParser.cpp
+CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o -MF CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o.d -o CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o -c /Users/cliid/dev/pryst/src/generated/PrystParser.cpp
+
+CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.i"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/generated/PrystParser.cpp > CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.i
+
+CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.s"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/generated/PrystParser.cpp -o CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.s
+
+CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o: CMakeFiles/pryst.dir/flags.make
+CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o: /Users/cliid/dev/pryst/src/generated/PrystVisitor.cpp
+CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o -MF CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o.d -o CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o -c /Users/cliid/dev/pryst/src/generated/PrystVisitor.cpp
+
+CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.i"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/generated/PrystVisitor.cpp > CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.i
+
+CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.s"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/generated/PrystVisitor.cpp -o CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.s
+
+CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o: CMakeFiles/pryst.dir/flags.make
+CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o: /Users/cliid/dev/pryst/src/jit/jit_compiler.cpp
+CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o -MF CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o.d -o CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o -c /Users/cliid/dev/pryst/src/jit/jit_compiler.cpp
+
+CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.i"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/jit/jit_compiler.cpp > CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.i
+
+CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.s"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/jit/jit_compiler.cpp -o CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.s
 
 CMakeFiles/pryst.dir/src/main.cpp.o: CMakeFiles/pryst.dir/flags.make
 CMakeFiles/pryst.dir/src/main.cpp.o: /Users/cliid/dev/pryst/src/main.cpp
 CMakeFiles/pryst.dir/src/main.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/pryst.dir/src/main.cpp.o"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/main.cpp.o -MF CMakeFiles/pryst.dir/src/main.cpp.o.d -o CMakeFiles/pryst.dir/src/main.cpp.o -c /Users/cliid/dev/pryst/src/main.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/pryst.dir/src/main.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/main.cpp.o -MF CMakeFiles/pryst.dir/src/main.cpp.o.d -o CMakeFiles/pryst.dir/src/main.cpp.o -c /Users/cliid/dev/pryst/src/main.cpp
 
 CMakeFiles/pryst.dir/src/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/main.cpp.i"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/main.cpp > CMakeFiles/pryst.dir/src/main.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/main.cpp > CMakeFiles/pryst.dir/src/main.cpp.i
 
 CMakeFiles/pryst.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/main.cpp.s"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/main.cpp -o CMakeFiles/pryst.dir/src/main.cpp.s
-
-CMakeFiles/pryst.dir/src/parser/parser.cpp.o: CMakeFiles/pryst.dir/flags.make
-CMakeFiles/pryst.dir/src/parser/parser.cpp.o: /Users/cliid/dev/pryst/src/parser/parser.cpp
-CMakeFiles/pryst.dir/src/parser/parser.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/pryst.dir/src/parser/parser.cpp.o"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/parser/parser.cpp.o -MF CMakeFiles/pryst.dir/src/parser/parser.cpp.o.d -o CMakeFiles/pryst.dir/src/parser/parser.cpp.o -c /Users/cliid/dev/pryst/src/parser/parser.cpp
-
-CMakeFiles/pryst.dir/src/parser/parser.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/parser/parser.cpp.i"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/parser/parser.cpp > CMakeFiles/pryst.dir/src/parser/parser.cpp.i
-
-CMakeFiles/pryst.dir/src/parser/parser.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/parser/parser.cpp.s"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/parser/parser.cpp -o CMakeFiles/pryst.dir/src/parser/parser.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/main.cpp -o CMakeFiles/pryst.dir/src/main.cpp.s
 
 CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o: CMakeFiles/pryst.dir/flags.make
 CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o: /Users/cliid/dev/pryst/src/semantic/semantic_analyzer.cpp
 CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o: CMakeFiles/pryst.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o -MF CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o.d -o CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o -c /Users/cliid/dev/pryst/src/semantic/semantic_analyzer.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o -MF CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o.d -o CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o -c /Users/cliid/dev/pryst/src/semantic/semantic_analyzer.cpp
 
 CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.i"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/semantic/semantic_analyzer.cpp > CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/cliid/dev/pryst/src/semantic/semantic_analyzer.cpp > CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.i
 
 CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.s"
-	/Library/Developer/CommandLineTools/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/semantic/semantic_analyzer.cpp -o CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/cliid/dev/pryst/src/semantic/semantic_analyzer.cpp -o CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.s
 
 # Object files for target pryst
 pryst_OBJECTS = \
 "CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o" \
-"CMakeFiles/pryst.dir/src/ast/ast.cpp.o" \
+"CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o" \
 "CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o" \
-"CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o" \
+"CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o" \
+"CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o" \
+"CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o" \
+"CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o" \
+"CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o" \
 "CMakeFiles/pryst.dir/src/main.cpp.o" \
-"CMakeFiles/pryst.dir/src/parser/parser.cpp.o" \
 "CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o"
 
 # External object files for target pryst
 pryst_EXTERNAL_OBJECTS =
 
 pryst: CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.o
-pryst: CMakeFiles/pryst.dir/src/ast/ast.cpp.o
+pryst: CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o
 pryst: CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.o
-pryst: CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o
+pryst: CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o
+pryst: CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o
+pryst: CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o
+pryst: CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o
+pryst: CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o
 pryst: CMakeFiles/pryst.dir/src/main.cpp.o
-pryst: CMakeFiles/pryst.dir/src/parser/parser.cpp.o
 pryst: CMakeFiles/pryst.dir/src/semantic/semantic_analyzer.cpp.o
 pryst: CMakeFiles/pryst.dir/build.make
 pryst: /usr/local/lib/libLLVMCore.a
@@ -196,6 +269,15 @@ pryst: /usr/local/lib/libLLVMMCJIT.a
 pryst: /usr/local/lib/libLLVMExecutionEngine.a
 pryst: /usr/local/lib/libLLVMAsmParser.a
 pryst: /usr/local/lib/libLLVMAsmPrinter.a
+pryst: /usr/local/lib/libLLVMTarget.a
+pryst: /usr/local/lib/libLLVMX86CodeGen.a
+pryst: /usr/local/lib/libLLVMX86AsmParser.a
+pryst: /usr/local/lib/libLLVMX86Desc.a
+pryst: /usr/local/lib/libLLVMX86Info.a
+pryst: /usr/local/lib/libLLVMAArch64CodeGen.a
+pryst: /usr/local/lib/libLLVMAArch64AsmParser.a
+pryst: /usr/local/lib/libLLVMAArch64Desc.a
+pryst: /usr/local/lib/libLLVMAArch64Info.a
 pryst: /usr/local/lib/libLLVMAArch64CodeGen.a
 pryst: /usr/local/lib/libLLVMAArch64AsmParser.a
 pryst: /usr/local/lib/libLLVMAArch64Desc.a
@@ -209,14 +291,14 @@ pryst: /usr/local/lib/libLLVMipo.a
 pryst: /usr/local/lib/libLLVMFrontendOpenMP.a
 pryst: /usr/local/lib/libLLVMFrontendOffloading.a
 pryst: /usr/local/lib/libLLVMLinker.a
-pryst: /usr/local/lib/libLLVMIRPrinter.a
-pryst: /usr/local/lib/libLLVMInstrumentation.a
 pryst: /usr/local/lib/libLLVMJITLink.a
 pryst: /usr/local/lib/libLLVMWindowsDriver.a
 pryst: /usr/local/lib/libLLVMOption.a
 pryst: /usr/local/lib/libLLVMOrcTargetProcess.a
 pryst: /usr/local/lib/libLLVMOrcShared.a
 pryst: /usr/local/lib/libLLVMRuntimeDyld.a
+pryst: /usr/local/lib/libLLVMIRPrinter.a
+pryst: /usr/local/lib/libLLVMInstrumentation.a
 pryst: /usr/local/lib/libLLVMAsmPrinter.a
 pryst: /usr/local/lib/libLLVMCFGuard.a
 pryst: /usr/local/lib/libLLVMGlobalISel.a
@@ -262,7 +344,7 @@ pryst: /usr/local/lib/libLLVMDemangle.a
 pryst: /Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/lib/libz.tbd
 pryst: /opt/homebrew/lib/libzstd.dylib
 pryst: CMakeFiles/pryst.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable pryst"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/cliid/dev/pryst/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Linking CXX executable pryst"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/pryst.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -273,7 +355,14 @@ CMakeFiles/pryst.dir/clean:
 	$(CMAKE_COMMAND) -P CMakeFiles/pryst.dir/cmake_clean.cmake
 .PHONY : CMakeFiles/pryst.dir/clean
 
-CMakeFiles/pryst.dir/depend:
+CMakeFiles/pryst.dir/depend: /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.cpp
+CMakeFiles/pryst.dir/depend: /Users/cliid/dev/pryst/src/generated/PrystBaseVisitor.h
+CMakeFiles/pryst.dir/depend: /Users/cliid/dev/pryst/src/generated/PrystLexer.cpp
+CMakeFiles/pryst.dir/depend: /Users/cliid/dev/pryst/src/generated/PrystLexer.h
+CMakeFiles/pryst.dir/depend: /Users/cliid/dev/pryst/src/generated/PrystParser.cpp
+CMakeFiles/pryst.dir/depend: /Users/cliid/dev/pryst/src/generated/PrystParser.h
+CMakeFiles/pryst.dir/depend: /Users/cliid/dev/pryst/src/generated/PrystVisitor.cpp
+CMakeFiles/pryst.dir/depend: /Users/cliid/dev/pryst/src/generated/PrystVisitor.h
 	cd /Users/cliid/dev/pryst/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Users/cliid/dev/pryst /Users/cliid/dev/pryst /Users/cliid/dev/pryst/build /Users/cliid/dev/pryst/build /Users/cliid/dev/pryst/build/CMakeFiles/pryst.dir/DependInfo.cmake "--color=$(COLOR)"
 .PHONY : CMakeFiles/pryst.dir/depend
 

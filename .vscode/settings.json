@@ -71,7 +71,8 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "tuple": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "*.inc": "cpp"
     },
     "search.exclude": {
         "**/node_modules": true,
