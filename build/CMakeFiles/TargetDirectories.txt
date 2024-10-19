@@ -5,6 +5,7 @@
 /Users/cliid/dev/pryst/build/CMakeFiles/ARMTargetParserTableGen.dir
 /Users/cliid/dev/pryst/build/CMakeFiles/AArch64TargetParserTableGen.dir
 /Users/cliid/dev/pryst/build/CMakeFiles/RISCVTargetParserTableGen.dir
+/Users/cliid/dev/pryst/build/CMakeFiles/GenerateParser.dir
 /Users/cliid/dev/pryst/build/CMakeFiles/pryst.dir
 /Users/cliid/dev/pryst/build/CMakeFiles/edit_cache.dir
 /Users/cliid/dev/pryst/build/CMakeFiles/rebuild_cache.dir

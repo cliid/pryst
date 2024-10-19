@@ -208,6 +208,19 @@ RISCVTargetParserTableGen/fast:
 .PHONY : RISCVTargetParserTableGen/fast
 
 #=============================================================================
+# Target rules for targets named GenerateParser
+
+# Build rule for target.
+GenerateParser: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 GenerateParser
+.PHONY : GenerateParser
+
+# fast build rule for target.
+GenerateParser/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/GenerateParser.dir/build.make CMakeFiles/GenerateParser.dir/build
+.PHONY : GenerateParser/fast
+
+#=============================================================================
 # Target rules for targets named pryst
 
 # Build rule for target.
@@ -244,29 +257,29 @@ src/aot/aot_compiler.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/aot/aot_compiler.cpp.s
 .PHONY : src/aot/aot_compiler.cpp.s
 
-src/ast/ast.o: src/ast/ast.cpp.o
-.PHONY : src/ast/ast.o
+src/codegen/builtin_functions.o: src/codegen/builtin_functions.cpp.o
+.PHONY : src/codegen/builtin_functions.o
 
 # target to build an object file
-src/ast/ast.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/ast/ast.cpp.o
-.PHONY : src/ast/ast.cpp.o
+src/codegen/builtin_functions.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.o
+.PHONY : src/codegen/builtin_functions.cpp.o
 
-src/ast/ast.i: src/ast/ast.cpp.i
-.PHONY : src/ast/ast.i
+src/codegen/builtin_functions.i: src/codegen/builtin_functions.cpp.i
+.PHONY : src/codegen/builtin_functions.i
 
 # target to preprocess a source file
-src/ast/ast.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/ast/ast.cpp.i
-.PHONY : src/ast/ast.cpp.i
+src/codegen/builtin_functions.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.i
+.PHONY : src/codegen/builtin_functions.cpp.i
 
-src/ast/ast.s: src/ast/ast.cpp.s
-.PHONY : src/ast/ast.s
+src/codegen/builtin_functions.s: src/codegen/builtin_functions.cpp.s
+.PHONY : src/codegen/builtin_functions.s
 
 # target to generate assembly for a file
-src/ast/ast.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/ast/ast.cpp.s
-.PHONY : src/ast/ast.cpp.s
+src/codegen/builtin_functions.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/codegen/builtin_functions.cpp.s
+.PHONY : src/codegen/builtin_functions.cpp.s
 
 src/codegen/llvm_codegen.o: src/codegen/llvm_codegen.cpp.o
 .PHONY : src/codegen/llvm_codegen.o
@@ -292,29 +305,125 @@ src/codegen/llvm_codegen.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/codegen/llvm_codegen.cpp.s
 .PHONY : src/codegen/llvm_codegen.cpp.s
 
-src/lexer/lexer.o: src/lexer/lexer.cpp.o
-.PHONY : src/lexer/lexer.o
+src/generated/PrystBaseVisitor.o: src/generated/PrystBaseVisitor.cpp.o
+.PHONY : src/generated/PrystBaseVisitor.o
 
 # target to build an object file
-src/lexer/lexer.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/lexer/lexer.cpp.o
-.PHONY : src/lexer/lexer.cpp.o
+src/generated/PrystBaseVisitor.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.o
+.PHONY : src/generated/PrystBaseVisitor.cpp.o
 
-src/lexer/lexer.i: src/lexer/lexer.cpp.i
-.PHONY : src/lexer/lexer.i
+src/generated/PrystBaseVisitor.i: src/generated/PrystBaseVisitor.cpp.i
+.PHONY : src/generated/PrystBaseVisitor.i
 
 # target to preprocess a source file
-src/lexer/lexer.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/lexer/lexer.cpp.i
-.PHONY : src/lexer/lexer.cpp.i
+src/generated/PrystBaseVisitor.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.i
+.PHONY : src/generated/PrystBaseVisitor.cpp.i
 
-src/lexer/lexer.s: src/lexer/lexer.cpp.s
-.PHONY : src/lexer/lexer.s
+src/generated/PrystBaseVisitor.s: src/generated/PrystBaseVisitor.cpp.s
+.PHONY : src/generated/PrystBaseVisitor.s
 
 # target to generate assembly for a file
-src/lexer/lexer.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/lexer/lexer.cpp.s
-.PHONY : src/lexer/lexer.cpp.s
+src/generated/PrystBaseVisitor.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystBaseVisitor.cpp.s
+.PHONY : src/generated/PrystBaseVisitor.cpp.s
+
+src/generated/PrystLexer.o: src/generated/PrystLexer.cpp.o
+.PHONY : src/generated/PrystLexer.o
+
+# target to build an object file
+src/generated/PrystLexer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.o
+.PHONY : src/generated/PrystLexer.cpp.o
+
+src/generated/PrystLexer.i: src/generated/PrystLexer.cpp.i
+.PHONY : src/generated/PrystLexer.i
+
+# target to preprocess a source file
+src/generated/PrystLexer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.i
+.PHONY : src/generated/PrystLexer.cpp.i
+
+src/generated/PrystLexer.s: src/generated/PrystLexer.cpp.s
+.PHONY : src/generated/PrystLexer.s
+
+# target to generate assembly for a file
+src/generated/PrystLexer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystLexer.cpp.s
+.PHONY : src/generated/PrystLexer.cpp.s
+
+src/generated/PrystParser.o: src/generated/PrystParser.cpp.o
+.PHONY : src/generated/PrystParser.o
+
+# target to build an object file
+src/generated/PrystParser.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.o
+.PHONY : src/generated/PrystParser.cpp.o
+
+src/generated/PrystParser.i: src/generated/PrystParser.cpp.i
+.PHONY : src/generated/PrystParser.i
+
+# target to preprocess a source file
+src/generated/PrystParser.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.i
+.PHONY : src/generated/PrystParser.cpp.i
+
+src/generated/PrystParser.s: src/generated/PrystParser.cpp.s
+.PHONY : src/generated/PrystParser.s
+
+# target to generate assembly for a file
+src/generated/PrystParser.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystParser.cpp.s
+.PHONY : src/generated/PrystParser.cpp.s
+
+src/generated/PrystVisitor.o: src/generated/PrystVisitor.cpp.o
+.PHONY : src/generated/PrystVisitor.o
+
+# target to build an object file
+src/generated/PrystVisitor.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.o
+.PHONY : src/generated/PrystVisitor.cpp.o
+
+src/generated/PrystVisitor.i: src/generated/PrystVisitor.cpp.i
+.PHONY : src/generated/PrystVisitor.i
+
+# target to preprocess a source file
+src/generated/PrystVisitor.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.i
+.PHONY : src/generated/PrystVisitor.cpp.i
+
+src/generated/PrystVisitor.s: src/generated/PrystVisitor.cpp.s
+.PHONY : src/generated/PrystVisitor.s
+
+# target to generate assembly for a file
+src/generated/PrystVisitor.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/generated/PrystVisitor.cpp.s
+.PHONY : src/generated/PrystVisitor.cpp.s
+
+src/jit/jit_compiler.o: src/jit/jit_compiler.cpp.o
+.PHONY : src/jit/jit_compiler.o
+
+# target to build an object file
+src/jit/jit_compiler.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.o
+.PHONY : src/jit/jit_compiler.cpp.o
+
+src/jit/jit_compiler.i: src/jit/jit_compiler.cpp.i
+.PHONY : src/jit/jit_compiler.i
+
+# target to preprocess a source file
+src/jit/jit_compiler.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.i
+.PHONY : src/jit/jit_compiler.cpp.i
+
+src/jit/jit_compiler.s: src/jit/jit_compiler.cpp.s
+.PHONY : src/jit/jit_compiler.s
+
+# target to generate assembly for a file
+src/jit/jit_compiler.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/jit/jit_compiler.cpp.s
+.PHONY : src/jit/jit_compiler.cpp.s
 
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
@@ -339,30 +448,6 @@ src/main.s: src/main.cpp.s
 src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
-
-src/parser/parser.o: src/parser/parser.cpp.o
-.PHONY : src/parser/parser.o
-
-# target to build an object file
-src/parser/parser.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/parser/parser.cpp.o
-.PHONY : src/parser/parser.cpp.o
-
-src/parser/parser.i: src/parser/parser.cpp.i
-.PHONY : src/parser/parser.i
-
-# target to preprocess a source file
-src/parser/parser.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/parser/parser.cpp.i
-.PHONY : src/parser/parser.cpp.i
-
-src/parser/parser.s: src/parser/parser.cpp.s
-.PHONY : src/parser/parser.s
-
-# target to generate assembly for a file
-src/parser/parser.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pryst.dir/build.make CMakeFiles/pryst.dir/src/parser/parser.cpp.s
-.PHONY : src/parser/parser.cpp.s
 
 src/semantic/semantic_analyzer.o: src/semantic/semantic_analyzer.cpp.o
 .PHONY : src/semantic/semantic_analyzer.o
@@ -398,6 +483,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... AArch64TargetParserTableGen"
 	@echo "... ARMTargetParserTableGen"
+	@echo "... GenerateParser"
 	@echo "... RISCVTargetParserTableGen"
 	@echo "... acc_gen"
 	@echo "... intrinsics_gen"
@@ -407,21 +493,30 @@ help:
 	@echo "... src/aot/aot_compiler.o"
 	@echo "... src/aot/aot_compiler.i"
 	@echo "... src/aot/aot_compiler.s"
-	@echo "... src/ast/ast.o"
-	@echo "... src/ast/ast.i"
-	@echo "... src/ast/ast.s"
+	@echo "... src/codegen/builtin_functions.o"
+	@echo "... src/codegen/builtin_functions.i"
+	@echo "... src/codegen/builtin_functions.s"
 	@echo "... src/codegen/llvm_codegen.o"
 	@echo "... src/codegen/llvm_codegen.i"
 	@echo "... src/codegen/llvm_codegen.s"
-	@echo "... src/lexer/lexer.o"
-	@echo "... src/lexer/lexer.i"
-	@echo "... src/lexer/lexer.s"
+	@echo "... src/generated/PrystBaseVisitor.o"
+	@echo "... src/generated/PrystBaseVisitor.i"
+	@echo "... src/generated/PrystBaseVisitor.s"
+	@echo "... src/generated/PrystLexer.o"
+	@echo "... src/generated/PrystLexer.i"
+	@echo "... src/generated/PrystLexer.s"
+	@echo "... src/generated/PrystParser.o"
+	@echo "... src/generated/PrystParser.i"
+	@echo "... src/generated/PrystParser.s"
+	@echo "... src/generated/PrystVisitor.o"
+	@echo "... src/generated/PrystVisitor.i"
+	@echo "... src/generated/PrystVisitor.s"
+	@echo "... src/jit/jit_compiler.o"
+	@echo "... src/jit/jit_compiler.i"
+	@echo "... src/jit/jit_compiler.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
-	@echo "... src/parser/parser.o"
-	@echo "... src/parser/parser.i"
-	@echo "... src/parser/parser.s"
 	@echo "... src/semantic/semantic_analyzer.o"
 	@echo "... src/semantic/semantic_analyzer.i"
 	@echo "... src/semantic/semantic_analyzer.s"

@@ -1,0 +1,53 @@
+// Sample Pryst program
+
+// Class declaration with inheritance
+class Animal {
+    int age;
+    str name;
+
+    void speak() {
+        // Method implementation
+    }
+}
+
+class Dog extends Animal {
+    void speak() {
+        print("Woof!");
+    }
+}
+
+// Function declaration
+int add(int a, int b) {
+    return a + b;
+}
+
+// Main program
+int main() {
+    // Variable declarations
+    int x = 10;
+    float y = 20.5;
+    bool isHappy = true;
+    str greeting = "Hello, Pryst!";
+
+    // Object creation
+    Dog myDog = new Dog();
+
+    // Function call
+    int result = add(x, 5);
+
+    // Conditional statement
+    if (result > 10) {
+        print(greeting);
+    } else {
+        print("Result is less than or equal to 10");
+    }
+
+    // Loop statement
+    while (x > 0) {
+        print(x);
+        x = x - 1;
+    }
+
+    // Return statement
+    return 0;
+}

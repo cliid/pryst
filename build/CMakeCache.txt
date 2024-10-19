@@ -225,6 +225,12 @@ LIBXML2_XMLLINT_EXECUTABLE:FILEPATH=/usr/bin/xmllint
 //The directory containing a CMake configuration file for LLVM.
 LLVM_DIR:PATH=/usr/local/lib/cmake/llvm
 
+//Path to a file.
+LibEdit_INCLUDE_DIRS:PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/include
+
+//Path to a library.
+LibEdit_LIBRARIES:FILEPATH=/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/lib/libedit.tbd
+
 //Arguments to supply to pkg-config
 PKG_CONFIG_ARGN:STRING=
 
@@ -248,9 +254,6 @@ ZLIB_LIBRARY_DEBUG:FILEPATH=ZLIB_LIBRARY_DEBUG-NOTFOUND
 
 //Path to a library.
 ZLIB_LIBRARY_RELEASE:FILEPATH=/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/lib/libz.tbd
-
-//Path to a library.
-pkgcfg_lib_LibEdit_edit:FILEPATH=/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/lib/libedit.tbd
 
 //Path to a library.
 pkgcfg_lib_PC_LIBEDIT_edit:FILEPATH=/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/lib/libedit.tbd
@@ -412,11 +415,9 @@ CMAKE_UNAME:INTERNAL=/usr/bin/uname
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Details about finding LibEdit
-FIND_PACKAGE_MESSAGE_DETAILS_LibEdit:INTERNAL=[/Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk/usr/include/editline][edit][v()]
+FIND_PACKAGE_MESSAGE_DETAILS_LibEdit:INTERNAL=[/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/include][/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/lib/libedit.tbd][v2.11()]
 //Details about finding LibXml2
 FIND_PACKAGE_MESSAGE_DETAILS_LibXml2:INTERNAL=[/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/lib/libxml2.tbd][/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/include/libxml2][v2.9.13()]
-//Details about finding PkgConfig
-FIND_PACKAGE_MESSAGE_DETAILS_PkgConfig:INTERNAL=[/opt/homebrew/bin/pkg-config][v0.29.2()]
 //Details about finding ZLIB
 FIND_PACKAGE_MESSAGE_DETAILS_ZLIB:INTERNAL=[/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/lib/libz.tbd][/Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/usr/include][c ][v1.2.12()]
 //Details about finding zstd
@@ -429,45 +430,10 @@ LIBXML2_INCLUDE_DIR-ADVANCED:INTERNAL=1
 LIBXML2_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: LIBXML2_XMLLINT_EXECUTABLE
 LIBXML2_XMLLINT_EXECUTABLE-ADVANCED:INTERNAL=1
-LibEdit_CFLAGS:INTERNAL=-I/Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk/usr/include/editline
-LibEdit_CFLAGS_I:INTERNAL=
-LibEdit_CFLAGS_OTHER:INTERNAL=
-LibEdit_FOUND:INTERNAL=1
-LibEdit_INCLUDEDIR:INTERNAL=/Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk/usr/include
 //ADVANCED property for variable: LibEdit_INCLUDE_DIRS
 LibEdit_INCLUDE_DIRS-ADVANCED:INTERNAL=1
-LibEdit_INCLUDE_DIRS:INTERNAL=/Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk/usr/include/editline
-LibEdit_LDFLAGS:INTERNAL=-L/usr/lib;-ledit
-LibEdit_LDFLAGS_OTHER:INTERNAL=
-LibEdit_LIBDIR:INTERNAL=/usr/lib
 //ADVANCED property for variable: LibEdit_LIBRARIES
 LibEdit_LIBRARIES-ADVANCED:INTERNAL=1
-LibEdit_LIBRARIES:INTERNAL=edit
-LibEdit_LIBRARY_DIRS:INTERNAL=/usr/lib
-LibEdit_LIBS:INTERNAL=
-LibEdit_LIBS_L:INTERNAL=
-LibEdit_LIBS_OTHER:INTERNAL=
-LibEdit_LIBS_PATHS:INTERNAL=
-LibEdit_MODULE_NAME:INTERNAL=libedit
-LibEdit_PREFIX:INTERNAL=/Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk/usr
-LibEdit_STATIC_CFLAGS:INTERNAL=-I/Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk/usr/include/editline
-LibEdit_STATIC_CFLAGS_I:INTERNAL=
-LibEdit_STATIC_CFLAGS_OTHER:INTERNAL=
-LibEdit_STATIC_INCLUDE_DIRS:INTERNAL=/Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk/usr/include/editline
-LibEdit_STATIC_LDFLAGS:INTERNAL=-L/usr/lib;-ledit
-LibEdit_STATIC_LDFLAGS_OTHER:INTERNAL=
-LibEdit_STATIC_LIBDIR:INTERNAL=
-LibEdit_STATIC_LIBRARIES:INTERNAL=edit
-LibEdit_STATIC_LIBRARY_DIRS:INTERNAL=/usr/lib
-LibEdit_STATIC_LIBS:INTERNAL=
-LibEdit_STATIC_LIBS_L:INTERNAL=
-LibEdit_STATIC_LIBS_OTHER:INTERNAL=
-LibEdit_STATIC_LIBS_PATHS:INTERNAL=
-LibEdit_VERSION:INTERNAL=3.0
-LibEdit_libedit_INCLUDEDIR:INTERNAL=
-LibEdit_libedit_LIBDIR:INTERNAL=
-LibEdit_libedit_PREFIX:INTERNAL=
-LibEdit_libedit_VERSION:INTERNAL=
 PC_LIBEDIT_CFLAGS:INTERNAL=-I/Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk/usr/include/editline
 PC_LIBEDIT_CFLAGS_I:INTERNAL=
 PC_LIBEDIT_CFLAGS_OTHER:INTERNAL=
@@ -548,14 +514,10 @@ ZLIB_INCLUDE_DIR-ADVANCED:INTERNAL=1
 ZLIB_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: ZLIB_LIBRARY_RELEASE
 ZLIB_LIBRARY_RELEASE-ADVANCED:INTERNAL=1
-__pkg_config_arguments_LibEdit:INTERNAL=REQUIRED;libedit
 __pkg_config_arguments_PC_LIBEDIT:INTERNAL=QUIET;libedit
 __pkg_config_arguments_PC_LIBXML:INTERNAL=QUIET;libxml-2.0
-__pkg_config_checked_LibEdit:INTERNAL=1
 __pkg_config_checked_PC_LIBEDIT:INTERNAL=1
 __pkg_config_checked_PC_LIBXML:INTERNAL=1
-//ADVANCED property for variable: pkgcfg_lib_LibEdit_edit
-pkgcfg_lib_LibEdit_edit-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_PC_LIBEDIT_edit
 pkgcfg_lib_PC_LIBEDIT_edit-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_PC_LIBXML_xml2

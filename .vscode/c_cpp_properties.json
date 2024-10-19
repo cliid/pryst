@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/local/include/**",
-                "/usr/local/include"
+                "/usr/local/include",
+                "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/include/antlr4-runtime"
             ],
             "defines": [],
             "macFrameworkPath": [

@@ -10,11 +10,9 @@
 #include <system_error>
 
 AOTCompiler::AOTCompiler() {
-    llvm::InitializeAllTargetInfos();
-    llvm::InitializeAllTargets();
-    llvm::InitializeAllTargetMCs();
-    llvm::InitializeAllAsmParsers();
-    llvm::InitializeAllAsmPrinters();
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    llvm::InitializeNativeTargetAsmParser();
 }
 
 void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilename) {
