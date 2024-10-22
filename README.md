@@ -43,7 +43,6 @@ cmake .. && make
 
 work in progress:
 
-- multiline quotes
 - standard library
 - advanced OOP features
 - optimization
