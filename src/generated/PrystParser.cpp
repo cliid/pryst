@@ -65,7 +65,7 @@ void prystParserInitialize() {
       "'>='", "'<='", "'&&'", "'||'", "'++'", "'--'", "'%'", "'class'", 
       "'extends'", "'else'", "'false'", "'for'", "'if'", "'null'", "'return'", 
       "'super'", "'this'", "'true'", "'while'", "'new'", "'int'", "'float'", 
-      "'bool'", "'str'"
+      "'bool'", "'str'", "'void'"
     },
     std::vector<std::string>{
       "", "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACKET", "RBRACKET", 
@@ -73,12 +73,12 @@ void prystParserInitialize() {
       "EQUAL", "GREATER", "LESS", "NOT_EQUAL", "EQUAL_EQUAL", "GREATER_EQUAL", 
       "LESS_EQUAL", "AND", "OR", "INCREMENT", "DECREMENT", "PERCENT", "CLASS", 
       "EXTENDS", "ELSE", "FALSE", "FOR", "IF", "NULL", "RETURN", "SUPER", 
-      "THIS", "TRUE", "WHILE", "NEW", "INT", "FLOAT", "BOOL", "STR", "NUMBER", 
-      "STRING", "IDENTIFIER", "COMMENT", "WS"
+      "THIS", "TRUE", "WHILE", "NEW", "INT", "FLOAT", "BOOL", "STR", "VOID", 
+      "NUMBER", "STRING", "IDENTIFIER", "COMMENT", "WS"
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,48,321,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
+  	4,1,49,322,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
   	7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,
   	14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,
   	21,2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,
@@ -86,105 +86,106 @@ void prystParserInitialize() {
   	1,1,1,1,1,3,1,75,8,1,1,2,1,2,1,2,1,2,3,2,81,8,2,1,2,1,2,1,2,1,3,1,3,1,
   	3,1,3,3,3,90,8,3,1,3,1,3,1,4,1,4,1,4,1,4,3,4,98,8,4,1,4,1,4,5,4,102,8,
   	4,10,4,12,4,105,9,4,1,4,1,4,1,5,1,5,3,5,111,8,5,1,6,1,6,1,6,5,6,116,8,
-  	6,10,6,12,6,119,9,6,1,7,1,7,1,7,1,8,1,8,1,8,1,8,1,8,1,8,3,8,130,8,8,1,
-  	8,1,8,1,8,5,8,135,8,8,10,8,12,8,138,9,8,1,9,1,9,1,9,1,9,1,9,1,9,3,9,146,
-  	8,9,1,10,1,10,1,10,1,11,1,11,1,11,1,11,1,11,1,11,1,11,3,11,158,8,11,1,
-  	12,1,12,1,12,1,12,1,12,1,12,1,13,1,13,1,13,1,13,1,13,3,13,171,8,13,1,
-  	13,3,13,174,8,13,1,13,1,13,3,13,178,8,13,1,13,1,13,1,13,1,14,1,14,3,14,
-  	185,8,14,1,14,1,14,1,15,1,15,5,15,191,8,15,10,15,12,15,194,9,15,1,15,
-  	1,15,1,16,1,16,3,16,200,8,16,1,17,1,17,1,17,3,17,205,8,17,1,17,1,17,1,
-  	17,1,17,1,18,1,18,1,18,5,18,214,8,18,10,18,12,18,217,9,18,1,19,1,19,1,
-  	19,5,19,222,8,19,10,19,12,19,225,9,19,1,20,1,20,1,20,5,20,230,8,20,10,
-  	20,12,20,233,9,20,1,21,1,21,1,21,5,21,238,8,21,10,21,12,21,241,9,21,1,
-  	22,1,22,1,22,5,22,246,8,22,10,22,12,22,249,9,22,1,23,1,23,1,23,5,23,254,
-  	8,23,10,23,12,23,257,9,23,1,24,1,24,1,24,3,24,262,8,24,1,25,1,25,3,25,
-  	266,8,25,1,26,1,26,5,26,270,8,26,10,26,12,26,273,9,26,1,27,1,27,3,27,
-  	277,8,27,1,27,1,27,1,27,1,27,1,27,1,27,1,27,3,27,286,8,27,1,28,1,28,1,
-  	28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,3,28,303,
-  	8,28,1,29,1,29,1,29,1,29,3,29,309,8,29,1,29,1,29,1,30,1,30,1,30,5,30,
-  	316,8,30,10,30,12,30,319,9,30,1,30,0,1,16,31,0,2,4,6,8,10,12,14,16,18,
-  	20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,0,6,1,
-  	0,18,19,2,0,16,17,20,21,1,0,9,10,2,0,12,13,26,26,3,0,9,9,14,14,24,25,
-  	1,0,24,25,341,0,65,1,0,0,0,2,74,1,0,0,0,4,76,1,0,0,0,6,85,1,0,0,0,8,93,
-  	1,0,0,0,10,110,1,0,0,0,12,112,1,0,0,0,14,120,1,0,0,0,16,129,1,0,0,0,18,
-  	145,1,0,0,0,20,147,1,0,0,0,22,150,1,0,0,0,24,159,1,0,0,0,26,165,1,0,0,
-  	0,28,182,1,0,0,0,30,188,1,0,0,0,32,199,1,0,0,0,34,204,1,0,0,0,36,210,
-  	1,0,0,0,38,218,1,0,0,0,40,226,1,0,0,0,42,234,1,0,0,0,44,242,1,0,0,0,46,
-  	250,1,0,0,0,48,261,1,0,0,0,50,263,1,0,0,0,52,267,1,0,0,0,54,285,1,0,0,
-  	0,56,302,1,0,0,0,58,304,1,0,0,0,60,312,1,0,0,0,62,64,3,2,1,0,63,62,1,
-  	0,0,0,64,67,1,0,0,0,65,63,1,0,0,0,65,66,1,0,0,0,66,68,1,0,0,0,67,65,1,
-  	0,0,0,68,69,5,0,0,1,69,1,1,0,0,0,70,75,3,4,2,0,71,75,3,6,3,0,72,75,3,
-  	8,4,0,73,75,3,18,9,0,74,70,1,0,0,0,74,71,1,0,0,0,74,72,1,0,0,0,74,73,
-  	1,0,0,0,75,3,1,0,0,0,76,77,3,16,8,0,77,78,5,46,0,0,78,80,5,1,0,0,79,81,
-  	3,12,6,0,80,79,1,0,0,0,80,81,1,0,0,0,81,82,1,0,0,0,82,83,5,2,0,0,83,84,
-  	3,30,15,0,84,5,1,0,0,0,85,86,3,16,8,0,86,89,5,46,0,0,87,88,5,15,0,0,88,
-  	90,3,32,16,0,89,87,1,0,0,0,89,90,1,0,0,0,90,91,1,0,0,0,91,92,5,11,0,0,
-  	92,7,1,0,0,0,93,94,5,27,0,0,94,97,5,46,0,0,95,96,5,28,0,0,96,98,5,46,
-  	0,0,97,95,1,0,0,0,97,98,1,0,0,0,98,99,1,0,0,0,99,103,5,3,0,0,100,102,
-  	3,10,5,0,101,100,1,0,0,0,102,105,1,0,0,0,103,101,1,0,0,0,103,104,1,0,
-  	0,0,104,106,1,0,0,0,105,103,1,0,0,0,106,107,5,4,0,0,107,9,1,0,0,0,108,
-  	111,3,6,3,0,109,111,3,4,2,0,110,108,1,0,0,0,110,109,1,0,0,0,111,11,1,
-  	0,0,0,112,117,3,14,7,0,113,114,5,7,0,0,114,116,3,14,7,0,115,113,1,0,0,
-  	0,116,119,1,0,0,0,117,115,1,0,0,0,117,118,1,0,0,0,118,13,1,0,0,0,119,
-  	117,1,0,0,0,120,121,3,16,8,0,121,122,5,46,0,0,122,15,1,0,0,0,123,124,
-  	6,8,-1,0,124,130,5,40,0,0,125,130,5,41,0,0,126,130,5,42,0,0,127,130,5,
-  	43,0,0,128,130,5,46,0,0,129,123,1,0,0,0,129,125,1,0,0,0,129,126,1,0,0,
-  	0,129,127,1,0,0,0,129,128,1,0,0,0,130,136,1,0,0,0,131,132,10,1,0,0,132,
-  	133,5,5,0,0,133,135,5,6,0,0,134,131,1,0,0,0,135,138,1,0,0,0,136,134,1,
-  	0,0,0,136,137,1,0,0,0,137,17,1,0,0,0,138,136,1,0,0,0,139,146,3,20,10,
-  	0,140,146,3,22,11,0,141,146,3,24,12,0,142,146,3,26,13,0,143,146,3,28,
-  	14,0,144,146,3,30,15,0,145,139,1,0,0,0,145,140,1,0,0,0,145,141,1,0,0,
-  	0,145,142,1,0,0,0,145,143,1,0,0,0,145,144,1,0,0,0,146,19,1,0,0,0,147,
-  	148,3,32,16,0,148,149,5,11,0,0,149,21,1,0,0,0,150,151,5,32,0,0,151,152,
-  	5,1,0,0,152,153,3,32,16,0,153,154,5,2,0,0,154,157,3,18,9,0,155,156,5,
-  	29,0,0,156,158,3,18,9,0,157,155,1,0,0,0,157,158,1,0,0,0,158,23,1,0,0,
-  	0,159,160,5,38,0,0,160,161,5,1,0,0,161,162,3,32,16,0,162,163,5,2,0,0,
-  	163,164,3,18,9,0,164,25,1,0,0,0,165,166,5,31,0,0,166,170,5,1,0,0,167,
-  	171,3,6,3,0,168,171,3,20,10,0,169,171,5,11,0,0,170,167,1,0,0,0,170,168,
-  	1,0,0,0,170,169,1,0,0,0,171,173,1,0,0,0,172,174,3,32,16,0,173,172,1,0,
-  	0,0,173,174,1,0,0,0,174,175,1,0,0,0,175,177,5,11,0,0,176,178,3,32,16,
-  	0,177,176,1,0,0,0,177,178,1,0,0,0,178,179,1,0,0,0,179,180,5,2,0,0,180,
-  	181,3,18,9,0,181,27,1,0,0,0,182,184,5,34,0,0,183,185,3,32,16,0,184,183,
-  	1,0,0,0,184,185,1,0,0,0,185,186,1,0,0,0,186,187,5,11,0,0,187,29,1,0,0,
-  	0,188,192,5,3,0,0,189,191,3,2,1,0,190,189,1,0,0,0,191,194,1,0,0,0,192,
-  	190,1,0,0,0,192,193,1,0,0,0,193,195,1,0,0,0,194,192,1,0,0,0,195,196,5,
-  	4,0,0,196,31,1,0,0,0,197,200,3,34,17,0,198,200,3,36,18,0,199,197,1,0,
-  	0,0,199,198,1,0,0,0,200,33,1,0,0,0,201,202,3,52,26,0,202,203,5,8,0,0,
-  	203,205,1,0,0,0,204,201,1,0,0,0,204,205,1,0,0,0,205,206,1,0,0,0,206,207,
-  	5,46,0,0,207,208,5,15,0,0,208,209,3,32,16,0,209,35,1,0,0,0,210,215,3,
-  	38,19,0,211,212,5,23,0,0,212,214,3,38,19,0,213,211,1,0,0,0,214,217,1,
-  	0,0,0,215,213,1,0,0,0,215,216,1,0,0,0,216,37,1,0,0,0,217,215,1,0,0,0,
-  	218,223,3,40,20,0,219,220,5,22,0,0,220,222,3,40,20,0,221,219,1,0,0,0,
-  	222,225,1,0,0,0,223,221,1,0,0,0,223,224,1,0,0,0,224,39,1,0,0,0,225,223,
-  	1,0,0,0,226,231,3,42,21,0,227,228,7,0,0,0,228,230,3,42,21,0,229,227,1,
-  	0,0,0,230,233,1,0,0,0,231,229,1,0,0,0,231,232,1,0,0,0,232,41,1,0,0,0,
-  	233,231,1,0,0,0,234,239,3,44,22,0,235,236,7,1,0,0,236,238,3,44,22,0,237,
-  	235,1,0,0,0,238,241,1,0,0,0,239,237,1,0,0,0,239,240,1,0,0,0,240,43,1,
-  	0,0,0,241,239,1,0,0,0,242,247,3,46,23,0,243,244,7,2,0,0,244,246,3,46,
-  	23,0,245,243,1,0,0,0,246,249,1,0,0,0,247,245,1,0,0,0,247,248,1,0,0,0,
-  	248,45,1,0,0,0,249,247,1,0,0,0,250,255,3,48,24,0,251,252,7,3,0,0,252,
-  	254,3,48,24,0,253,251,1,0,0,0,254,257,1,0,0,0,255,253,1,0,0,0,255,256,
-  	1,0,0,0,256,47,1,0,0,0,257,255,1,0,0,0,258,259,7,4,0,0,259,262,3,48,24,
-  	0,260,262,3,50,25,0,261,258,1,0,0,0,261,260,1,0,0,0,262,49,1,0,0,0,263,
-  	265,3,56,28,0,264,266,7,5,0,0,265,264,1,0,0,0,265,266,1,0,0,0,266,51,
-  	1,0,0,0,267,271,3,56,28,0,268,270,3,54,27,0,269,268,1,0,0,0,270,273,1,
-  	0,0,0,271,269,1,0,0,0,271,272,1,0,0,0,272,53,1,0,0,0,273,271,1,0,0,0,
-  	274,276,5,1,0,0,275,277,3,60,30,0,276,275,1,0,0,0,276,277,1,0,0,0,277,
-  	278,1,0,0,0,278,286,5,2,0,0,279,280,5,5,0,0,280,281,3,32,16,0,281,282,
-  	5,6,0,0,282,286,1,0,0,0,283,284,5,8,0,0,284,286,5,46,0,0,285,274,1,0,
-  	0,0,285,279,1,0,0,0,285,283,1,0,0,0,286,55,1,0,0,0,287,303,5,37,0,0,288,
-  	303,5,30,0,0,289,303,5,33,0,0,290,303,5,36,0,0,291,303,5,44,0,0,292,303,
-  	5,45,0,0,293,303,5,46,0,0,294,295,5,1,0,0,295,296,3,32,16,0,296,297,5,
-  	2,0,0,297,303,1,0,0,0,298,299,5,35,0,0,299,300,5,8,0,0,300,303,5,46,0,
-  	0,301,303,3,58,29,0,302,287,1,0,0,0,302,288,1,0,0,0,302,289,1,0,0,0,302,
-  	290,1,0,0,0,302,291,1,0,0,0,302,292,1,0,0,0,302,293,1,0,0,0,302,294,1,
-  	0,0,0,302,298,1,0,0,0,302,301,1,0,0,0,303,57,1,0,0,0,304,305,5,39,0,0,
-  	305,306,5,46,0,0,306,308,5,1,0,0,307,309,3,60,30,0,308,307,1,0,0,0,308,
-  	309,1,0,0,0,309,310,1,0,0,0,310,311,5,2,0,0,311,59,1,0,0,0,312,317,3,
-  	32,16,0,313,314,5,7,0,0,314,316,3,32,16,0,315,313,1,0,0,0,316,319,1,0,
-  	0,0,317,315,1,0,0,0,317,318,1,0,0,0,318,61,1,0,0,0,319,317,1,0,0,0,33,
-  	65,74,80,89,97,103,110,117,129,136,145,157,170,173,177,184,192,199,204,
-  	215,223,231,239,247,255,261,265,271,276,285,302,308,317
+  	6,10,6,12,6,119,9,6,1,7,1,7,1,7,1,8,1,8,1,8,1,8,1,8,1,8,1,8,3,8,131,8,
+  	8,1,8,1,8,1,8,5,8,136,8,8,10,8,12,8,139,9,8,1,9,1,9,1,9,1,9,1,9,1,9,3,
+  	9,147,8,9,1,10,1,10,1,10,1,11,1,11,1,11,1,11,1,11,1,11,1,11,3,11,159,
+  	8,11,1,12,1,12,1,12,1,12,1,12,1,12,1,13,1,13,1,13,1,13,1,13,3,13,172,
+  	8,13,1,13,3,13,175,8,13,1,13,1,13,3,13,179,8,13,1,13,1,13,1,13,1,14,1,
+  	14,3,14,186,8,14,1,14,1,14,1,15,1,15,5,15,192,8,15,10,15,12,15,195,9,
+  	15,1,15,1,15,1,16,1,16,3,16,201,8,16,1,17,1,17,1,17,3,17,206,8,17,1,17,
+  	1,17,1,17,1,17,1,18,1,18,1,18,5,18,215,8,18,10,18,12,18,218,9,18,1,19,
+  	1,19,1,19,5,19,223,8,19,10,19,12,19,226,9,19,1,20,1,20,1,20,5,20,231,
+  	8,20,10,20,12,20,234,9,20,1,21,1,21,1,21,5,21,239,8,21,10,21,12,21,242,
+  	9,21,1,22,1,22,1,22,5,22,247,8,22,10,22,12,22,250,9,22,1,23,1,23,1,23,
+  	5,23,255,8,23,10,23,12,23,258,9,23,1,24,1,24,1,24,3,24,263,8,24,1,25,
+  	1,25,3,25,267,8,25,1,26,1,26,5,26,271,8,26,10,26,12,26,274,9,26,1,27,
+  	1,27,3,27,278,8,27,1,27,1,27,1,27,1,27,1,27,1,27,1,27,3,27,287,8,27,1,
+  	28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,
+  	28,3,28,304,8,28,1,29,1,29,1,29,1,29,3,29,310,8,29,1,29,1,29,1,30,1,30,
+  	1,30,5,30,317,8,30,10,30,12,30,320,9,30,1,30,0,1,16,31,0,2,4,6,8,10,12,
+  	14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,
+  	60,0,6,1,0,18,19,2,0,16,17,20,21,1,0,9,10,2,0,12,13,26,26,3,0,9,9,14,
+  	14,24,25,1,0,24,25,343,0,65,1,0,0,0,2,74,1,0,0,0,4,76,1,0,0,0,6,85,1,
+  	0,0,0,8,93,1,0,0,0,10,110,1,0,0,0,12,112,1,0,0,0,14,120,1,0,0,0,16,130,
+  	1,0,0,0,18,146,1,0,0,0,20,148,1,0,0,0,22,151,1,0,0,0,24,160,1,0,0,0,26,
+  	166,1,0,0,0,28,183,1,0,0,0,30,189,1,0,0,0,32,200,1,0,0,0,34,205,1,0,0,
+  	0,36,211,1,0,0,0,38,219,1,0,0,0,40,227,1,0,0,0,42,235,1,0,0,0,44,243,
+  	1,0,0,0,46,251,1,0,0,0,48,262,1,0,0,0,50,264,1,0,0,0,52,268,1,0,0,0,54,
+  	286,1,0,0,0,56,303,1,0,0,0,58,305,1,0,0,0,60,313,1,0,0,0,62,64,3,2,1,
+  	0,63,62,1,0,0,0,64,67,1,0,0,0,65,63,1,0,0,0,65,66,1,0,0,0,66,68,1,0,0,
+  	0,67,65,1,0,0,0,68,69,5,0,0,1,69,1,1,0,0,0,70,75,3,4,2,0,71,75,3,6,3,
+  	0,72,75,3,8,4,0,73,75,3,18,9,0,74,70,1,0,0,0,74,71,1,0,0,0,74,72,1,0,
+  	0,0,74,73,1,0,0,0,75,3,1,0,0,0,76,77,3,16,8,0,77,78,5,47,0,0,78,80,5,
+  	1,0,0,79,81,3,12,6,0,80,79,1,0,0,0,80,81,1,0,0,0,81,82,1,0,0,0,82,83,
+  	5,2,0,0,83,84,3,30,15,0,84,5,1,0,0,0,85,86,3,16,8,0,86,89,5,47,0,0,87,
+  	88,5,15,0,0,88,90,3,32,16,0,89,87,1,0,0,0,89,90,1,0,0,0,90,91,1,0,0,0,
+  	91,92,5,11,0,0,92,7,1,0,0,0,93,94,5,27,0,0,94,97,5,47,0,0,95,96,5,28,
+  	0,0,96,98,5,47,0,0,97,95,1,0,0,0,97,98,1,0,0,0,98,99,1,0,0,0,99,103,5,
+  	3,0,0,100,102,3,10,5,0,101,100,1,0,0,0,102,105,1,0,0,0,103,101,1,0,0,
+  	0,103,104,1,0,0,0,104,106,1,0,0,0,105,103,1,0,0,0,106,107,5,4,0,0,107,
+  	9,1,0,0,0,108,111,3,6,3,0,109,111,3,4,2,0,110,108,1,0,0,0,110,109,1,0,
+  	0,0,111,11,1,0,0,0,112,117,3,14,7,0,113,114,5,7,0,0,114,116,3,14,7,0,
+  	115,113,1,0,0,0,116,119,1,0,0,0,117,115,1,0,0,0,117,118,1,0,0,0,118,13,
+  	1,0,0,0,119,117,1,0,0,0,120,121,3,16,8,0,121,122,5,47,0,0,122,15,1,0,
+  	0,0,123,124,6,8,-1,0,124,131,5,40,0,0,125,131,5,41,0,0,126,131,5,42,0,
+  	0,127,131,5,43,0,0,128,131,5,44,0,0,129,131,5,47,0,0,130,123,1,0,0,0,
+  	130,125,1,0,0,0,130,126,1,0,0,0,130,127,1,0,0,0,130,128,1,0,0,0,130,129,
+  	1,0,0,0,131,137,1,0,0,0,132,133,10,1,0,0,133,134,5,5,0,0,134,136,5,6,
+  	0,0,135,132,1,0,0,0,136,139,1,0,0,0,137,135,1,0,0,0,137,138,1,0,0,0,138,
+  	17,1,0,0,0,139,137,1,0,0,0,140,147,3,20,10,0,141,147,3,22,11,0,142,147,
+  	3,24,12,0,143,147,3,26,13,0,144,147,3,28,14,0,145,147,3,30,15,0,146,140,
+  	1,0,0,0,146,141,1,0,0,0,146,142,1,0,0,0,146,143,1,0,0,0,146,144,1,0,0,
+  	0,146,145,1,0,0,0,147,19,1,0,0,0,148,149,3,32,16,0,149,150,5,11,0,0,150,
+  	21,1,0,0,0,151,152,5,32,0,0,152,153,5,1,0,0,153,154,3,32,16,0,154,155,
+  	5,2,0,0,155,158,3,18,9,0,156,157,5,29,0,0,157,159,3,18,9,0,158,156,1,
+  	0,0,0,158,159,1,0,0,0,159,23,1,0,0,0,160,161,5,38,0,0,161,162,5,1,0,0,
+  	162,163,3,32,16,0,163,164,5,2,0,0,164,165,3,18,9,0,165,25,1,0,0,0,166,
+  	167,5,31,0,0,167,171,5,1,0,0,168,172,3,6,3,0,169,172,3,20,10,0,170,172,
+  	5,11,0,0,171,168,1,0,0,0,171,169,1,0,0,0,171,170,1,0,0,0,172,174,1,0,
+  	0,0,173,175,3,32,16,0,174,173,1,0,0,0,174,175,1,0,0,0,175,176,1,0,0,0,
+  	176,178,5,11,0,0,177,179,3,32,16,0,178,177,1,0,0,0,178,179,1,0,0,0,179,
+  	180,1,0,0,0,180,181,5,2,0,0,181,182,3,18,9,0,182,27,1,0,0,0,183,185,5,
+  	34,0,0,184,186,3,32,16,0,185,184,1,0,0,0,185,186,1,0,0,0,186,187,1,0,
+  	0,0,187,188,5,11,0,0,188,29,1,0,0,0,189,193,5,3,0,0,190,192,3,2,1,0,191,
+  	190,1,0,0,0,192,195,1,0,0,0,193,191,1,0,0,0,193,194,1,0,0,0,194,196,1,
+  	0,0,0,195,193,1,0,0,0,196,197,5,4,0,0,197,31,1,0,0,0,198,201,3,34,17,
+  	0,199,201,3,36,18,0,200,198,1,0,0,0,200,199,1,0,0,0,201,33,1,0,0,0,202,
+  	203,3,52,26,0,203,204,5,8,0,0,204,206,1,0,0,0,205,202,1,0,0,0,205,206,
+  	1,0,0,0,206,207,1,0,0,0,207,208,5,47,0,0,208,209,5,15,0,0,209,210,3,32,
+  	16,0,210,35,1,0,0,0,211,216,3,38,19,0,212,213,5,23,0,0,213,215,3,38,19,
+  	0,214,212,1,0,0,0,215,218,1,0,0,0,216,214,1,0,0,0,216,217,1,0,0,0,217,
+  	37,1,0,0,0,218,216,1,0,0,0,219,224,3,40,20,0,220,221,5,22,0,0,221,223,
+  	3,40,20,0,222,220,1,0,0,0,223,226,1,0,0,0,224,222,1,0,0,0,224,225,1,0,
+  	0,0,225,39,1,0,0,0,226,224,1,0,0,0,227,232,3,42,21,0,228,229,7,0,0,0,
+  	229,231,3,42,21,0,230,228,1,0,0,0,231,234,1,0,0,0,232,230,1,0,0,0,232,
+  	233,1,0,0,0,233,41,1,0,0,0,234,232,1,0,0,0,235,240,3,44,22,0,236,237,
+  	7,1,0,0,237,239,3,44,22,0,238,236,1,0,0,0,239,242,1,0,0,0,240,238,1,0,
+  	0,0,240,241,1,0,0,0,241,43,1,0,0,0,242,240,1,0,0,0,243,248,3,46,23,0,
+  	244,245,7,2,0,0,245,247,3,46,23,0,246,244,1,0,0,0,247,250,1,0,0,0,248,
+  	246,1,0,0,0,248,249,1,0,0,0,249,45,1,0,0,0,250,248,1,0,0,0,251,256,3,
+  	48,24,0,252,253,7,3,0,0,253,255,3,48,24,0,254,252,1,0,0,0,255,258,1,0,
+  	0,0,256,254,1,0,0,0,256,257,1,0,0,0,257,47,1,0,0,0,258,256,1,0,0,0,259,
+  	260,7,4,0,0,260,263,3,48,24,0,261,263,3,50,25,0,262,259,1,0,0,0,262,261,
+  	1,0,0,0,263,49,1,0,0,0,264,266,3,56,28,0,265,267,7,5,0,0,266,265,1,0,
+  	0,0,266,267,1,0,0,0,267,51,1,0,0,0,268,272,3,56,28,0,269,271,3,54,27,
+  	0,270,269,1,0,0,0,271,274,1,0,0,0,272,270,1,0,0,0,272,273,1,0,0,0,273,
+  	53,1,0,0,0,274,272,1,0,0,0,275,277,5,1,0,0,276,278,3,60,30,0,277,276,
+  	1,0,0,0,277,278,1,0,0,0,278,279,1,0,0,0,279,287,5,2,0,0,280,281,5,5,0,
+  	0,281,282,3,32,16,0,282,283,5,6,0,0,283,287,1,0,0,0,284,285,5,8,0,0,285,
+  	287,5,47,0,0,286,275,1,0,0,0,286,280,1,0,0,0,286,284,1,0,0,0,287,55,1,
+  	0,0,0,288,304,5,37,0,0,289,304,5,30,0,0,290,304,5,33,0,0,291,304,5,36,
+  	0,0,292,304,5,45,0,0,293,304,5,46,0,0,294,304,5,47,0,0,295,296,5,1,0,
+  	0,296,297,3,32,16,0,297,298,5,2,0,0,298,304,1,0,0,0,299,300,5,35,0,0,
+  	300,301,5,8,0,0,301,304,5,47,0,0,302,304,3,58,29,0,303,288,1,0,0,0,303,
+  	289,1,0,0,0,303,290,1,0,0,0,303,291,1,0,0,0,303,292,1,0,0,0,303,293,1,
+  	0,0,0,303,294,1,0,0,0,303,295,1,0,0,0,303,299,1,0,0,0,303,302,1,0,0,0,
+  	304,57,1,0,0,0,305,306,5,39,0,0,306,307,5,47,0,0,307,309,5,1,0,0,308,
+  	310,3,60,30,0,309,308,1,0,0,0,309,310,1,0,0,0,310,311,1,0,0,0,311,312,
+  	5,2,0,0,312,59,1,0,0,0,313,318,3,32,16,0,314,315,5,7,0,0,315,317,3,32,
+  	16,0,316,314,1,0,0,0,317,320,1,0,0,0,318,316,1,0,0,0,318,319,1,0,0,0,
+  	319,61,1,0,0,0,320,318,1,0,0,0,33,65,74,80,89,97,103,110,117,130,137,
+  	146,158,171,174,178,185,193,200,205,216,224,232,240,248,256,262,266,272,
+  	277,286,303,309,318
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -282,7 +283,7 @@ PrystParser::ProgramContext* PrystParser::program() {
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 140736599179786) != 0)) {
+      ((1ULL << _la) & 281474087535114) != 0)) {
       setState(62);
       declaration();
       setState(67);
@@ -462,7 +463,7 @@ PrystParser::FunctionDeclContext* PrystParser::functionDecl() {
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 86861418594304) != 0)) {
+      ((1ULL << _la) & 174822348816384) != 0)) {
       setState(79);
       paramList();
     }
@@ -646,7 +647,7 @@ PrystParser::ClassDeclarationContext* PrystParser::classDeclaration() {
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 86861418594304) != 0)) {
+      ((1ULL << _la) & 174822348816384) != 0)) {
       setState(100);
       classMember();
       setState(105);
@@ -887,6 +888,10 @@ tree::TerminalNode* PrystParser::TypeContext::STR() {
   return getToken(PrystParser::STR, 0);
 }
 
+tree::TerminalNode* PrystParser::TypeContext::VOID() {
+  return getToken(PrystParser::VOID, 0);
+}
+
 tree::TerminalNode* PrystParser::TypeContext::IDENTIFIER() {
   return getToken(PrystParser::IDENTIFIER, 0);
 }
@@ -942,7 +947,7 @@ PrystParser::TypeContext* PrystParser::type(int precedence) {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(129);
+    setState(130);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::INT: {
@@ -969,8 +974,14 @@ PrystParser::TypeContext* PrystParser::type(int precedence) {
         break;
       }
 
-      case PrystParser::IDENTIFIER: {
+      case PrystParser::VOID: {
         setState(128);
+        match(PrystParser::VOID);
+        break;
+      }
+
+      case PrystParser::IDENTIFIER: {
+        setState(129);
         match(PrystParser::IDENTIFIER);
         break;
       }
@@ -979,7 +990,7 @@ PrystParser::TypeContext* PrystParser::type(int precedence) {
       throw NoViableAltException(this);
     }
     _ctx->stop = _input->LT(-1);
-    setState(136);
+    setState(137);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 9, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
@@ -989,15 +1000,15 @@ PrystParser::TypeContext* PrystParser::type(int precedence) {
         previousContext = _localctx;
         _localctx = _tracker.createInstance<TypeContext>(parentContext, parentState);
         pushNewRecursionContext(_localctx, startState, RuleType);
-        setState(131);
+        setState(132);
 
         if (!(precpred(_ctx, 1))) throw FailedPredicateException(this, "precpred(_ctx, 1)");
-        setState(132);
-        match(PrystParser::LBRACKET);
         setState(133);
+        match(PrystParser::LBRACKET);
+        setState(134);
         match(PrystParser::RBRACKET); 
       }
-      setState(138);
+      setState(139);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 9, _ctx);
     }
@@ -1065,7 +1076,7 @@ PrystParser::StatementContext* PrystParser::statement() {
     exitRule();
   });
   try {
-    setState(145);
+    setState(146);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::LPAREN:
@@ -1083,42 +1094,42 @@ PrystParser::StatementContext* PrystParser::statement() {
       case PrystParser::STRING:
       case PrystParser::IDENTIFIER: {
         enterOuterAlt(_localctx, 1);
-        setState(139);
+        setState(140);
         expressionStmt();
         break;
       }
 
       case PrystParser::IF: {
         enterOuterAlt(_localctx, 2);
-        setState(140);
+        setState(141);
         ifStmt();
         break;
       }
 
       case PrystParser::WHILE: {
         enterOuterAlt(_localctx, 3);
-        setState(141);
+        setState(142);
         whileStmt();
         break;
       }
 
       case PrystParser::FOR: {
         enterOuterAlt(_localctx, 4);
-        setState(142);
+        setState(143);
         forStmt();
         break;
       }
 
       case PrystParser::RETURN: {
         enterOuterAlt(_localctx, 5);
-        setState(143);
+        setState(144);
         returnStmt();
         break;
       }
 
       case PrystParser::LBRACE: {
         enterOuterAlt(_localctx, 6);
-        setState(144);
+        setState(145);
         block();
         break;
       }
@@ -1177,9 +1188,9 @@ PrystParser::ExpressionStmtContext* PrystParser::expressionStmt() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(147);
-    expression();
     setState(148);
+    expression();
+    setState(149);
     match(PrystParser::SEMICOLON);
    
   }
@@ -1252,24 +1263,24 @@ PrystParser::IfStmtContext* PrystParser::ifStmt() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(150);
-    match(PrystParser::IF);
     setState(151);
-    match(PrystParser::LPAREN);
+    match(PrystParser::IF);
     setState(152);
-    expression();
+    match(PrystParser::LPAREN);
     setState(153);
-    match(PrystParser::RPAREN);
+    expression();
     setState(154);
+    match(PrystParser::RPAREN);
+    setState(155);
     statement();
-    setState(157);
+    setState(158);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 11, _ctx)) {
     case 1: {
-      setState(155);
-      match(PrystParser::ELSE);
       setState(156);
+      match(PrystParser::ELSE);
+      setState(157);
       statement();
       break;
     }
@@ -1340,15 +1351,15 @@ PrystParser::WhileStmtContext* PrystParser::whileStmt() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(159);
-    match(PrystParser::WHILE);
     setState(160);
-    match(PrystParser::LPAREN);
+    match(PrystParser::WHILE);
     setState(161);
-    expression();
+    match(PrystParser::LPAREN);
     setState(162);
-    match(PrystParser::RPAREN);
+    expression();
     setState(163);
+    match(PrystParser::RPAREN);
+    setState(164);
     statement();
    
   }
@@ -1434,27 +1445,27 @@ PrystParser::ForStmtContext* PrystParser::forStmt() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(165);
-    match(PrystParser::FOR);
     setState(166);
+    match(PrystParser::FOR);
+    setState(167);
     match(PrystParser::LPAREN);
-    setState(170);
+    setState(171);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 12, _ctx)) {
     case 1: {
-      setState(167);
+      setState(168);
       variableDecl();
       break;
     }
 
     case 2: {
-      setState(168);
+      setState(169);
       expressionStmt();
       break;
     }
 
     case 3: {
-      setState(169);
+      setState(170);
       match(PrystParser::SEMICOLON);
       break;
     }
@@ -1462,29 +1473,29 @@ PrystParser::ForStmtContext* PrystParser::forStmt() {
     default:
       break;
     }
-    setState(173);
+    setState(174);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 123945290318338) != 0)) {
-      setState(172);
+      ((1ULL << _la) & 247090592629250) != 0)) {
+      setState(173);
       expression();
     }
-    setState(175);
+    setState(176);
     match(PrystParser::SEMICOLON);
-    setState(177);
+    setState(178);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 123945290318338) != 0)) {
-      setState(176);
+      ((1ULL << _la) & 247090592629250) != 0)) {
+      setState(177);
       expression();
     }
-    setState(179);
-    match(PrystParser::RPAREN);
     setState(180);
+    match(PrystParser::RPAREN);
+    setState(181);
     statement();
    
   }
@@ -1542,18 +1553,18 @@ PrystParser::ReturnStmtContext* PrystParser::returnStmt() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(182);
+    setState(183);
     match(PrystParser::RETURN);
-    setState(184);
+    setState(185);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 123945290318338) != 0)) {
-      setState(183);
+      ((1ULL << _la) & 247090592629250) != 0)) {
+      setState(184);
       expression();
     }
-    setState(186);
+    setState(187);
     match(PrystParser::SEMICOLON);
    
   }
@@ -1615,20 +1626,20 @@ PrystParser::BlockContext* PrystParser::block() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(188);
+    setState(189);
     match(PrystParser::LBRACE);
-    setState(192);
+    setState(193);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 140736599179786) != 0)) {
-      setState(189);
+      ((1ULL << _la) & 281474087535114) != 0)) {
+      setState(190);
       declaration();
-      setState(194);
+      setState(195);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(195);
+    setState(196);
     match(PrystParser::RBRACE);
    
   }
@@ -1680,19 +1691,19 @@ PrystParser::ExpressionContext* PrystParser::expression() {
     exitRule();
   });
   try {
-    setState(199);
+    setState(200);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 17, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(197);
+      setState(198);
       assignment();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(198);
+      setState(199);
       logicOr();
       break;
     }
@@ -1763,14 +1774,14 @@ PrystParser::AssignmentContext* PrystParser::assignment() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(204);
+    setState(205);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 18, _ctx)) {
     case 1: {
-      setState(201);
-      call();
       setState(202);
+      call();
+      setState(203);
       match(PrystParser::DOT);
       break;
     }
@@ -1778,11 +1789,11 @@ PrystParser::AssignmentContext* PrystParser::assignment() {
     default:
       break;
     }
-    setState(206);
-    match(PrystParser::IDENTIFIER);
     setState(207);
-    match(PrystParser::EQUAL);
+    match(PrystParser::IDENTIFIER);
     setState(208);
+    match(PrystParser::EQUAL);
+    setState(209);
     expression();
    
   }
@@ -1844,17 +1855,17 @@ PrystParser::LogicOrContext* PrystParser::logicOr() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(210);
+    setState(211);
     logicAnd();
-    setState(215);
+    setState(216);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::OR) {
-      setState(211);
-      match(PrystParser::OR);
       setState(212);
+      match(PrystParser::OR);
+      setState(213);
       logicAnd();
-      setState(217);
+      setState(218);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -1918,17 +1929,17 @@ PrystParser::LogicAndContext* PrystParser::logicAnd() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(218);
+    setState(219);
     equality();
-    setState(223);
+    setState(224);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::AND) {
-      setState(219);
-      match(PrystParser::AND);
       setState(220);
+      match(PrystParser::AND);
+      setState(221);
       equality();
-      setState(225);
+      setState(226);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2000,15 +2011,15 @@ PrystParser::EqualityContext* PrystParser::equality() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(226);
+    setState(227);
     comparison();
-    setState(231);
+    setState(232);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::NOT_EQUAL
 
     || _la == PrystParser::EQUAL_EQUAL) {
-      setState(227);
+      setState(228);
       _la = _input->LA(1);
       if (!(_la == PrystParser::NOT_EQUAL
 
@@ -2019,9 +2030,9 @@ PrystParser::EqualityContext* PrystParser::equality() {
         _errHandler->reportMatch(this);
         consume();
       }
-      setState(228);
+      setState(229);
       comparison();
-      setState(233);
+      setState(234);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2109,14 +2120,14 @@ PrystParser::ComparisonContext* PrystParser::comparison() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(234);
+    setState(235);
     addition();
-    setState(239);
+    setState(240);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 3342336) != 0)) {
-      setState(235);
+      setState(236);
       _la = _input->LA(1);
       if (!((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & 3342336) != 0))) {
@@ -2126,9 +2137,9 @@ PrystParser::ComparisonContext* PrystParser::comparison() {
         _errHandler->reportMatch(this);
         consume();
       }
-      setState(236);
+      setState(237);
       addition();
-      setState(241);
+      setState(242);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2200,15 +2211,15 @@ PrystParser::AdditionContext* PrystParser::addition() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(242);
+    setState(243);
     multiplication();
-    setState(247);
+    setState(248);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::MINUS
 
     || _la == PrystParser::PLUS) {
-      setState(243);
+      setState(244);
       _la = _input->LA(1);
       if (!(_la == PrystParser::MINUS
 
@@ -2219,9 +2230,9 @@ PrystParser::AdditionContext* PrystParser::addition() {
         _errHandler->reportMatch(this);
         consume();
       }
-      setState(244);
+      setState(245);
       multiplication();
-      setState(249);
+      setState(250);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2301,14 +2312,14 @@ PrystParser::MultiplicationContext* PrystParser::multiplication() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(250);
+    setState(251);
     unary();
-    setState(255);
+    setState(256);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 67121152) != 0)) {
-      setState(251);
+      setState(252);
       _la = _input->LA(1);
       if (!((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & 67121152) != 0))) {
@@ -2318,9 +2329,9 @@ PrystParser::MultiplicationContext* PrystParser::multiplication() {
         _errHandler->reportMatch(this);
         consume();
       }
-      setState(252);
+      setState(253);
       unary();
-      setState(257);
+      setState(258);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2391,7 +2402,7 @@ PrystParser::UnaryContext* PrystParser::unary() {
     exitRule();
   });
   try {
-    setState(261);
+    setState(262);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::MINUS:
@@ -2399,7 +2410,7 @@ PrystParser::UnaryContext* PrystParser::unary() {
       case PrystParser::INCREMENT:
       case PrystParser::DECREMENT: {
         enterOuterAlt(_localctx, 1);
-        setState(258);
+        setState(259);
         _la = _input->LA(1);
         if (!((((_la & ~ 0x3fULL) == 0) &&
           ((1ULL << _la) & 50348544) != 0))) {
@@ -2409,7 +2420,7 @@ PrystParser::UnaryContext* PrystParser::unary() {
           _errHandler->reportMatch(this);
           consume();
         }
-        setState(259);
+        setState(260);
         unary();
         break;
       }
@@ -2425,7 +2436,7 @@ PrystParser::UnaryContext* PrystParser::unary() {
       case PrystParser::STRING:
       case PrystParser::IDENTIFIER: {
         enterOuterAlt(_localctx, 2);
-        setState(260);
+        setState(261);
         postfix();
         break;
       }
@@ -2489,16 +2500,16 @@ PrystParser::PostfixContext* PrystParser::postfix() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(263);
+    setState(264);
     primary();
-    setState(265);
+    setState(266);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == PrystParser::INCREMENT
 
     || _la == PrystParser::DECREMENT) {
-      setState(264);
+      setState(265);
       _la = _input->LA(1);
       if (!(_la == PrystParser::INCREMENT
 
@@ -2566,17 +2577,17 @@ PrystParser::CallContext* PrystParser::call() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(267);
+    setState(268);
     primary();
-    setState(271);
+    setState(272);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 27, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(268);
+        setState(269);
         callSuffix(); 
       }
-      setState(273);
+      setState(274);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 27, _ctx);
     }
@@ -2655,43 +2666,43 @@ PrystParser::CallSuffixContext* PrystParser::callSuffix() {
     exitRule();
   });
   try {
-    setState(285);
+    setState(286);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::LPAREN: {
         enterOuterAlt(_localctx, 1);
-        setState(274);
+        setState(275);
         match(PrystParser::LPAREN);
-        setState(276);
+        setState(277);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if ((((_la & ~ 0x3fULL) == 0) &&
-          ((1ULL << _la) & 123945290318338) != 0)) {
-          setState(275);
+          ((1ULL << _la) & 247090592629250) != 0)) {
+          setState(276);
           arguments();
         }
-        setState(278);
+        setState(279);
         match(PrystParser::RPAREN);
         break;
       }
 
       case PrystParser::LBRACKET: {
         enterOuterAlt(_localctx, 2);
-        setState(279);
-        match(PrystParser::LBRACKET);
         setState(280);
-        expression();
+        match(PrystParser::LBRACKET);
         setState(281);
+        expression();
+        setState(282);
         match(PrystParser::RBRACKET);
         break;
       }
 
       case PrystParser::DOT: {
         enterOuterAlt(_localctx, 3);
-        setState(283);
-        match(PrystParser::DOT);
         setState(284);
+        match(PrystParser::DOT);
+        setState(285);
         match(PrystParser::IDENTIFIER);
         break;
       }
@@ -2793,83 +2804,83 @@ PrystParser::PrimaryContext* PrystParser::primary() {
     exitRule();
   });
   try {
-    setState(302);
+    setState(303);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::TRUE: {
         enterOuterAlt(_localctx, 1);
-        setState(287);
+        setState(288);
         match(PrystParser::TRUE);
         break;
       }
 
       case PrystParser::FALSE: {
         enterOuterAlt(_localctx, 2);
-        setState(288);
+        setState(289);
         match(PrystParser::FALSE);
         break;
       }
 
       case PrystParser::NULL_: {
         enterOuterAlt(_localctx, 3);
-        setState(289);
+        setState(290);
         match(PrystParser::NULL_);
         break;
       }
 
       case PrystParser::THIS: {
         enterOuterAlt(_localctx, 4);
-        setState(290);
+        setState(291);
         match(PrystParser::THIS);
         break;
       }
 
       case PrystParser::NUMBER: {
         enterOuterAlt(_localctx, 5);
-        setState(291);
+        setState(292);
         match(PrystParser::NUMBER);
         break;
       }
 
       case PrystParser::STRING: {
         enterOuterAlt(_localctx, 6);
-        setState(292);
+        setState(293);
         match(PrystParser::STRING);
         break;
       }
 
       case PrystParser::IDENTIFIER: {
         enterOuterAlt(_localctx, 7);
-        setState(293);
+        setState(294);
         match(PrystParser::IDENTIFIER);
         break;
       }
 
       case PrystParser::LPAREN: {
         enterOuterAlt(_localctx, 8);
-        setState(294);
-        match(PrystParser::LPAREN);
         setState(295);
-        expression();
+        match(PrystParser::LPAREN);
         setState(296);
+        expression();
+        setState(297);
         match(PrystParser::RPAREN);
         break;
       }
 
       case PrystParser::SUPER: {
         enterOuterAlt(_localctx, 9);
-        setState(298);
-        match(PrystParser::SUPER);
         setState(299);
-        match(PrystParser::DOT);
+        match(PrystParser::SUPER);
         setState(300);
+        match(PrystParser::DOT);
+        setState(301);
         match(PrystParser::IDENTIFIER);
         break;
       }
 
       case PrystParser::NEW: {
         enterOuterAlt(_localctx, 10);
-        setState(301);
+        setState(302);
         newExpression();
         break;
       }
@@ -2941,22 +2952,22 @@ PrystParser::NewExpressionContext* PrystParser::newExpression() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(304);
-    match(PrystParser::NEW);
     setState(305);
-    match(PrystParser::IDENTIFIER);
+    match(PrystParser::NEW);
     setState(306);
+    match(PrystParser::IDENTIFIER);
+    setState(307);
     match(PrystParser::LPAREN);
-    setState(308);
+    setState(309);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 123945290318338) != 0)) {
-      setState(307);
+      ((1ULL << _la) & 247090592629250) != 0)) {
+      setState(308);
       arguments();
     }
-    setState(310);
+    setState(311);
     match(PrystParser::RPAREN);
    
   }
@@ -3018,17 +3029,17 @@ PrystParser::ArgumentsContext* PrystParser::arguments() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(312);
+    setState(313);
     expression();
-    setState(317);
+    setState(318);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::COMMA) {
-      setState(313);
-      match(PrystParser::COMMA);
       setState(314);
+      match(PrystParser::COMMA);
+      setState(315);
       expression();
-      setState(319);
+      setState(320);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }

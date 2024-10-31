@@ -19,7 +19,8 @@ public:
     INCREMENT = 24, DECREMENT = 25, PERCENT = 26, CLASS = 27, EXTENDS = 28, 
     ELSE = 29, FALSE = 30, FOR = 31, IF = 32, NULL_ = 33, RETURN = 34, SUPER = 35, 
     THIS = 36, TRUE = 37, WHILE = 38, NEW = 39, INT = 40, FLOAT = 41, BOOL = 42, 
-    STR = 43, NUMBER = 44, STRING = 45, IDENTIFIER = 46, COMMENT = 47, WS = 48
+    STR = 43, VOID = 44, NUMBER = 45, STRING = 46, IDENTIFIER = 47, COMMENT = 48, 
+    WS = 49
   };
 
   explicit PrystLexer(antlr4::CharStream *input);
