@@ -15,8 +15,22 @@ LLVMCodegen::LLVMCodegen()
       currentFunction(nullptr) {}
 
 std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* programCtx) {
+    currentFunction = createMainFunction();
     visitProgram(programCtx);
+    if (llvm::verifyModule(*module, &llvm::errs())) {
+        throw std::runtime_error("Generated LLVM IR is invalid");
+    }
     return std::move(module);
+}
+
+llvm::Function* LLVMCodegen::createMainFunction() {
+    llvm::FunctionType* mainFuncType = llvm::FunctionType::get(llvm::Type::getInt32Ty(*context), false);
+    llvm::Function* mainFunc = llvm::Function::Create(mainFuncType, llvm::Function::ExternalLinkage, "main", module.get());
+    
+    llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create(*context, "entry", mainFunc);
+    builder->SetInsertPoint(entryBlock);
+    
+    return mainFunc;
 }
 
 // Program: Handles the entire program

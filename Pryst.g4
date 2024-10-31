@@ -41,6 +41,7 @@ type
     | FLOAT
     | BOOL
     | STR
+    | VOID
     | IDENTIFIER
     | type LBRACKET RBRACKET
     ;
@@ -200,6 +201,7 @@ INT         : 'int' ;
 FLOAT       : 'float' ;
 BOOL        : 'bool' ;
 STR         : 'str' ;
+VOID        : 'void' ;
 
 NUMBER      : [0-9]+ ('.' [0-9]+)? ;
 STRING      : '"' (~["\r\n\\] | '\\' .)* '"' ;

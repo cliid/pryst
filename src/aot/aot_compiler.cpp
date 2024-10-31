@@ -8,6 +8,13 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Support/raw_ostream.h>
 #include <system_error>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Target/TargetMachine.h>
 
 AOTCompiler::AOTCompiler() {
     llvm::InitializeNativeTarget();
@@ -21,7 +28,6 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
 
     std::string error;
     auto target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
-
 
     if (!target) {
         llvm::errs() << error;
@@ -46,14 +52,41 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
         return;
     }
 
-    llvm::legacy::PassManager pass;
-    auto fileType = llvm::CodeGenFileType::ObjectFile;
+    llvm::LoopAnalysisManager LAM;
+    llvm::FunctionAnalysisManager FAM;
+    llvm::CGSCCAnalysisManager CGAM;
+    llvm::ModuleAnalysisManager MAM;
 
-    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, fileType)) {
-        llvm::errs() << "TargetMachine can't emit a file of this type";
-        return;
-    }
+    llvm::PassBuilder PB(targetMachine.get());
 
-    pass.run(module);
-    dest.flush();
+    PB.registerModuleAnalyses(MAM);
+    PB.registerCGSCCAnalyses(CGAM);
+    PB.registerFunctionAnalyses(FAM);
+    PB.registerLoopAnalyses(LAM);
+    PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+    llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+
+    // Run the optimization passes
+    MPM.run(module, MAM);
+
+    // Get the appropriate subtarget
+    const llvm::Target& TheTarget = targetMachine->getTarget();
+    const llvm::MCSubtargetInfo* STI = targetMachine->getMCSubtargetInfo();
+
+    // Create the object file
+    llvm::SmallVector<char, 0> buffer;
+    llvm::raw_svector_ostream stream(buffer);
+
+    TheTarget.createMCObjectStreamer(
+        targetMachine->getTargetTriple(),
+        *targetMachine->getMCRegisterInfo(),
+        *targetMachine->getMCAsmInfo(),
+        *STI,
+        stream,
+        nullptr, nullptr,
+        false);
+
+    // Write the buffer to the output file
+    dest.write(buffer.data(), buffer.size());
 }
