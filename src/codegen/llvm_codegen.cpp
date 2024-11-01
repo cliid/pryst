@@ -184,14 +184,17 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
 
     // Build complete inheritance chain from base to derived
     std::vector<std::string> inheritanceChain;
+    std::string immediateBase;
     if (ctx->IDENTIFIER().size() > 1) {
-        std::string currentClass = ctx->IDENTIFIER(1)->getText();
+        immediateBase = ctx->IDENTIFIER(1)->getText();
+        std::string currentClass = immediateBase;
         while (!currentClass.empty()) {
-            inheritanceChain.insert(inheritanceChain.begin(), currentClass);
+            inheritanceChain.push_back(currentClass);
             auto it = classInheritance.find(currentClass);
             if (it == classInheritance.end()) break;
             currentClass = it->second;
         }
+        std::reverse(inheritanceChain.begin(), inheritanceChain.end());
     }
 
     // First pass: collect all member types and names in order
@@ -206,9 +209,6 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
         if (!baseType) {
             throw std::runtime_error("Base class not found: " + baseClass);
         }
-
-        // Record inheritance relationship
-        classInheritance[className] = baseClass;
 
         // Add base class members in order
         auto& baseMembers = memberIndices[baseClass];
@@ -243,6 +243,11 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
 
     // Store member indices in order
     memberIndices[className] = memberOffsets;
+
+    // Record immediate base class relationship
+    if (!immediateBase.empty()) {
+        classInheritance[className] = immediateBase;
+    }
 
     return nullptr;
 }
@@ -1011,22 +1016,28 @@ std::any LLVMCodegen::visitNewExpression(PrystParser::NewExpressionContext* ctx)
     }
 
     // Initialize members following inheritance chain
-    size_t memberOffset = 0;
     for (const auto& cls : inheritanceChain) {
-        auto type = llvm::StructType::getTypeByName(*context, cls);
-        if (!type) continue;
+        auto classIt = memberIndices.find(cls);
+        if (classIt == memberIndices.end()) continue;
 
-        // Initialize members for this class
-        for (unsigned i = 0; i < type->getNumElements(); i++) {
-            llvm::Type* memberType = type->getElementType(i);
+        // Get all members for this class and sort by offset
+        std::vector<std::pair<std::string, size_t>> sortedMembers(classIt->second.begin(), classIt->second.end());
+        std::sort(sortedMembers.begin(), sortedMembers.end(),
+                 [](const auto& a, const auto& b) { return a.second < b.second; });
+
+        // Initialize members in order of their offsets
+        for (const auto& [memberName, offset] : sortedMembers) {
+            auto type = llvm::StructType::getTypeByName(*context, cls);
+            if (!type) continue;
+
+            llvm::Type* memberType = type->getElementType(offset);
             std::vector<llvm::Value*> indices = {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset + i)
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), offset)
             };
             llvm::Value* memberPtr = builder->CreateGEP(classType, obj, indices, "member.ptr");
             builder->CreateStore(llvm::Constant::getNullValue(memberType), memberPtr);
         }
-        memberOffset += type->getNumElements();
     }
 
     // Optionally, call constructor (not implemented)
