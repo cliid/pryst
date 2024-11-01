@@ -865,6 +865,17 @@ std::any LLVMCodegen::visitNewExpression(PrystParser::NewExpressionContext* ctx)
     llvm::Value* mem = builder->CreateCall(mallocFunc, {size}, "objmem");
     llvm::Value* obj = builder->CreateBitCast(mem, classPtrType, "obj");
 
+    // Initialize all members with default values
+    for (unsigned i = 0; i < classType->getNumElements(); i++) {
+        llvm::Type* memberType = classType->getElementType(i);
+        std::vector<llvm::Value*> indices = {
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), i)
+        };
+        llvm::Value* memberPtr = builder->CreateGEP(classType, obj, indices, "member.ptr");
+        builder->CreateStore(llvm::Constant::getNullValue(memberType), memberPtr);
+    }
+
     // Optionally, call constructor (not implemented)
 
     lastValue = obj;
