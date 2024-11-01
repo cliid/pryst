@@ -471,12 +471,41 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
             throw std::runtime_error("Expected identifier in member assignment");
         }
 
+        // Find member in class hierarchy
+        size_t memberIndex;
+        llvm::StructType* memberOwnerType = structType;
+        std::string currentClass = structType->getName().str();
+
+        try {
+            memberIndex = getMemberIndex(structType, memberName);
+        } catch (const std::runtime_error&) {
+            // If not found in current class, check base classes
+            while (true) {
+                auto it = classInheritance.find(currentClass);
+                if (it == classInheritance.end()) {
+                    throw std::runtime_error("Member not found: " + memberName);
+                }
+                currentClass = it->second;
+                auto baseType = llvm::StructType::getTypeByName(*context, currentClass);
+                if (!baseType) {
+                    throw std::runtime_error("Base class not found: " + currentClass);
+                }
+                try {
+                    memberIndex = getMemberIndex(baseType, memberName);
+                    memberOwnerType = baseType;
+                    break;
+                } catch (const std::runtime_error&) {
+                    continue;
+                }
+            }
+        }
+
         // Create GEP instruction to get member address
         std::vector<llvm::Value*> indices = {
             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), getMemberIndex(structType, memberName))
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIndex)
         };
-        varAddress = builder->CreateGEP(structType, object, indices, "member.addr");
+        varAddress = builder->CreateGEP(memberOwnerType, object, indices, "member.addr");
     } else {
         varName = ctx->IDENTIFIER()->getText();
         auto it = namedValues.find(varName);
