@@ -470,90 +470,26 @@ std::any LLVMCodegen::visitExpression(PrystParser::ExpressionContext* ctx) {
 
 // Assignment: Handles assignments
 std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
-    std::string varName;
+    std::string varName = ctx->IDENTIFIER()->getText();
     llvm::Value* varAddress;
 
     if (ctx->call()) {
-        // Handle member assignments
-        visit(ctx->primary());
+        // Handle member assignments from function call (e.g., someFn().value = 3)
+        visit(ctx->call());
         llvm::Value* object = lastValue;
 
-        // Process each member access in the chain
-        for (size_t i = 0; i < ctx->call()->callSuffix().size() - 1; i++) {
-            auto suffixCtx = ctx->call()->callSuffix(i);
-            if (!suffixCtx->DOT()) continue;
-
-            std::string memberName = suffixCtx->IDENTIFIER()->getText();
-            if (!object->getType()->isPointerTy()) {
-                throw std::runtime_error("Expected pointer type in member access");
-            }
-            auto ptrType = llvm::cast<llvm::PointerType>(object->getType());
-            auto elementType = ptrType->getContainedType(0);
-            auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
-            if (!structType) {
-                throw std::runtime_error("Expected object type in member access");
-            }
-
-            // Find member in class hierarchy
-            std::string currentClass = structType->getName().str();
-            auto classIt = memberIndices.find(currentClass);
-            if (classIt == memberIndices.end()) {
-                throw std::runtime_error("Class not found: " + currentClass);
-            }
-
-            // Get member offset
-            auto memberIt = classIt->second.find(memberName);
-            bool memberFound = false;
-            size_t memberOffset = 0;
-
-            if (memberIt != classIt->second.end()) {
-                memberFound = true;
-                memberOffset = memberIt->second;
-            } else {
-                // Check base classes
-                std::string searchClass = currentClass;
-                while (!memberFound) {
-                    auto inheritIt = classInheritance.find(searchClass);
-                    if (inheritIt == classInheritance.end()) break;
-                    searchClass = inheritIt->second;
-                    auto baseClassIt = memberIndices.find(searchClass);
-                    if (baseClassIt == memberIndices.end()) {
-                        throw std::runtime_error("Base class not found: " + searchClass);
-                    }
-                    memberIt = baseClassIt->second.find(memberName);
-                    if (memberIt != baseClassIt->second.end()) {
-                        memberFound = true;
-                        memberOffset = memberIt->second;
-                        break;
-                    }
-                }
-            }
-
-            if (!memberFound) {
-                throw std::runtime_error("Member '" + memberName + "' not found in class '" + currentClass + "' or its base classes");
-            }
-
-            // Get member pointer
-            std::vector<llvm::Value*> indices = {
-                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset)
-            };
-            object = builder->CreateGEP(structType, object, indices, "member.ptr");
-            auto memberType = structType->getElementType(memberOffset);
-            object = builder->CreateLoad(memberType, object, "member");
+        if (!object) {
+            throw std::runtime_error("Function call returned null in member assignment");
         }
 
-        // Handle the final member access for assignment
-        auto lastSuffix = ctx->call()->callSuffix().back();
-        std::string memberName = lastSuffix->IDENTIFIER()->getText();
         if (!object->getType()->isPointerTy()) {
-            throw std::runtime_error("Expected pointer type in member assignment");
+            throw std::runtime_error("Expected pointer type in member access");
         }
         auto ptrType = llvm::cast<llvm::PointerType>(object->getType());
         auto elementType = ptrType->getContainedType(0);
         auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
         if (!structType) {
-            throw std::runtime_error("Expected object type in member assignment");
+            throw std::runtime_error("Expected object type in member access");
         }
 
         // Find member in class hierarchy
@@ -563,8 +499,8 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
             throw std::runtime_error("Class not found: " + currentClass);
         }
 
-        // Get member offset for assignment
-        auto memberIt = classIt->second.find(memberName);
+        // Get member offset
+        auto memberIt = classIt->second.find(varName);
         bool memberFound = false;
         size_t memberOffset = 0;
 
@@ -582,7 +518,7 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
                 if (baseClassIt == memberIndices.end()) {
                     throw std::runtime_error("Base class not found: " + searchClass);
                 }
-                memberIt = baseClassIt->second.find(memberName);
+                memberIt = baseClassIt->second.find(varName);
                 if (memberIt != baseClassIt->second.end()) {
                     memberFound = true;
                     memberOffset = memberIt->second;
@@ -592,17 +528,17 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
         }
 
         if (!memberFound) {
-            throw std::runtime_error("Member '" + memberName + "' not found in class '" + currentClass + "' or its base classes");
+            throw std::runtime_error("Member '" + varName + "' not found in class '" + currentClass + "' or its base classes");
         }
 
-        // Create GEP instruction for final member assignment
+        // Create GEP instruction for member assignment
         std::vector<llvm::Value*> indices = {
             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset)
         };
         varAddress = builder->CreateGEP(structType, object, indices, "member.addr");
     } else {
-        varName = ctx->IDENTIFIER()->getText();
+        // Handle simple variable assignment
         auto it = namedValues.find(varName);
         if (it == namedValues.end()) {
             throw std::runtime_error("Undefined variable: " + varName);
@@ -612,6 +548,10 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
 
     visit(ctx->expression());
     llvm::Value* exprValue = lastValue;
+
+    if (!exprValue) {
+        throw std::runtime_error("Invalid expression value in assignment");
+    }
 
     builder->CreateStore(exprValue, varAddress);
     lastValue = exprValue;
