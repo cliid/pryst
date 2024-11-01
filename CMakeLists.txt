@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(PrystCompiler)
 
-set(CMAKE_C_COMPILER /usr/bin/clang)
-set(CMAKE_CXX_COMPILER /usr/bin/clang++)
+set(CMAKE_C_COMPILER /usr/bin/clang-20)
+set(CMAKE_CXX_COMPILER /usr/bin/clang++-20)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,16 +11,17 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 
 # Find LLVM package
+set(LLVM_DIR "/usr/lib/llvm-20/cmake")
 find_package(LLVM REQUIRED CONFIG)
-set(LLVM_DIR "/usr/local/lib/cmake/llvm")
 
 add_definitions(${LLVM_DEFINITIONS})
+include_directories(${LLVM_INCLUDE_DIRS})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-set(ANTLR4_INCLUDE_DIR "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/include/antlr4-runtime")
+set(ANTLR4_INCLUDE_DIR "/usr/local/include/antlr4-runtime")
 include_directories(${ANTLR4_INCLUDE_DIR})
-link_directories(/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/lib)
+link_directories("/usr/local/lib")
 
 add_custom_command(
     OUTPUT
@@ -38,7 +39,7 @@ add_custom_command(
         ${CMAKE_SOURCE_DIR}/Pryst.g4
 )
 
-file(GLOB GENERATED_SRC 
+file(GLOB GENERATED_SRC
     "${CMAKE_SOURCE_DIR}/src/generated/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/generated/*.h"
 )
@@ -86,6 +87,12 @@ llvm_map_components_to_libnames(LLVM_LIBS
     AArch64AsmParser
     AArch64Desc
     AArch64Info
+    MCParser
+    Object
+    BitWriter
+    Analysis
+    CodeGen
+    BitReader
 )
 
 # target_link_libraries(jit_compiler PRIVATE ${LLVM_LIBS} antlr4-runtime)
