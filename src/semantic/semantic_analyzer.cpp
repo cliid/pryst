@@ -676,31 +676,12 @@ std::any SemanticAnalyzer::visitNewExpression(PrystParser::NewExpressionContext*
     return std::any(className);
 }
 
-std::any SemanticAnalyzer::visitStatement(PrystParser::StatementContext* ctx) {
-    if (ctx->expressionStmt()) {
-        visit(ctx->expressionStmt());
-    } else if (ctx->ifStmt()) {
-        visit(ctx->ifStmt());
-    } else if (ctx->whileStmt()) {
-        visit(ctx->whileStmt());
-    } else if (ctx->forStmt()) {
-        visit(ctx->forStmt());
-    } else if (ctx->returnStmt()) {
-        visit(ctx->returnStmt());
-    } else if (ctx->block()) {
-        visit(ctx->block());
-    } else {
-        throw std::runtime_error("Unexpected statement type");
-    }
-    return std::any();
-}
-
-std::any SemanticAnalyzer::visitExpressionStmt(PrystParser::ExpressionStmtContext* ctx) {
+std::any SemanticAnalyzer::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
     visit(ctx->expression());
     return std::any();
 }
 
-std::any SemanticAnalyzer::visitIfStmt(PrystParser::IfStmtContext* ctx) {
+std::any SemanticAnalyzer::visitIfStatement(PrystParser::IfStatementContext* ctx) {
     auto conditionTypeResult = visit(ctx->expression());
     if (conditionTypeResult.type() != typeid(std::string)) {
         throw std::runtime_error("If condition did not return a type string");
@@ -717,7 +698,7 @@ std::any SemanticAnalyzer::visitIfStmt(PrystParser::IfStmtContext* ctx) {
     return std::any();
 }
 
-std::any SemanticAnalyzer::visitWhileStmt(PrystParser::WhileStmtContext* ctx) {
+std::any SemanticAnalyzer::visitWhileStatement(PrystParser::WhileStatementContext* ctx) {
     auto conditionTypeResult = visit(ctx->expression());
     if (conditionTypeResult.type() != typeid(std::string)) {
         throw std::runtime_error("While condition did not return a type string");
@@ -730,19 +711,17 @@ std::any SemanticAnalyzer::visitWhileStmt(PrystParser::WhileStmtContext* ctx) {
     return std::any();
 }
 
-std::any SemanticAnalyzer::visitForStmt(PrystParser::ForStmtContext* ctx) {
+std::any SemanticAnalyzer::visitForStatement(PrystParser::ForStatementContext* ctx) {
     symbolTable.pushScope();
 
     if (ctx->variableDecl()) {
         visit(ctx->variableDecl());
-    } else if (ctx->expressionStmt()) {
-        visit(ctx->expressionStmt());
-    } else if (ctx->SEMICOLON(0) != nullptr) {
-        // Empty initializer; no action needed
+    } else if (ctx->expression(0)) {
+        visit(ctx->expression(0));
     }
 
-    if (ctx->expression(0)) {
-        auto conditionTypeResult = visit(ctx->expression(0));
+    if (ctx->expression(1)) {
+        auto conditionTypeResult = visit(ctx->expression(1));
         if (conditionTypeResult.type() != typeid(std::string)) {
             throw std::runtime_error("For loop condition did not return a type string");
         }
@@ -750,8 +729,8 @@ std::any SemanticAnalyzer::visitForStmt(PrystParser::ForStmtContext* ctx) {
         checkTypes(conditionType, "bool", "For loop condition must be a boolean expression");
     }
 
-    if (ctx->expression(1)) {
-        visit(ctx->expression(1));
+    if (ctx->expression(2)) {
+        visit(ctx->expression(2));
     }
 
     visit(ctx->statement());
@@ -761,7 +740,7 @@ std::any SemanticAnalyzer::visitForStmt(PrystParser::ForStmtContext* ctx) {
     return std::any();
 }
 
-std::any SemanticAnalyzer::visitReturnStmt(PrystParser::ReturnStmtContext* ctx) {
+std::any SemanticAnalyzer::visitReturnStatement(PrystParser::ReturnStatementContext* ctx) {
     if (currentFunction.empty()) {
         throw std::runtime_error("Return statement outside of function");
     }
@@ -784,7 +763,7 @@ std::any SemanticAnalyzer::visitReturnStmt(PrystParser::ReturnStmtContext* ctx) 
     return std::any();
 }
 
-std::any SemanticAnalyzer::visitBlock(PrystParser::BlockContext* ctx) {
+std::any SemanticAnalyzer::visitBlockStatement(PrystParser::BlockStatementContext* ctx) {
     symbolTable.pushScope();
 
     for (auto decl : ctx->declaration()) {
@@ -792,6 +771,46 @@ std::any SemanticAnalyzer::visitBlock(PrystParser::BlockContext* ctx) {
     }
 
     symbolTable.popScope();
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) {
+    std::string functionName = ctx->IDENTIFIER()->getText();
+    std::string returnType = ctx->type()->getText();
+
+    if (symbolTable.functionExists(functionName)) {
+        throw std::runtime_error("Function '" + functionName + "' already declared in this scope");
+    }
+
+    std::vector<std::string> paramTypes;
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            paramTypes.push_back(param->type()->getText());
+        }
+    }
+
+    symbolTable.addFunction(functionName, returnType, paramTypes);
+
+    currentFunction = functionName;
+    symbolTable.pushScope();
+
+    if (ctx->paramList()) {
+        size_t idx = 0;
+        for (auto param : ctx->paramList()->param()) {
+            std::string paramName = param->IDENTIFIER()->getText();
+            std::string paramType = paramTypes[idx];
+            symbolTable.addVariable(paramName, paramType);
+            ++idx;
+        }
+    }
+
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    symbolTable.popScope();
+    currentFunction.clear();
 
     return std::any();
 }
