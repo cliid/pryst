@@ -26,10 +26,13 @@ std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramCo
 llvm::Function* LLVMCodegen::createMainFunction() {
     llvm::FunctionType* mainFuncType = llvm::FunctionType::get(llvm::Type::getInt32Ty(*context), false);
     llvm::Function* mainFunc = llvm::Function::Create(mainFuncType, llvm::Function::ExternalLinkage, "main", module.get());
-    
+
     llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create(*context, "entry", mainFunc);
     builder->SetInsertPoint(entryBlock);
-    
+
+    // Add return 0 statement
+    builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
+
     return mainFunc;
 }
 
