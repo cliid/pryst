@@ -1,5 +1,4 @@
 #include "aot_compiler.hpp"
-#include <llvm/CodeGen/CodeGen.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/TargetSelect.h>
@@ -64,7 +63,7 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
     llvm::legacy::PassManager pass;
 
     // Add passes to emit object file
-    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CodeGen::CGFT_ObjectFile)) {
+    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::TargetMachine::CodeGenFileType::CGFT_ObjectFile)) {
         llvm::errs() << "TargetMachine can't emit a file of this type\n";
         return;
     }
