@@ -186,23 +186,35 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
     std::vector<llvm::Type*> memberTypes;
     std::vector<std::string> memberNames;
     size_t memberIndex = 0;
+    size_t baseOffset = 0;
 
-    // If there's a superclass, include its members first
+    // Build inheritance chain from base to derived
+    std::vector<std::string> inheritanceChain;
     if (ctx->IDENTIFIER().size() > 1) {
-        std::string superClassName = ctx->IDENTIFIER(1)->getText();
-        auto superClassType = llvm::StructType::getTypeByName(*context, superClassName);
-        if (!superClassType) {
-            throw std::runtime_error("Superclass not found: " + superClassName);
+        std::string currentClass = ctx->IDENTIFIER(1)->getText();
+        while (!currentClass.empty()) {
+            inheritanceChain.insert(inheritanceChain.begin(), currentClass);
+            auto it = classInheritance.find(currentClass);
+            if (it == classInheritance.end()) break;
+            currentClass = it->second;
+        }
+    }
+
+    // Process members from base class to derived
+    for (const auto& baseClass : inheritanceChain) {
+        auto baseType = llvm::StructType::getTypeByName(*context, baseClass);
+        if (!baseType) {
+            throw std::runtime_error("Base class not found: " + baseClass);
         }
 
         // Record inheritance relationship
-        classInheritance[className] = superClassName;
+        classInheritance[className] = baseClass;
 
-        // Copy superclass members and their indices
-        for (unsigned i = 0; i < superClassType->getNumElements(); i++) {
-            memberTypes.push_back(superClassType->getElementType(i));
-            // Get member name from superclass's memberIndices
-            for (const auto& pair : memberIndices[superClassName]) {
+        // Copy base class members and their indices
+        for (unsigned i = 0; i < baseType->getNumElements(); i++) {
+            memberTypes.push_back(baseType->getElementType(i));
+            // Get member name from base class's memberIndices
+            for (const auto& pair : memberIndices[baseClass]) {
                 if (pair.second == i) {
                     memberNames.push_back(pair.first);
                     addClassMember(className, pair.first, memberIndex++);
@@ -210,6 +222,7 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
                 }
             }
         }
+        baseOffset += baseType->getNumElements();
     }
 
     // Add class's own members
