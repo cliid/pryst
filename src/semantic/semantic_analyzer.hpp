@@ -74,7 +74,14 @@ public:
     std::any visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) override;
     std::any visitVariableDecl(PrystParser::VariableDeclContext* ctx) override;
     std::any visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) override;
-    std::any visitClassMember(PrystParser::ClassMemberContext* ctx) override;
+    std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) override;
+    std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) override;
+    std::any visitExprStatement(PrystParser::ExprStatementContext* ctx) override;
+    std::any visitIfStatement(PrystParser::IfStatementContext* ctx) override;
+    std::any visitWhileStatement(PrystParser::WhileStatementContext* ctx) override;
+    std::any visitForStatement(PrystParser::ForStatementContext* ctx) override;
+    std::any visitReturnStatement(PrystParser::ReturnStatementContext* ctx) override;
+    std::any visitBlockStatement(PrystParser::BlockStatementContext* ctx) override;
     std::any visitExpression(PrystParser::ExpressionContext* ctx) override;
     std::any visitAssignment(PrystParser::AssignmentContext* ctx) override;
     std::any visitLogicOr(PrystParser::LogicOrContext* ctx) override;
@@ -89,17 +96,11 @@ public:
     std::any visitCallSuffix(PrystParser::CallSuffixContext* ctx) override;
     std::any visitPrimary(PrystParser::PrimaryContext* ctx) override;
     std::any visitNewExpression(PrystParser::NewExpressionContext* ctx) override;
-    std::any visitStatement(PrystParser::StatementContext* ctx) override;
-    std::any visitExpressionStmt(PrystParser::ExpressionStmtContext* ctx) override;
-    std::any visitIfStmt(PrystParser::IfStmtContext* ctx) override;
-    std::any visitWhileStmt(PrystParser::WhileStmtContext* ctx) override;
-    std::any visitForStmt(PrystParser::ForStmtContext* ctx) override;
-    std::any visitReturnStmt(PrystParser::ReturnStmtContext* ctx) override;
-    std::any visitBlock(PrystParser::BlockContext* ctx) override;
 
 private:
     SymbolTable symbolTable;
     std::string currentFunction;
+    std::any currentCallType;  // Stores the type between visitCall and visitCallSuffix calls
 
     // Helper method for type checking
     void checkTypes(const std::string& expected, const std::string& actual, const std::string& errorMessage);
