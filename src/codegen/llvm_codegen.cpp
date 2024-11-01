@@ -492,29 +492,42 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
 
         // Get member offset directly from memberIndices
         auto memberIt = classIt->second.find(memberName);
-        if (memberIt == classIt->second.end()) {
+        bool memberFound = false;
+        size_t memberOffset = 0;
+
+        if (memberIt != classIt->second.end()) {
+            memberFound = true;
+            memberOffset = memberIt->second;
+        } else {
             // If not found in current class, check base classes
-            while (true) {
-                auto inheritIt = classInheritance.find(currentClass);
+            std::string searchClass = currentClass;
+            while (!memberFound) {
+                auto inheritIt = classInheritance.find(searchClass);
                 if (inheritIt == classInheritance.end()) {
-                    throw std::runtime_error("Member not found: " + memberName);
+                    break;  // No more base classes to check
                 }
-                currentClass = inheritIt->second;
-                classIt = memberIndices.find(currentClass);
-                if (classIt == memberIndices.end()) {
-                    throw std::runtime_error("Base class not found: " + currentClass);
+                searchClass = inheritIt->second;
+                auto baseClassIt = memberIndices.find(searchClass);
+                if (baseClassIt == memberIndices.end()) {
+                    throw std::runtime_error("Base class not found: " + searchClass);
                 }
-                memberIt = classIt->second.find(memberName);
-                if (memberIt != classIt->second.end()) {
+                memberIt = baseClassIt->second.find(memberName);
+                if (memberIt != baseClassIt->second.end()) {
+                    memberFound = true;
+                    memberOffset = memberIt->second;
                     break;
                 }
             }
         }
 
+        if (!memberFound) {
+            throw std::runtime_error("Member '" + memberName + "' not found in class '" + currentClass + "' or any of its base classes");
+        }
+
         // Create GEP instruction to get member address using stored offset
         std::vector<llvm::Value*> indices = {
             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIt->second)
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset)
         };
         varAddress = builder->CreateGEP(structType, object, indices, "member.addr");
     } else {
@@ -861,32 +874,45 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
 
             // Get member offset directly from memberIndices
             auto memberIt = classIt->second.find(memberName);
-            if (memberIt == classIt->second.end()) {
+            bool memberFound = false;
+            size_t memberOffset = 0;
+
+            if (memberIt != classIt->second.end()) {
+                memberFound = true;
+                memberOffset = memberIt->second;
+            } else {
                 // If not found in current class, check base classes
-                while (true) {
-                    auto inheritIt = classInheritance.find(currentClass);
+                std::string searchClass = currentClass;
+                while (!memberFound) {
+                    auto inheritIt = classInheritance.find(searchClass);
                     if (inheritIt == classInheritance.end()) {
-                        throw std::runtime_error("Member not found: " + memberName);
+                        break;  // No more base classes to check
                     }
-                    currentClass = inheritIt->second;
-                    classIt = memberIndices.find(currentClass);
-                    if (classIt == memberIndices.end()) {
-                        throw std::runtime_error("Base class not found: " + currentClass);
+                    searchClass = inheritIt->second;
+                    auto baseClassIt = memberIndices.find(searchClass);
+                    if (baseClassIt == memberIndices.end()) {
+                        throw std::runtime_error("Base class not found: " + searchClass);
                     }
-                    memberIt = classIt->second.find(memberName);
-                    if (memberIt != classIt->second.end()) {
+                    memberIt = baseClassIt->second.find(memberName);
+                    if (memberIt != baseClassIt->second.end()) {
+                        memberFound = true;
+                        memberOffset = memberIt->second;
                         break;
                     }
                 }
             }
 
+            if (!memberFound) {
+                throw std::runtime_error("Member '" + memberName + "' not found in class '" + currentClass + "' or any of its base classes");
+            }
+
             // Create GEP instruction to get member address using stored offset
             std::vector<llvm::Value*> indices = {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIt->second)
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset)
             };
             lastValue = builder->CreateGEP(structType, callee, indices, "member.ptr");
-            auto memberType = structType->getElementType(memberIt->second);
+            auto memberType = structType->getElementType(memberOffset);
             lastValue = builder->CreateLoad(memberType, lastValue, "member");
         } else if (suffixCtx->LBRACKET()) {
             // Array indexing (not implemented)
