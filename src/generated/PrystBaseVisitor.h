@@ -35,7 +35,15 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitClassMember(PrystParser::ClassMemberContext *ctx) override {
+  virtual std::any visitClassBody(PrystParser::ClassBodyContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -51,31 +59,27 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitStatement(PrystParser::StatementContext *ctx) override {
+  virtual std::any visitExprStatement(PrystParser::ExprStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitExpressionStmt(PrystParser::ExpressionStmtContext *ctx) override {
+  virtual std::any visitIfStatement(PrystParser::IfStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitIfStmt(PrystParser::IfStmtContext *ctx) override {
+  virtual std::any visitWhileStatement(PrystParser::WhileStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitWhileStmt(PrystParser::WhileStmtContext *ctx) override {
+  virtual std::any visitForStatement(PrystParser::ForStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitForStmt(PrystParser::ForStmtContext *ctx) override {
+  virtual std::any visitReturnStatement(PrystParser::ReturnStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitReturnStmt(PrystParser::ReturnStmtContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitBlock(PrystParser::BlockContext *ctx) override {
+  virtual std::any visitBlockStatement(PrystParser::BlockStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 

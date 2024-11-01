@@ -16,8 +16,14 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 
 # Find LLVM package, allow overriding LLVM_DIR
-list(APPEND CMAKE_PREFIX_PATH "/usr/lib/llvm-20" "/usr/local/opt/llvm@20" "/usr/local/llvm-20")
-find_package(LLVM 20 REQUIRED CONFIG)
+list(APPEND CMAKE_PREFIX_PATH
+    "/usr/lib/llvm-20"                  # Ubuntu LLVM 20
+    "/usr/local/opt/llvm@20"            # Homebrew LLVM 20
+    "/usr/local/llvm-20"                # Custom LLVM 20
+    "/usr/local/lib/cmake/llvm"         # Original Mac path
+    "/opt/homebrew/opt/llvm/lib/cmake"  # M1 Mac Homebrew
+)
+find_package(LLVM REQUIRED CONFIG)
 
 if(NOT LLVM_FOUND)
     message(FATAL_ERROR "LLVM 20 not found. Please install LLVM 20 or set LLVM_DIR to the correct path.")
@@ -33,10 +39,33 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 # Allow overriding ANTLR4 include and library paths
 if(NOT ANTLR4_INCLUDE_DIR)
-    set(ANTLR4_INCLUDE_DIR "/usr/local/include/antlr4-runtime")
+    # Try to find ANTLR4 runtime in common locations
+    foreach(path
+        "/usr/local/include/antlr4-runtime"                                                    # Default Unix
+        "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/include/antlr4-runtime"              # Original Mac path
+        "/usr/local/opt/antlr4-cpp-runtime/include/antlr4-runtime"                           # Alternative Homebrew
+        "/opt/homebrew/opt/antlr4-cpp-runtime/include/antlr4-runtime"                        # M1 Mac Homebrew
+    )
+        if(EXISTS "${path}")
+            set(ANTLR4_INCLUDE_DIR "${path}")
+            break()
+        endif()
+    endforeach()
 endif()
+
 if(NOT ANTLR4_LIBRARY_DIR)
-    set(ANTLR4_LIBRARY_DIR "/usr/local/lib")
+    # Try to find ANTLR4 library in common locations
+    foreach(path
+        "/usr/local/lib"                                                    # Default Unix
+        "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/lib"              # Original Mac path
+        "/usr/local/opt/antlr4-cpp-runtime/lib"                           # Alternative Homebrew
+        "/opt/homebrew/opt/antlr4-cpp-runtime/lib"                        # M1 Mac Homebrew
+    )
+        if(EXISTS "${path}")
+            set(ANTLR4_LIBRARY_DIR "${path}")
+            break()
+        endif()
+    endforeach()
 endif()
 include_directories(${ANTLR4_INCLUDE_DIR})
 link_directories(${ANTLR4_LIBRARY_DIR})

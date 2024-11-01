@@ -53,11 +53,10 @@ void prystParserInitialize() {
   auto staticData = std::make_unique<PrystParserStaticData>(
     std::vector<std::string>{
       "program", "declaration", "functionDecl", "variableDecl", "classDeclaration", 
-      "classMember", "paramList", "param", "type", "statement", "expressionStmt", 
-      "ifStmt", "whileStmt", "forStmt", "returnStmt", "block", "expression", 
-      "assignment", "logicOr", "logicAnd", "equality", "comparison", "addition", 
-      "multiplication", "unary", "postfix", "call", "callSuffix", "primary", 
-      "newExpression", "arguments"
+      "classBody", "classMember", "paramList", "param", "type", "statement", 
+      "expression", "assignment", "logicOr", "logicAnd", "equality", "comparison", 
+      "addition", "multiplication", "unary", "postfix", "call", "callSuffix", 
+      "primary", "newExpression", "arguments"
     },
     std::vector<std::string>{
       "", "'('", "')'", "'{'", "'}'", "'['", "']'", "','", "'.'", "'-'", 
@@ -78,114 +77,118 @@ void prystParserInitialize() {
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,49,322,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
+  	4,1,49,332,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
   	7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,
   	14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,
-  	21,2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,
-  	28,2,29,7,29,2,30,7,30,1,0,5,0,64,8,0,10,0,12,0,67,9,0,1,0,1,0,1,1,1,
-  	1,1,1,1,1,3,1,75,8,1,1,2,1,2,1,2,1,2,3,2,81,8,2,1,2,1,2,1,2,1,3,1,3,1,
-  	3,1,3,3,3,90,8,3,1,3,1,3,1,4,1,4,1,4,1,4,3,4,98,8,4,1,4,1,4,5,4,102,8,
-  	4,10,4,12,4,105,9,4,1,4,1,4,1,5,1,5,3,5,111,8,5,1,6,1,6,1,6,5,6,116,8,
-  	6,10,6,12,6,119,9,6,1,7,1,7,1,7,1,8,1,8,1,8,1,8,1,8,1,8,1,8,3,8,131,8,
-  	8,1,8,1,8,1,8,5,8,136,8,8,10,8,12,8,139,9,8,1,9,1,9,1,9,1,9,1,9,1,9,3,
-  	9,147,8,9,1,10,1,10,1,10,1,11,1,11,1,11,1,11,1,11,1,11,1,11,3,11,159,
-  	8,11,1,12,1,12,1,12,1,12,1,12,1,12,1,13,1,13,1,13,1,13,1,13,3,13,172,
-  	8,13,1,13,3,13,175,8,13,1,13,1,13,3,13,179,8,13,1,13,1,13,1,13,1,14,1,
-  	14,3,14,186,8,14,1,14,1,14,1,15,1,15,5,15,192,8,15,10,15,12,15,195,9,
-  	15,1,15,1,15,1,16,1,16,3,16,201,8,16,1,17,1,17,1,17,3,17,206,8,17,1,17,
-  	1,17,1,17,1,17,1,18,1,18,1,18,5,18,215,8,18,10,18,12,18,218,9,18,1,19,
-  	1,19,1,19,5,19,223,8,19,10,19,12,19,226,9,19,1,20,1,20,1,20,5,20,231,
-  	8,20,10,20,12,20,234,9,20,1,21,1,21,1,21,5,21,239,8,21,10,21,12,21,242,
-  	9,21,1,22,1,22,1,22,5,22,247,8,22,10,22,12,22,250,9,22,1,23,1,23,1,23,
-  	5,23,255,8,23,10,23,12,23,258,9,23,1,24,1,24,1,24,3,24,263,8,24,1,25,
-  	1,25,3,25,267,8,25,1,26,1,26,5,26,271,8,26,10,26,12,26,274,9,26,1,27,
-  	1,27,3,27,278,8,27,1,27,1,27,1,27,1,27,1,27,1,27,1,27,3,27,287,8,27,1,
-  	28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,28,1,
-  	28,3,28,304,8,28,1,29,1,29,1,29,1,29,3,29,310,8,29,1,29,1,29,1,30,1,30,
-  	1,30,5,30,317,8,30,10,30,12,30,320,9,30,1,30,0,1,16,31,0,2,4,6,8,10,12,
-  	14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,
-  	60,0,6,1,0,18,19,2,0,16,17,20,21,1,0,9,10,2,0,12,13,26,26,3,0,9,9,14,
-  	14,24,25,1,0,24,25,343,0,65,1,0,0,0,2,74,1,0,0,0,4,76,1,0,0,0,6,85,1,
-  	0,0,0,8,93,1,0,0,0,10,110,1,0,0,0,12,112,1,0,0,0,14,120,1,0,0,0,16,130,
-  	1,0,0,0,18,146,1,0,0,0,20,148,1,0,0,0,22,151,1,0,0,0,24,160,1,0,0,0,26,
-  	166,1,0,0,0,28,183,1,0,0,0,30,189,1,0,0,0,32,200,1,0,0,0,34,205,1,0,0,
-  	0,36,211,1,0,0,0,38,219,1,0,0,0,40,227,1,0,0,0,42,235,1,0,0,0,44,243,
-  	1,0,0,0,46,251,1,0,0,0,48,262,1,0,0,0,50,264,1,0,0,0,52,268,1,0,0,0,54,
-  	286,1,0,0,0,56,303,1,0,0,0,58,305,1,0,0,0,60,313,1,0,0,0,62,64,3,2,1,
-  	0,63,62,1,0,0,0,64,67,1,0,0,0,65,63,1,0,0,0,65,66,1,0,0,0,66,68,1,0,0,
-  	0,67,65,1,0,0,0,68,69,5,0,0,1,69,1,1,0,0,0,70,75,3,4,2,0,71,75,3,6,3,
-  	0,72,75,3,8,4,0,73,75,3,18,9,0,74,70,1,0,0,0,74,71,1,0,0,0,74,72,1,0,
-  	0,0,74,73,1,0,0,0,75,3,1,0,0,0,76,77,3,16,8,0,77,78,5,47,0,0,78,80,5,
-  	1,0,0,79,81,3,12,6,0,80,79,1,0,0,0,80,81,1,0,0,0,81,82,1,0,0,0,82,83,
-  	5,2,0,0,83,84,3,30,15,0,84,5,1,0,0,0,85,86,3,16,8,0,86,89,5,47,0,0,87,
-  	88,5,15,0,0,88,90,3,32,16,0,89,87,1,0,0,0,89,90,1,0,0,0,90,91,1,0,0,0,
-  	91,92,5,11,0,0,92,7,1,0,0,0,93,94,5,27,0,0,94,97,5,47,0,0,95,96,5,28,
-  	0,0,96,98,5,47,0,0,97,95,1,0,0,0,97,98,1,0,0,0,98,99,1,0,0,0,99,103,5,
-  	3,0,0,100,102,3,10,5,0,101,100,1,0,0,0,102,105,1,0,0,0,103,101,1,0,0,
-  	0,103,104,1,0,0,0,104,106,1,0,0,0,105,103,1,0,0,0,106,107,5,4,0,0,107,
-  	9,1,0,0,0,108,111,3,6,3,0,109,111,3,4,2,0,110,108,1,0,0,0,110,109,1,0,
-  	0,0,111,11,1,0,0,0,112,117,3,14,7,0,113,114,5,7,0,0,114,116,3,14,7,0,
-  	115,113,1,0,0,0,116,119,1,0,0,0,117,115,1,0,0,0,117,118,1,0,0,0,118,13,
-  	1,0,0,0,119,117,1,0,0,0,120,121,3,16,8,0,121,122,5,47,0,0,122,15,1,0,
-  	0,0,123,124,6,8,-1,0,124,131,5,40,0,0,125,131,5,41,0,0,126,131,5,42,0,
-  	0,127,131,5,43,0,0,128,131,5,44,0,0,129,131,5,47,0,0,130,123,1,0,0,0,
-  	130,125,1,0,0,0,130,126,1,0,0,0,130,127,1,0,0,0,130,128,1,0,0,0,130,129,
-  	1,0,0,0,131,137,1,0,0,0,132,133,10,1,0,0,133,134,5,5,0,0,134,136,5,6,
-  	0,0,135,132,1,0,0,0,136,139,1,0,0,0,137,135,1,0,0,0,137,138,1,0,0,0,138,
-  	17,1,0,0,0,139,137,1,0,0,0,140,147,3,20,10,0,141,147,3,22,11,0,142,147,
-  	3,24,12,0,143,147,3,26,13,0,144,147,3,28,14,0,145,147,3,30,15,0,146,140,
-  	1,0,0,0,146,141,1,0,0,0,146,142,1,0,0,0,146,143,1,0,0,0,146,144,1,0,0,
-  	0,146,145,1,0,0,0,147,19,1,0,0,0,148,149,3,32,16,0,149,150,5,11,0,0,150,
-  	21,1,0,0,0,151,152,5,32,0,0,152,153,5,1,0,0,153,154,3,32,16,0,154,155,
-  	5,2,0,0,155,158,3,18,9,0,156,157,5,29,0,0,157,159,3,18,9,0,158,156,1,
-  	0,0,0,158,159,1,0,0,0,159,23,1,0,0,0,160,161,5,38,0,0,161,162,5,1,0,0,
-  	162,163,3,32,16,0,163,164,5,2,0,0,164,165,3,18,9,0,165,25,1,0,0,0,166,
-  	167,5,31,0,0,167,171,5,1,0,0,168,172,3,6,3,0,169,172,3,20,10,0,170,172,
-  	5,11,0,0,171,168,1,0,0,0,171,169,1,0,0,0,171,170,1,0,0,0,172,174,1,0,
-  	0,0,173,175,3,32,16,0,174,173,1,0,0,0,174,175,1,0,0,0,175,176,1,0,0,0,
-  	176,178,5,11,0,0,177,179,3,32,16,0,178,177,1,0,0,0,178,179,1,0,0,0,179,
-  	180,1,0,0,0,180,181,5,2,0,0,181,182,3,18,9,0,182,27,1,0,0,0,183,185,5,
-  	34,0,0,184,186,3,32,16,0,185,184,1,0,0,0,185,186,1,0,0,0,186,187,1,0,
-  	0,0,187,188,5,11,0,0,188,29,1,0,0,0,189,193,5,3,0,0,190,192,3,2,1,0,191,
-  	190,1,0,0,0,192,195,1,0,0,0,193,191,1,0,0,0,193,194,1,0,0,0,194,196,1,
-  	0,0,0,195,193,1,0,0,0,196,197,5,4,0,0,197,31,1,0,0,0,198,201,3,34,17,
-  	0,199,201,3,36,18,0,200,198,1,0,0,0,200,199,1,0,0,0,201,33,1,0,0,0,202,
-  	203,3,52,26,0,203,204,5,8,0,0,204,206,1,0,0,0,205,202,1,0,0,0,205,206,
-  	1,0,0,0,206,207,1,0,0,0,207,208,5,47,0,0,208,209,5,15,0,0,209,210,3,32,
-  	16,0,210,35,1,0,0,0,211,216,3,38,19,0,212,213,5,23,0,0,213,215,3,38,19,
-  	0,214,212,1,0,0,0,215,218,1,0,0,0,216,214,1,0,0,0,216,217,1,0,0,0,217,
-  	37,1,0,0,0,218,216,1,0,0,0,219,224,3,40,20,0,220,221,5,22,0,0,221,223,
-  	3,40,20,0,222,220,1,0,0,0,223,226,1,0,0,0,224,222,1,0,0,0,224,225,1,0,
-  	0,0,225,39,1,0,0,0,226,224,1,0,0,0,227,232,3,42,21,0,228,229,7,0,0,0,
-  	229,231,3,42,21,0,230,228,1,0,0,0,231,234,1,0,0,0,232,230,1,0,0,0,232,
-  	233,1,0,0,0,233,41,1,0,0,0,234,232,1,0,0,0,235,240,3,44,22,0,236,237,
-  	7,1,0,0,237,239,3,44,22,0,238,236,1,0,0,0,239,242,1,0,0,0,240,238,1,0,
-  	0,0,240,241,1,0,0,0,241,43,1,0,0,0,242,240,1,0,0,0,243,248,3,46,23,0,
-  	244,245,7,2,0,0,245,247,3,46,23,0,246,244,1,0,0,0,247,250,1,0,0,0,248,
-  	246,1,0,0,0,248,249,1,0,0,0,249,45,1,0,0,0,250,248,1,0,0,0,251,256,3,
-  	48,24,0,252,253,7,3,0,0,253,255,3,48,24,0,254,252,1,0,0,0,255,258,1,0,
-  	0,0,256,254,1,0,0,0,256,257,1,0,0,0,257,47,1,0,0,0,258,256,1,0,0,0,259,
-  	260,7,4,0,0,260,263,3,48,24,0,261,263,3,50,25,0,262,259,1,0,0,0,262,261,
-  	1,0,0,0,263,49,1,0,0,0,264,266,3,56,28,0,265,267,7,5,0,0,266,265,1,0,
-  	0,0,266,267,1,0,0,0,267,51,1,0,0,0,268,272,3,56,28,0,269,271,3,54,27,
-  	0,270,269,1,0,0,0,271,274,1,0,0,0,272,270,1,0,0,0,272,273,1,0,0,0,273,
-  	53,1,0,0,0,274,272,1,0,0,0,275,277,5,1,0,0,276,278,3,60,30,0,277,276,
-  	1,0,0,0,277,278,1,0,0,0,278,279,1,0,0,0,279,287,5,2,0,0,280,281,5,5,0,
-  	0,281,282,3,32,16,0,282,283,5,6,0,0,283,287,1,0,0,0,284,285,5,8,0,0,285,
-  	287,5,47,0,0,286,275,1,0,0,0,286,280,1,0,0,0,286,284,1,0,0,0,287,55,1,
-  	0,0,0,288,304,5,37,0,0,289,304,5,30,0,0,290,304,5,33,0,0,291,304,5,36,
-  	0,0,292,304,5,45,0,0,293,304,5,46,0,0,294,304,5,47,0,0,295,296,5,1,0,
-  	0,296,297,3,32,16,0,297,298,5,2,0,0,298,304,1,0,0,0,299,300,5,35,0,0,
-  	300,301,5,8,0,0,301,304,5,47,0,0,302,304,3,58,29,0,303,288,1,0,0,0,303,
-  	289,1,0,0,0,303,290,1,0,0,0,303,291,1,0,0,0,303,292,1,0,0,0,303,293,1,
-  	0,0,0,303,294,1,0,0,0,303,295,1,0,0,0,303,299,1,0,0,0,303,302,1,0,0,0,
-  	304,57,1,0,0,0,305,306,5,39,0,0,306,307,5,47,0,0,307,309,5,1,0,0,308,
-  	310,3,60,30,0,309,308,1,0,0,0,309,310,1,0,0,0,310,311,1,0,0,0,311,312,
-  	5,2,0,0,312,59,1,0,0,0,313,318,3,32,16,0,314,315,5,7,0,0,315,317,3,32,
-  	16,0,316,314,1,0,0,0,317,320,1,0,0,0,318,316,1,0,0,0,318,319,1,0,0,0,
-  	319,61,1,0,0,0,320,318,1,0,0,0,33,65,74,80,89,97,103,110,117,130,137,
-  	146,158,171,174,178,185,193,200,205,216,224,232,240,248,256,262,266,272,
-  	277,286,303,309,318
+  	21,2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,1,0,5,0,54,8,0,10,0,12,0,57,
+  	9,0,1,0,1,0,1,1,1,1,1,1,1,1,3,1,65,8,1,1,2,1,2,1,2,1,2,3,2,71,8,2,1,2,
+  	1,2,1,2,5,2,76,8,2,10,2,12,2,79,9,2,1,2,1,2,1,3,1,3,1,3,1,3,3,3,87,8,
+  	3,1,3,1,3,1,4,1,4,1,4,1,4,3,4,95,8,4,1,4,1,4,1,5,1,5,5,5,101,8,5,10,5,
+  	12,5,104,9,5,1,5,1,5,1,6,1,6,1,6,1,6,3,6,112,8,6,1,6,1,6,1,6,1,6,1,6,
+  	1,6,3,6,120,8,6,1,6,1,6,1,6,5,6,125,8,6,10,6,12,6,128,9,6,1,6,1,6,3,6,
+  	132,8,6,1,7,1,7,1,7,5,7,137,8,7,10,7,12,7,140,9,7,1,8,1,8,1,8,1,9,1,9,
+  	1,9,1,9,1,9,1,9,1,9,3,9,152,8,9,1,9,1,9,1,9,5,9,157,8,9,10,9,12,9,160,
+  	9,9,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,3,10,172,8,10,1,
+  	10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,3,10,187,
+  	8,10,1,10,3,10,190,8,10,1,10,1,10,3,10,194,8,10,1,10,1,10,1,10,1,10,3,
+  	10,200,8,10,1,10,1,10,1,10,5,10,205,8,10,10,10,12,10,208,9,10,1,10,3,
+  	10,211,8,10,1,11,1,11,3,11,215,8,11,1,12,1,12,1,12,3,12,220,8,12,1,12,
+  	1,12,1,12,1,12,1,13,1,13,1,13,5,13,229,8,13,10,13,12,13,232,9,13,1,14,
+  	1,14,1,14,5,14,237,8,14,10,14,12,14,240,9,14,1,15,1,15,1,15,5,15,245,
+  	8,15,10,15,12,15,248,9,15,1,16,1,16,1,16,5,16,253,8,16,10,16,12,16,256,
+  	9,16,1,17,1,17,1,17,5,17,261,8,17,10,17,12,17,264,9,17,1,18,1,18,1,18,
+  	5,18,269,8,18,10,18,12,18,272,9,18,1,19,1,19,1,19,3,19,277,8,19,1,20,
+  	1,20,3,20,281,8,20,1,21,1,21,5,21,285,8,21,10,21,12,21,288,9,21,1,22,
+  	1,22,3,22,292,8,22,1,22,1,22,1,22,3,22,297,8,22,1,23,1,23,1,23,1,23,1,
+  	23,1,23,1,23,1,23,1,23,1,23,1,23,1,23,1,23,1,23,1,23,3,23,314,8,23,1,
+  	24,1,24,1,24,1,24,3,24,320,8,24,1,24,1,24,1,25,1,25,1,25,5,25,327,8,25,
+  	10,25,12,25,330,9,25,1,25,0,1,18,26,0,2,4,6,8,10,12,14,16,18,20,22,24,
+  	26,28,30,32,34,36,38,40,42,44,46,48,50,0,6,1,0,18,19,2,0,16,17,20,21,
+  	1,0,9,10,2,0,12,13,26,26,3,0,9,9,14,14,24,25,1,0,24,25,361,0,55,1,0,0,
+  	0,2,64,1,0,0,0,4,66,1,0,0,0,6,82,1,0,0,0,8,90,1,0,0,0,10,98,1,0,0,0,12,
+  	131,1,0,0,0,14,133,1,0,0,0,16,141,1,0,0,0,18,151,1,0,0,0,20,210,1,0,0,
+  	0,22,214,1,0,0,0,24,219,1,0,0,0,26,225,1,0,0,0,28,233,1,0,0,0,30,241,
+  	1,0,0,0,32,249,1,0,0,0,34,257,1,0,0,0,36,265,1,0,0,0,38,276,1,0,0,0,40,
+  	278,1,0,0,0,42,282,1,0,0,0,44,296,1,0,0,0,46,313,1,0,0,0,48,315,1,0,0,
+  	0,50,323,1,0,0,0,52,54,3,2,1,0,53,52,1,0,0,0,54,57,1,0,0,0,55,53,1,0,
+  	0,0,55,56,1,0,0,0,56,58,1,0,0,0,57,55,1,0,0,0,58,59,5,0,0,1,59,1,1,0,
+  	0,0,60,65,3,4,2,0,61,65,3,6,3,0,62,65,3,8,4,0,63,65,3,20,10,0,64,60,1,
+  	0,0,0,64,61,1,0,0,0,64,62,1,0,0,0,64,63,1,0,0,0,65,3,1,0,0,0,66,67,3,
+  	18,9,0,67,68,5,47,0,0,68,70,5,1,0,0,69,71,3,14,7,0,70,69,1,0,0,0,70,71,
+  	1,0,0,0,71,72,1,0,0,0,72,73,5,2,0,0,73,77,5,3,0,0,74,76,3,2,1,0,75,74,
+  	1,0,0,0,76,79,1,0,0,0,77,75,1,0,0,0,77,78,1,0,0,0,78,80,1,0,0,0,79,77,
+  	1,0,0,0,80,81,5,4,0,0,81,5,1,0,0,0,82,83,3,18,9,0,83,86,5,47,0,0,84,85,
+  	5,15,0,0,85,87,3,22,11,0,86,84,1,0,0,0,86,87,1,0,0,0,87,88,1,0,0,0,88,
+  	89,5,11,0,0,89,7,1,0,0,0,90,91,5,27,0,0,91,94,5,47,0,0,92,93,5,28,0,0,
+  	93,95,5,47,0,0,94,92,1,0,0,0,94,95,1,0,0,0,95,96,1,0,0,0,96,97,3,10,5,
+  	0,97,9,1,0,0,0,98,102,5,3,0,0,99,101,3,12,6,0,100,99,1,0,0,0,101,104,
+  	1,0,0,0,102,100,1,0,0,0,102,103,1,0,0,0,103,105,1,0,0,0,104,102,1,0,0,
+  	0,105,106,5,4,0,0,106,11,1,0,0,0,107,108,3,18,9,0,108,111,5,47,0,0,109,
+  	110,5,15,0,0,110,112,3,22,11,0,111,109,1,0,0,0,111,112,1,0,0,0,112,113,
+  	1,0,0,0,113,114,5,11,0,0,114,132,1,0,0,0,115,116,3,18,9,0,116,117,5,47,
+  	0,0,117,119,5,1,0,0,118,120,3,14,7,0,119,118,1,0,0,0,119,120,1,0,0,0,
+  	120,121,1,0,0,0,121,122,5,2,0,0,122,126,5,3,0,0,123,125,3,2,1,0,124,123,
+  	1,0,0,0,125,128,1,0,0,0,126,124,1,0,0,0,126,127,1,0,0,0,127,129,1,0,0,
+  	0,128,126,1,0,0,0,129,130,5,4,0,0,130,132,1,0,0,0,131,107,1,0,0,0,131,
+  	115,1,0,0,0,132,13,1,0,0,0,133,138,3,16,8,0,134,135,5,7,0,0,135,137,3,
+  	16,8,0,136,134,1,0,0,0,137,140,1,0,0,0,138,136,1,0,0,0,138,139,1,0,0,
+  	0,139,15,1,0,0,0,140,138,1,0,0,0,141,142,3,18,9,0,142,143,5,47,0,0,143,
+  	17,1,0,0,0,144,145,6,9,-1,0,145,152,5,40,0,0,146,152,5,41,0,0,147,152,
+  	5,42,0,0,148,152,5,43,0,0,149,152,5,44,0,0,150,152,5,47,0,0,151,144,1,
+  	0,0,0,151,146,1,0,0,0,151,147,1,0,0,0,151,148,1,0,0,0,151,149,1,0,0,0,
+  	151,150,1,0,0,0,152,158,1,0,0,0,153,154,10,1,0,0,154,155,5,5,0,0,155,
+  	157,5,6,0,0,156,153,1,0,0,0,157,160,1,0,0,0,158,156,1,0,0,0,158,159,1,
+  	0,0,0,159,19,1,0,0,0,160,158,1,0,0,0,161,162,3,22,11,0,162,163,5,11,0,
+  	0,163,211,1,0,0,0,164,165,5,32,0,0,165,166,5,1,0,0,166,167,3,22,11,0,
+  	167,168,5,2,0,0,168,171,3,20,10,0,169,170,5,29,0,0,170,172,3,20,10,0,
+  	171,169,1,0,0,0,171,172,1,0,0,0,172,211,1,0,0,0,173,174,5,38,0,0,174,
+  	175,5,1,0,0,175,176,3,22,11,0,176,177,5,2,0,0,177,178,3,20,10,0,178,211,
+  	1,0,0,0,179,180,5,31,0,0,180,186,5,1,0,0,181,187,3,6,3,0,182,183,3,22,
+  	11,0,183,184,5,11,0,0,184,187,1,0,0,0,185,187,5,11,0,0,186,181,1,0,0,
+  	0,186,182,1,0,0,0,186,185,1,0,0,0,187,189,1,0,0,0,188,190,3,22,11,0,189,
+  	188,1,0,0,0,189,190,1,0,0,0,190,191,1,0,0,0,191,193,5,11,0,0,192,194,
+  	3,22,11,0,193,192,1,0,0,0,193,194,1,0,0,0,194,195,1,0,0,0,195,196,5,2,
+  	0,0,196,211,3,20,10,0,197,199,5,34,0,0,198,200,3,22,11,0,199,198,1,0,
+  	0,0,199,200,1,0,0,0,200,201,1,0,0,0,201,211,5,11,0,0,202,206,5,3,0,0,
+  	203,205,3,2,1,0,204,203,1,0,0,0,205,208,1,0,0,0,206,204,1,0,0,0,206,207,
+  	1,0,0,0,207,209,1,0,0,0,208,206,1,0,0,0,209,211,5,4,0,0,210,161,1,0,0,
+  	0,210,164,1,0,0,0,210,173,1,0,0,0,210,179,1,0,0,0,210,197,1,0,0,0,210,
+  	202,1,0,0,0,211,21,1,0,0,0,212,215,3,24,12,0,213,215,3,26,13,0,214,212,
+  	1,0,0,0,214,213,1,0,0,0,215,23,1,0,0,0,216,217,3,42,21,0,217,218,5,8,
+  	0,0,218,220,1,0,0,0,219,216,1,0,0,0,219,220,1,0,0,0,220,221,1,0,0,0,221,
+  	222,5,47,0,0,222,223,5,15,0,0,223,224,3,22,11,0,224,25,1,0,0,0,225,230,
+  	3,28,14,0,226,227,5,23,0,0,227,229,3,28,14,0,228,226,1,0,0,0,229,232,
+  	1,0,0,0,230,228,1,0,0,0,230,231,1,0,0,0,231,27,1,0,0,0,232,230,1,0,0,
+  	0,233,238,3,30,15,0,234,235,5,22,0,0,235,237,3,30,15,0,236,234,1,0,0,
+  	0,237,240,1,0,0,0,238,236,1,0,0,0,238,239,1,0,0,0,239,29,1,0,0,0,240,
+  	238,1,0,0,0,241,246,3,32,16,0,242,243,7,0,0,0,243,245,3,32,16,0,244,242,
+  	1,0,0,0,245,248,1,0,0,0,246,244,1,0,0,0,246,247,1,0,0,0,247,31,1,0,0,
+  	0,248,246,1,0,0,0,249,254,3,34,17,0,250,251,7,1,0,0,251,253,3,34,17,0,
+  	252,250,1,0,0,0,253,256,1,0,0,0,254,252,1,0,0,0,254,255,1,0,0,0,255,33,
+  	1,0,0,0,256,254,1,0,0,0,257,262,3,36,18,0,258,259,7,2,0,0,259,261,3,36,
+  	18,0,260,258,1,0,0,0,261,264,1,0,0,0,262,260,1,0,0,0,262,263,1,0,0,0,
+  	263,35,1,0,0,0,264,262,1,0,0,0,265,270,3,38,19,0,266,267,7,3,0,0,267,
+  	269,3,38,19,0,268,266,1,0,0,0,269,272,1,0,0,0,270,268,1,0,0,0,270,271,
+  	1,0,0,0,271,37,1,0,0,0,272,270,1,0,0,0,273,274,7,4,0,0,274,277,3,38,19,
+  	0,275,277,3,40,20,0,276,273,1,0,0,0,276,275,1,0,0,0,277,39,1,0,0,0,278,
+  	280,3,46,23,0,279,281,7,5,0,0,280,279,1,0,0,0,280,281,1,0,0,0,281,41,
+  	1,0,0,0,282,286,3,46,23,0,283,285,3,44,22,0,284,283,1,0,0,0,285,288,1,
+  	0,0,0,286,284,1,0,0,0,286,287,1,0,0,0,287,43,1,0,0,0,288,286,1,0,0,0,
+  	289,291,5,1,0,0,290,292,3,50,25,0,291,290,1,0,0,0,291,292,1,0,0,0,292,
+  	293,1,0,0,0,293,297,5,2,0,0,294,295,5,8,0,0,295,297,5,47,0,0,296,289,
+  	1,0,0,0,296,294,1,0,0,0,297,45,1,0,0,0,298,314,5,37,0,0,299,314,5,30,
+  	0,0,300,314,5,33,0,0,301,314,5,36,0,0,302,314,5,45,0,0,303,314,5,46,0,
+  	0,304,314,5,47,0,0,305,306,5,1,0,0,306,307,3,22,11,0,307,308,5,2,0,0,
+  	308,314,1,0,0,0,309,310,5,35,0,0,310,311,5,8,0,0,311,314,5,47,0,0,312,
+  	314,3,48,24,0,313,298,1,0,0,0,313,299,1,0,0,0,313,300,1,0,0,0,313,301,
+  	1,0,0,0,313,302,1,0,0,0,313,303,1,0,0,0,313,304,1,0,0,0,313,305,1,0,0,
+  	0,313,309,1,0,0,0,313,312,1,0,0,0,314,47,1,0,0,0,315,316,5,39,0,0,316,
+  	317,5,47,0,0,317,319,5,1,0,0,318,320,3,50,25,0,319,318,1,0,0,0,319,320,
+  	1,0,0,0,320,321,1,0,0,0,321,322,5,2,0,0,322,49,1,0,0,0,323,328,3,22,11,
+  	0,324,325,5,7,0,0,325,327,3,22,11,0,326,324,1,0,0,0,327,330,1,0,0,0,328,
+  	326,1,0,0,0,328,329,1,0,0,0,329,51,1,0,0,0,330,328,1,0,0,0,37,55,64,70,
+  	77,86,94,102,111,119,126,131,138,151,158,171,186,189,193,199,206,210,
+  	214,219,230,238,246,254,262,270,276,280,286,291,296,313,319,328
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -279,18 +282,18 @@ PrystParser::ProgramContext* PrystParser::program() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(65);
+    setState(55);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 281474087535114) != 0)) {
-      setState(62);
+      setState(52);
       declaration();
-      setState(67);
+      setState(57);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(68);
+    setState(58);
     match(PrystParser::EOF);
    
   }
@@ -350,33 +353,33 @@ PrystParser::DeclarationContext* PrystParser::declaration() {
     exitRule();
   });
   try {
-    setState(74);
+    setState(64);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 1, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(70);
+      setState(60);
       functionDecl();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(71);
+      setState(61);
       variableDecl();
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(72);
+      setState(62);
       classDeclaration();
       break;
     }
 
     case 4: {
       enterOuterAlt(_localctx, 4);
-      setState(73);
+      setState(63);
       statement();
       break;
     }
@@ -417,12 +420,24 @@ tree::TerminalNode* PrystParser::FunctionDeclContext::RPAREN() {
   return getToken(PrystParser::RPAREN, 0);
 }
 
-PrystParser::BlockContext* PrystParser::FunctionDeclContext::block() {
-  return getRuleContext<PrystParser::BlockContext>(0);
+tree::TerminalNode* PrystParser::FunctionDeclContext::LBRACE() {
+  return getToken(PrystParser::LBRACE, 0);
+}
+
+tree::TerminalNode* PrystParser::FunctionDeclContext::RBRACE() {
+  return getToken(PrystParser::RBRACE, 0);
 }
 
 PrystParser::ParamListContext* PrystParser::FunctionDeclContext::paramList() {
   return getRuleContext<PrystParser::ParamListContext>(0);
+}
+
+std::vector<PrystParser::DeclarationContext *> PrystParser::FunctionDeclContext::declaration() {
+  return getRuleContexts<PrystParser::DeclarationContext>();
+}
+
+PrystParser::DeclarationContext* PrystParser::FunctionDeclContext::declaration(size_t i) {
+  return getRuleContext<PrystParser::DeclarationContext>(i);
 }
 
 
@@ -452,25 +467,38 @@ PrystParser::FunctionDeclContext* PrystParser::functionDecl() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(76);
+    setState(66);
     type(0);
-    setState(77);
+    setState(67);
     match(PrystParser::IDENTIFIER);
-    setState(78);
+    setState(68);
     match(PrystParser::LPAREN);
-    setState(80);
+    setState(70);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 174822348816384) != 0)) {
-      setState(79);
+      setState(69);
       paramList();
     }
-    setState(82);
+    setState(72);
     match(PrystParser::RPAREN);
-    setState(83);
-    block();
+    setState(73);
+    match(PrystParser::LBRACE);
+    setState(77);
+    _errHandler->sync(this);
+    _la = _input->LA(1);
+    while ((((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 281474087535114) != 0)) {
+      setState(74);
+      declaration();
+      setState(79);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+    }
+    setState(80);
+    match(PrystParser::RBRACE);
    
   }
   catch (RecognitionException &e) {
@@ -535,21 +563,21 @@ PrystParser::VariableDeclContext* PrystParser::variableDecl() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(85);
+    setState(82);
     type(0);
-    setState(86);
+    setState(83);
     match(PrystParser::IDENTIFIER);
-    setState(89);
+    setState(86);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == PrystParser::EQUAL) {
-      setState(87);
+      setState(84);
       match(PrystParser::EQUAL);
-      setState(88);
+      setState(85);
       expression();
     }
-    setState(91);
+    setState(88);
     match(PrystParser::SEMICOLON);
    
   }
@@ -580,24 +608,12 @@ tree::TerminalNode* PrystParser::ClassDeclarationContext::IDENTIFIER(size_t i) {
   return getToken(PrystParser::IDENTIFIER, i);
 }
 
-tree::TerminalNode* PrystParser::ClassDeclarationContext::LBRACE() {
-  return getToken(PrystParser::LBRACE, 0);
-}
-
-tree::TerminalNode* PrystParser::ClassDeclarationContext::RBRACE() {
-  return getToken(PrystParser::RBRACE, 0);
+PrystParser::ClassBodyContext* PrystParser::ClassDeclarationContext::classBody() {
+  return getRuleContext<PrystParser::ClassBodyContext>(0);
 }
 
 tree::TerminalNode* PrystParser::ClassDeclarationContext::EXTENDS() {
   return getToken(PrystParser::EXTENDS, 0);
-}
-
-std::vector<PrystParser::ClassMemberContext *> PrystParser::ClassDeclarationContext::classMember() {
-  return getRuleContexts<PrystParser::ClassMemberContext>();
-}
-
-PrystParser::ClassMemberContext* PrystParser::ClassDeclarationContext::classMember(size_t i) {
-  return getRuleContext<PrystParser::ClassMemberContext>(i);
 }
 
 
@@ -627,34 +643,96 @@ PrystParser::ClassDeclarationContext* PrystParser::classDeclaration() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(93);
+    setState(90);
     match(PrystParser::CLASS);
-    setState(94);
+    setState(91);
     match(PrystParser::IDENTIFIER);
-    setState(97);
+    setState(94);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == PrystParser::EXTENDS) {
-      setState(95);
+      setState(92);
       match(PrystParser::EXTENDS);
-      setState(96);
+      setState(93);
       match(PrystParser::IDENTIFIER);
     }
-    setState(99);
+    setState(96);
+    classBody();
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- ClassBodyContext ------------------------------------------------------------------
+
+PrystParser::ClassBodyContext::ClassBodyContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+tree::TerminalNode* PrystParser::ClassBodyContext::LBRACE() {
+  return getToken(PrystParser::LBRACE, 0);
+}
+
+tree::TerminalNode* PrystParser::ClassBodyContext::RBRACE() {
+  return getToken(PrystParser::RBRACE, 0);
+}
+
+std::vector<PrystParser::ClassMemberContext *> PrystParser::ClassBodyContext::classMember() {
+  return getRuleContexts<PrystParser::ClassMemberContext>();
+}
+
+PrystParser::ClassMemberContext* PrystParser::ClassBodyContext::classMember(size_t i) {
+  return getRuleContext<PrystParser::ClassMemberContext>(i);
+}
+
+
+size_t PrystParser::ClassBodyContext::getRuleIndex() const {
+  return PrystParser::RuleClassBody;
+}
+
+
+std::any PrystParser::ClassBodyContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
+    return parserVisitor->visitClassBody(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+PrystParser::ClassBodyContext* PrystParser::classBody() {
+  ClassBodyContext *_localctx = _tracker.createInstance<ClassBodyContext>(_ctx, getState());
+  enterRule(_localctx, 10, PrystParser::RuleClassBody);
+  size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(98);
     match(PrystParser::LBRACE);
-    setState(103);
+    setState(102);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 174822348816384) != 0)) {
-      setState(100);
+      setState(99);
       classMember();
-      setState(105);
+      setState(104);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(106);
+    setState(105);
     match(PrystParser::RBRACE);
    
   }
@@ -673,30 +751,97 @@ PrystParser::ClassMemberContext::ClassMemberContext(ParserRuleContext *parent, s
   : ParserRuleContext(parent, invokingState) {
 }
 
-PrystParser::VariableDeclContext* PrystParser::ClassMemberContext::variableDecl() {
-  return getRuleContext<PrystParser::VariableDeclContext>(0);
-}
-
-PrystParser::FunctionDeclContext* PrystParser::ClassMemberContext::functionDecl() {
-  return getRuleContext<PrystParser::FunctionDeclContext>(0);
-}
-
 
 size_t PrystParser::ClassMemberContext::getRuleIndex() const {
   return PrystParser::RuleClassMember;
 }
 
+void PrystParser::ClassMemberContext::copyFrom(ClassMemberContext *ctx) {
+  ParserRuleContext::copyFrom(ctx);
+}
 
-std::any PrystParser::ClassMemberContext::accept(tree::ParseTreeVisitor *visitor) {
+//----------------- ClassFunctionDeclContext ------------------------------------------------------------------
+
+PrystParser::TypeContext* PrystParser::ClassFunctionDeclContext::type() {
+  return getRuleContext<PrystParser::TypeContext>(0);
+}
+
+tree::TerminalNode* PrystParser::ClassFunctionDeclContext::IDENTIFIER() {
+  return getToken(PrystParser::IDENTIFIER, 0);
+}
+
+tree::TerminalNode* PrystParser::ClassFunctionDeclContext::LPAREN() {
+  return getToken(PrystParser::LPAREN, 0);
+}
+
+tree::TerminalNode* PrystParser::ClassFunctionDeclContext::RPAREN() {
+  return getToken(PrystParser::RPAREN, 0);
+}
+
+tree::TerminalNode* PrystParser::ClassFunctionDeclContext::LBRACE() {
+  return getToken(PrystParser::LBRACE, 0);
+}
+
+tree::TerminalNode* PrystParser::ClassFunctionDeclContext::RBRACE() {
+  return getToken(PrystParser::RBRACE, 0);
+}
+
+PrystParser::ParamListContext* PrystParser::ClassFunctionDeclContext::paramList() {
+  return getRuleContext<PrystParser::ParamListContext>(0);
+}
+
+std::vector<PrystParser::DeclarationContext *> PrystParser::ClassFunctionDeclContext::declaration() {
+  return getRuleContexts<PrystParser::DeclarationContext>();
+}
+
+PrystParser::DeclarationContext* PrystParser::ClassFunctionDeclContext::declaration(size_t i) {
+  return getRuleContext<PrystParser::DeclarationContext>(i);
+}
+
+PrystParser::ClassFunctionDeclContext::ClassFunctionDeclContext(ClassMemberContext *ctx) { copyFrom(ctx); }
+
+
+std::any PrystParser::ClassFunctionDeclContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
-    return parserVisitor->visitClassMember(this);
+    return parserVisitor->visitClassFunctionDecl(this);
   else
     return visitor->visitChildren(this);
 }
+//----------------- ClassVariableDeclContext ------------------------------------------------------------------
 
+PrystParser::TypeContext* PrystParser::ClassVariableDeclContext::type() {
+  return getRuleContext<PrystParser::TypeContext>(0);
+}
+
+tree::TerminalNode* PrystParser::ClassVariableDeclContext::IDENTIFIER() {
+  return getToken(PrystParser::IDENTIFIER, 0);
+}
+
+tree::TerminalNode* PrystParser::ClassVariableDeclContext::SEMICOLON() {
+  return getToken(PrystParser::SEMICOLON, 0);
+}
+
+tree::TerminalNode* PrystParser::ClassVariableDeclContext::EQUAL() {
+  return getToken(PrystParser::EQUAL, 0);
+}
+
+PrystParser::ExpressionContext* PrystParser::ClassVariableDeclContext::expression() {
+  return getRuleContext<PrystParser::ExpressionContext>(0);
+}
+
+PrystParser::ClassVariableDeclContext::ClassVariableDeclContext(ClassMemberContext *ctx) { copyFrom(ctx); }
+
+
+std::any PrystParser::ClassVariableDeclContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
+    return parserVisitor->visitClassVariableDecl(this);
+  else
+    return visitor->visitChildren(this);
+}
 PrystParser::ClassMemberContext* PrystParser::classMember() {
   ClassMemberContext *_localctx = _tracker.createInstance<ClassMemberContext>(_ctx, getState());
-  enterRule(_localctx, 10, PrystParser::RuleClassMember);
+  enterRule(_localctx, 12, PrystParser::RuleClassMember);
+  size_t _la = 0;
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -706,20 +851,66 @@ PrystParser::ClassMemberContext* PrystParser::classMember() {
     exitRule();
   });
   try {
-    setState(110);
+    setState(131);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 6, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 10, _ctx)) {
     case 1: {
+      _localctx = _tracker.createInstance<PrystParser::ClassVariableDeclContext>(_localctx);
       enterOuterAlt(_localctx, 1);
+      setState(107);
+      type(0);
       setState(108);
-      variableDecl();
+      match(PrystParser::IDENTIFIER);
+      setState(111);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == PrystParser::EQUAL) {
+        setState(109);
+        match(PrystParser::EQUAL);
+        setState(110);
+        expression();
+      }
+      setState(113);
+      match(PrystParser::SEMICOLON);
       break;
     }
 
     case 2: {
+      _localctx = _tracker.createInstance<PrystParser::ClassFunctionDeclContext>(_localctx);
       enterOuterAlt(_localctx, 2);
-      setState(109);
-      functionDecl();
+      setState(115);
+      type(0);
+      setState(116);
+      match(PrystParser::IDENTIFIER);
+      setState(117);
+      match(PrystParser::LPAREN);
+      setState(119);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if ((((_la & ~ 0x3fULL) == 0) &&
+        ((1ULL << _la) & 174822348816384) != 0)) {
+        setState(118);
+        paramList();
+      }
+      setState(121);
+      match(PrystParser::RPAREN);
+      setState(122);
+      match(PrystParser::LBRACE);
+      setState(126);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+      while ((((_la & ~ 0x3fULL) == 0) &&
+        ((1ULL << _la) & 281474087535114) != 0)) {
+        setState(123);
+        declaration();
+        setState(128);
+        _errHandler->sync(this);
+        _la = _input->LA(1);
+      }
+      setState(129);
+      match(PrystParser::RBRACE);
       break;
     }
 
@@ -774,7 +965,7 @@ std::any PrystParser::ParamListContext::accept(tree::ParseTreeVisitor *visitor) 
 
 PrystParser::ParamListContext* PrystParser::paramList() {
   ParamListContext *_localctx = _tracker.createInstance<ParamListContext>(_ctx, getState());
-  enterRule(_localctx, 12, PrystParser::RuleParamList);
+  enterRule(_localctx, 14, PrystParser::RuleParamList);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -786,17 +977,17 @@ PrystParser::ParamListContext* PrystParser::paramList() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(112);
+    setState(133);
     param();
-    setState(117);
+    setState(138);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::COMMA) {
-      setState(113);
+      setState(134);
       match(PrystParser::COMMA);
-      setState(114);
+      setState(135);
       param();
-      setState(119);
+      setState(140);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -840,7 +1031,7 @@ std::any PrystParser::ParamContext::accept(tree::ParseTreeVisitor *visitor) {
 
 PrystParser::ParamContext* PrystParser::param() {
   ParamContext *_localctx = _tracker.createInstance<ParamContext>(_ctx, getState());
-  enterRule(_localctx, 14, PrystParser::RuleParam);
+  enterRule(_localctx, 16, PrystParser::RuleParam);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -851,9 +1042,9 @@ PrystParser::ParamContext* PrystParser::param() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(120);
+    setState(141);
     type(0);
-    setState(121);
+    setState(142);
     match(PrystParser::IDENTIFIER);
    
   }
@@ -932,8 +1123,8 @@ PrystParser::TypeContext* PrystParser::type(int precedence) {
   PrystParser::TypeContext *_localctx = _tracker.createInstance<TypeContext>(_ctx, parentState);
   PrystParser::TypeContext *previousContext = _localctx;
   (void)previousContext; // Silence compiler, in case the context is not used by generated code.
-  size_t startState = 16;
-  enterRecursionRule(_localctx, 16, PrystParser::RuleType, precedence);
+  size_t startState = 18;
+  enterRecursionRule(_localctx, 18, PrystParser::RuleType, precedence);
 
     
 
@@ -947,41 +1138,41 @@ PrystParser::TypeContext* PrystParser::type(int precedence) {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(130);
+    setState(151);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::INT: {
-        setState(124);
+        setState(145);
         match(PrystParser::INT);
         break;
       }
 
       case PrystParser::FLOAT: {
-        setState(125);
+        setState(146);
         match(PrystParser::FLOAT);
         break;
       }
 
       case PrystParser::BOOL: {
-        setState(126);
+        setState(147);
         match(PrystParser::BOOL);
         break;
       }
 
       case PrystParser::STR: {
-        setState(127);
+        setState(148);
         match(PrystParser::STR);
         break;
       }
 
       case PrystParser::VOID: {
-        setState(128);
+        setState(149);
         match(PrystParser::VOID);
         break;
       }
 
       case PrystParser::IDENTIFIER: {
-        setState(129);
+        setState(150);
         match(PrystParser::IDENTIFIER);
         break;
       }
@@ -990,9 +1181,9 @@ PrystParser::TypeContext* PrystParser::type(int precedence) {
       throw NoViableAltException(this);
     }
     _ctx->stop = _input->LT(-1);
-    setState(137);
+    setState(158);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 9, _ctx);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 13, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
         if (!_parseListeners.empty())
@@ -1000,17 +1191,17 @@ PrystParser::TypeContext* PrystParser::type(int precedence) {
         previousContext = _localctx;
         _localctx = _tracker.createInstance<TypeContext>(parentContext, parentState);
         pushNewRecursionContext(_localctx, startState, RuleType);
-        setState(132);
+        setState(153);
 
         if (!(precpred(_ctx, 1))) throw FailedPredicateException(this, "precpred(_ctx, 1)");
-        setState(133);
+        setState(154);
         match(PrystParser::LBRACKET);
-        setState(134);
+        setState(155);
         match(PrystParser::RBRACKET); 
       }
-      setState(139);
+      setState(160);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 9, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 13, _ctx);
     }
   }
   catch (RecognitionException &e) {
@@ -1027,46 +1218,205 @@ PrystParser::StatementContext::StatementContext(ParserRuleContext *parent, size_
   : ParserRuleContext(parent, invokingState) {
 }
 
-PrystParser::ExpressionStmtContext* PrystParser::StatementContext::expressionStmt() {
-  return getRuleContext<PrystParser::ExpressionStmtContext>(0);
-}
-
-PrystParser::IfStmtContext* PrystParser::StatementContext::ifStmt() {
-  return getRuleContext<PrystParser::IfStmtContext>(0);
-}
-
-PrystParser::WhileStmtContext* PrystParser::StatementContext::whileStmt() {
-  return getRuleContext<PrystParser::WhileStmtContext>(0);
-}
-
-PrystParser::ForStmtContext* PrystParser::StatementContext::forStmt() {
-  return getRuleContext<PrystParser::ForStmtContext>(0);
-}
-
-PrystParser::ReturnStmtContext* PrystParser::StatementContext::returnStmt() {
-  return getRuleContext<PrystParser::ReturnStmtContext>(0);
-}
-
-PrystParser::BlockContext* PrystParser::StatementContext::block() {
-  return getRuleContext<PrystParser::BlockContext>(0);
-}
-
 
 size_t PrystParser::StatementContext::getRuleIndex() const {
   return PrystParser::RuleStatement;
 }
 
+void PrystParser::StatementContext::copyFrom(StatementContext *ctx) {
+  ParserRuleContext::copyFrom(ctx);
+}
 
-std::any PrystParser::StatementContext::accept(tree::ParseTreeVisitor *visitor) {
+//----------------- WhileStatementContext ------------------------------------------------------------------
+
+tree::TerminalNode* PrystParser::WhileStatementContext::WHILE() {
+  return getToken(PrystParser::WHILE, 0);
+}
+
+tree::TerminalNode* PrystParser::WhileStatementContext::LPAREN() {
+  return getToken(PrystParser::LPAREN, 0);
+}
+
+PrystParser::ExpressionContext* PrystParser::WhileStatementContext::expression() {
+  return getRuleContext<PrystParser::ExpressionContext>(0);
+}
+
+tree::TerminalNode* PrystParser::WhileStatementContext::RPAREN() {
+  return getToken(PrystParser::RPAREN, 0);
+}
+
+PrystParser::StatementContext* PrystParser::WhileStatementContext::statement() {
+  return getRuleContext<PrystParser::StatementContext>(0);
+}
+
+PrystParser::WhileStatementContext::WhileStatementContext(StatementContext *ctx) { copyFrom(ctx); }
+
+
+std::any PrystParser::WhileStatementContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
-    return parserVisitor->visitStatement(this);
+    return parserVisitor->visitWhileStatement(this);
   else
     return visitor->visitChildren(this);
 }
+//----------------- BlockStatementContext ------------------------------------------------------------------
 
+tree::TerminalNode* PrystParser::BlockStatementContext::LBRACE() {
+  return getToken(PrystParser::LBRACE, 0);
+}
+
+tree::TerminalNode* PrystParser::BlockStatementContext::RBRACE() {
+  return getToken(PrystParser::RBRACE, 0);
+}
+
+std::vector<PrystParser::DeclarationContext *> PrystParser::BlockStatementContext::declaration() {
+  return getRuleContexts<PrystParser::DeclarationContext>();
+}
+
+PrystParser::DeclarationContext* PrystParser::BlockStatementContext::declaration(size_t i) {
+  return getRuleContext<PrystParser::DeclarationContext>(i);
+}
+
+PrystParser::BlockStatementContext::BlockStatementContext(StatementContext *ctx) { copyFrom(ctx); }
+
+
+std::any PrystParser::BlockStatementContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
+    return parserVisitor->visitBlockStatement(this);
+  else
+    return visitor->visitChildren(this);
+}
+//----------------- ExprStatementContext ------------------------------------------------------------------
+
+PrystParser::ExpressionContext* PrystParser::ExprStatementContext::expression() {
+  return getRuleContext<PrystParser::ExpressionContext>(0);
+}
+
+tree::TerminalNode* PrystParser::ExprStatementContext::SEMICOLON() {
+  return getToken(PrystParser::SEMICOLON, 0);
+}
+
+PrystParser::ExprStatementContext::ExprStatementContext(StatementContext *ctx) { copyFrom(ctx); }
+
+
+std::any PrystParser::ExprStatementContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
+    return parserVisitor->visitExprStatement(this);
+  else
+    return visitor->visitChildren(this);
+}
+//----------------- ForStatementContext ------------------------------------------------------------------
+
+tree::TerminalNode* PrystParser::ForStatementContext::FOR() {
+  return getToken(PrystParser::FOR, 0);
+}
+
+tree::TerminalNode* PrystParser::ForStatementContext::LPAREN() {
+  return getToken(PrystParser::LPAREN, 0);
+}
+
+std::vector<tree::TerminalNode *> PrystParser::ForStatementContext::SEMICOLON() {
+  return getTokens(PrystParser::SEMICOLON);
+}
+
+tree::TerminalNode* PrystParser::ForStatementContext::SEMICOLON(size_t i) {
+  return getToken(PrystParser::SEMICOLON, i);
+}
+
+tree::TerminalNode* PrystParser::ForStatementContext::RPAREN() {
+  return getToken(PrystParser::RPAREN, 0);
+}
+
+PrystParser::StatementContext* PrystParser::ForStatementContext::statement() {
+  return getRuleContext<PrystParser::StatementContext>(0);
+}
+
+PrystParser::VariableDeclContext* PrystParser::ForStatementContext::variableDecl() {
+  return getRuleContext<PrystParser::VariableDeclContext>(0);
+}
+
+std::vector<PrystParser::ExpressionContext *> PrystParser::ForStatementContext::expression() {
+  return getRuleContexts<PrystParser::ExpressionContext>();
+}
+
+PrystParser::ExpressionContext* PrystParser::ForStatementContext::expression(size_t i) {
+  return getRuleContext<PrystParser::ExpressionContext>(i);
+}
+
+PrystParser::ForStatementContext::ForStatementContext(StatementContext *ctx) { copyFrom(ctx); }
+
+
+std::any PrystParser::ForStatementContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
+    return parserVisitor->visitForStatement(this);
+  else
+    return visitor->visitChildren(this);
+}
+//----------------- IfStatementContext ------------------------------------------------------------------
+
+tree::TerminalNode* PrystParser::IfStatementContext::IF() {
+  return getToken(PrystParser::IF, 0);
+}
+
+tree::TerminalNode* PrystParser::IfStatementContext::LPAREN() {
+  return getToken(PrystParser::LPAREN, 0);
+}
+
+PrystParser::ExpressionContext* PrystParser::IfStatementContext::expression() {
+  return getRuleContext<PrystParser::ExpressionContext>(0);
+}
+
+tree::TerminalNode* PrystParser::IfStatementContext::RPAREN() {
+  return getToken(PrystParser::RPAREN, 0);
+}
+
+std::vector<PrystParser::StatementContext *> PrystParser::IfStatementContext::statement() {
+  return getRuleContexts<PrystParser::StatementContext>();
+}
+
+PrystParser::StatementContext* PrystParser::IfStatementContext::statement(size_t i) {
+  return getRuleContext<PrystParser::StatementContext>(i);
+}
+
+tree::TerminalNode* PrystParser::IfStatementContext::ELSE() {
+  return getToken(PrystParser::ELSE, 0);
+}
+
+PrystParser::IfStatementContext::IfStatementContext(StatementContext *ctx) { copyFrom(ctx); }
+
+
+std::any PrystParser::IfStatementContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
+    return parserVisitor->visitIfStatement(this);
+  else
+    return visitor->visitChildren(this);
+}
+//----------------- ReturnStatementContext ------------------------------------------------------------------
+
+tree::TerminalNode* PrystParser::ReturnStatementContext::RETURN() {
+  return getToken(PrystParser::RETURN, 0);
+}
+
+tree::TerminalNode* PrystParser::ReturnStatementContext::SEMICOLON() {
+  return getToken(PrystParser::SEMICOLON, 0);
+}
+
+PrystParser::ExpressionContext* PrystParser::ReturnStatementContext::expression() {
+  return getRuleContext<PrystParser::ExpressionContext>(0);
+}
+
+PrystParser::ReturnStatementContext::ReturnStatementContext(StatementContext *ctx) { copyFrom(ctx); }
+
+
+std::any PrystParser::ReturnStatementContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
+    return parserVisitor->visitReturnStatement(this);
+  else
+    return visitor->visitChildren(this);
+}
 PrystParser::StatementContext* PrystParser::statement() {
   StatementContext *_localctx = _tracker.createInstance<StatementContext>(_ctx, getState());
-  enterRule(_localctx, 18, PrystParser::RuleStatement);
+  enterRule(_localctx, 20, PrystParser::RuleStatement);
+  size_t _la = 0;
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1076,7 +1426,7 @@ PrystParser::StatementContext* PrystParser::statement() {
     exitRule();
   });
   try {
-    setState(146);
+    setState(210);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::LPAREN:
@@ -1093,554 +1443,165 @@ PrystParser::StatementContext* PrystParser::statement() {
       case PrystParser::NUMBER:
       case PrystParser::STRING:
       case PrystParser::IDENTIFIER: {
+        _localctx = _tracker.createInstance<PrystParser::ExprStatementContext>(_localctx);
         enterOuterAlt(_localctx, 1);
-        setState(140);
-        expressionStmt();
+        setState(161);
+        expression();
+        setState(162);
+        match(PrystParser::SEMICOLON);
         break;
       }
 
       case PrystParser::IF: {
+        _localctx = _tracker.createInstance<PrystParser::IfStatementContext>(_localctx);
         enterOuterAlt(_localctx, 2);
-        setState(141);
-        ifStmt();
+        setState(164);
+        match(PrystParser::IF);
+        setState(165);
+        match(PrystParser::LPAREN);
+        setState(166);
+        expression();
+        setState(167);
+        match(PrystParser::RPAREN);
+        setState(168);
+        statement();
+        setState(171);
+        _errHandler->sync(this);
+
+        switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 14, _ctx)) {
+        case 1: {
+          setState(169);
+          match(PrystParser::ELSE);
+          setState(170);
+          statement();
+          break;
+        }
+
+        default:
+          break;
+        }
         break;
       }
 
       case PrystParser::WHILE: {
+        _localctx = _tracker.createInstance<PrystParser::WhileStatementContext>(_localctx);
         enterOuterAlt(_localctx, 3);
-        setState(142);
-        whileStmt();
+        setState(173);
+        match(PrystParser::WHILE);
+        setState(174);
+        match(PrystParser::LPAREN);
+        setState(175);
+        expression();
+        setState(176);
+        match(PrystParser::RPAREN);
+        setState(177);
+        statement();
         break;
       }
 
       case PrystParser::FOR: {
+        _localctx = _tracker.createInstance<PrystParser::ForStatementContext>(_localctx);
         enterOuterAlt(_localctx, 4);
-        setState(143);
-        forStmt();
+        setState(179);
+        match(PrystParser::FOR);
+        setState(180);
+        match(PrystParser::LPAREN);
+        setState(186);
+        _errHandler->sync(this);
+        switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 15, _ctx)) {
+        case 1: {
+          setState(181);
+          variableDecl();
+          break;
+        }
+
+        case 2: {
+          setState(182);
+          expression();
+          setState(183);
+          match(PrystParser::SEMICOLON);
+          break;
+        }
+
+        case 3: {
+          setState(185);
+          match(PrystParser::SEMICOLON);
+          break;
+        }
+
+        default:
+          break;
+        }
+        setState(189);
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if ((((_la & ~ 0x3fULL) == 0) &&
+          ((1ULL << _la) & 247090592629250) != 0)) {
+          setState(188);
+          expression();
+        }
+        setState(191);
+        match(PrystParser::SEMICOLON);
+        setState(193);
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if ((((_la & ~ 0x3fULL) == 0) &&
+          ((1ULL << _la) & 247090592629250) != 0)) {
+          setState(192);
+          expression();
+        }
+        setState(195);
+        match(PrystParser::RPAREN);
+        setState(196);
+        statement();
         break;
       }
 
       case PrystParser::RETURN: {
+        _localctx = _tracker.createInstance<PrystParser::ReturnStatementContext>(_localctx);
         enterOuterAlt(_localctx, 5);
-        setState(144);
-        returnStmt();
+        setState(197);
+        match(PrystParser::RETURN);
+        setState(199);
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if ((((_la & ~ 0x3fULL) == 0) &&
+          ((1ULL << _la) & 247090592629250) != 0)) {
+          setState(198);
+          expression();
+        }
+        setState(201);
+        match(PrystParser::SEMICOLON);
         break;
       }
 
       case PrystParser::LBRACE: {
+        _localctx = _tracker.createInstance<PrystParser::BlockStatementContext>(_localctx);
         enterOuterAlt(_localctx, 6);
-        setState(145);
-        block();
+        setState(202);
+        match(PrystParser::LBRACE);
+        setState(206);
+        _errHandler->sync(this);
+        _la = _input->LA(1);
+        while ((((_la & ~ 0x3fULL) == 0) &&
+          ((1ULL << _la) & 281474087535114) != 0)) {
+          setState(203);
+          declaration();
+          setState(208);
+          _errHandler->sync(this);
+          _la = _input->LA(1);
+        }
+        setState(209);
+        match(PrystParser::RBRACE);
         break;
       }
 
     default:
       throw NoViableAltException(this);
     }
-   
-  }
-  catch (RecognitionException &e) {
-    _errHandler->reportError(this, e);
-    _localctx->exception = std::current_exception();
-    _errHandler->recover(this, _localctx->exception);
-  }
-
-  return _localctx;
-}
-
-//----------------- ExpressionStmtContext ------------------------------------------------------------------
-
-PrystParser::ExpressionStmtContext::ExpressionStmtContext(ParserRuleContext *parent, size_t invokingState)
-  : ParserRuleContext(parent, invokingState) {
-}
-
-PrystParser::ExpressionContext* PrystParser::ExpressionStmtContext::expression() {
-  return getRuleContext<PrystParser::ExpressionContext>(0);
-}
-
-tree::TerminalNode* PrystParser::ExpressionStmtContext::SEMICOLON() {
-  return getToken(PrystParser::SEMICOLON, 0);
-}
-
-
-size_t PrystParser::ExpressionStmtContext::getRuleIndex() const {
-  return PrystParser::RuleExpressionStmt;
-}
-
-
-std::any PrystParser::ExpressionStmtContext::accept(tree::ParseTreeVisitor *visitor) {
-  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
-    return parserVisitor->visitExpressionStmt(this);
-  else
-    return visitor->visitChildren(this);
-}
-
-PrystParser::ExpressionStmtContext* PrystParser::expressionStmt() {
-  ExpressionStmtContext *_localctx = _tracker.createInstance<ExpressionStmtContext>(_ctx, getState());
-  enterRule(_localctx, 20, PrystParser::RuleExpressionStmt);
-
-#if __cplusplus > 201703L
-  auto onExit = finally([=, this] {
-#else
-  auto onExit = finally([=] {
-#endif
-    exitRule();
-  });
-  try {
-    enterOuterAlt(_localctx, 1);
-    setState(148);
-    expression();
-    setState(149);
-    match(PrystParser::SEMICOLON);
-   
-  }
-  catch (RecognitionException &e) {
-    _errHandler->reportError(this, e);
-    _localctx->exception = std::current_exception();
-    _errHandler->recover(this, _localctx->exception);
-  }
-
-  return _localctx;
-}
-
-//----------------- IfStmtContext ------------------------------------------------------------------
-
-PrystParser::IfStmtContext::IfStmtContext(ParserRuleContext *parent, size_t invokingState)
-  : ParserRuleContext(parent, invokingState) {
-}
-
-tree::TerminalNode* PrystParser::IfStmtContext::IF() {
-  return getToken(PrystParser::IF, 0);
-}
-
-tree::TerminalNode* PrystParser::IfStmtContext::LPAREN() {
-  return getToken(PrystParser::LPAREN, 0);
-}
-
-PrystParser::ExpressionContext* PrystParser::IfStmtContext::expression() {
-  return getRuleContext<PrystParser::ExpressionContext>(0);
-}
-
-tree::TerminalNode* PrystParser::IfStmtContext::RPAREN() {
-  return getToken(PrystParser::RPAREN, 0);
-}
-
-std::vector<PrystParser::StatementContext *> PrystParser::IfStmtContext::statement() {
-  return getRuleContexts<PrystParser::StatementContext>();
-}
-
-PrystParser::StatementContext* PrystParser::IfStmtContext::statement(size_t i) {
-  return getRuleContext<PrystParser::StatementContext>(i);
-}
-
-tree::TerminalNode* PrystParser::IfStmtContext::ELSE() {
-  return getToken(PrystParser::ELSE, 0);
-}
-
-
-size_t PrystParser::IfStmtContext::getRuleIndex() const {
-  return PrystParser::RuleIfStmt;
-}
-
-
-std::any PrystParser::IfStmtContext::accept(tree::ParseTreeVisitor *visitor) {
-  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
-    return parserVisitor->visitIfStmt(this);
-  else
-    return visitor->visitChildren(this);
-}
-
-PrystParser::IfStmtContext* PrystParser::ifStmt() {
-  IfStmtContext *_localctx = _tracker.createInstance<IfStmtContext>(_ctx, getState());
-  enterRule(_localctx, 22, PrystParser::RuleIfStmt);
-
-#if __cplusplus > 201703L
-  auto onExit = finally([=, this] {
-#else
-  auto onExit = finally([=] {
-#endif
-    exitRule();
-  });
-  try {
-    enterOuterAlt(_localctx, 1);
-    setState(151);
-    match(PrystParser::IF);
-    setState(152);
-    match(PrystParser::LPAREN);
-    setState(153);
-    expression();
-    setState(154);
-    match(PrystParser::RPAREN);
-    setState(155);
-    statement();
-    setState(158);
-    _errHandler->sync(this);
-
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 11, _ctx)) {
-    case 1: {
-      setState(156);
-      match(PrystParser::ELSE);
-      setState(157);
-      statement();
-      break;
-    }
-
-    default:
-      break;
-    }
-   
-  }
-  catch (RecognitionException &e) {
-    _errHandler->reportError(this, e);
-    _localctx->exception = std::current_exception();
-    _errHandler->recover(this, _localctx->exception);
-  }
-
-  return _localctx;
-}
-
-//----------------- WhileStmtContext ------------------------------------------------------------------
-
-PrystParser::WhileStmtContext::WhileStmtContext(ParserRuleContext *parent, size_t invokingState)
-  : ParserRuleContext(parent, invokingState) {
-}
-
-tree::TerminalNode* PrystParser::WhileStmtContext::WHILE() {
-  return getToken(PrystParser::WHILE, 0);
-}
-
-tree::TerminalNode* PrystParser::WhileStmtContext::LPAREN() {
-  return getToken(PrystParser::LPAREN, 0);
-}
-
-PrystParser::ExpressionContext* PrystParser::WhileStmtContext::expression() {
-  return getRuleContext<PrystParser::ExpressionContext>(0);
-}
-
-tree::TerminalNode* PrystParser::WhileStmtContext::RPAREN() {
-  return getToken(PrystParser::RPAREN, 0);
-}
-
-PrystParser::StatementContext* PrystParser::WhileStmtContext::statement() {
-  return getRuleContext<PrystParser::StatementContext>(0);
-}
-
-
-size_t PrystParser::WhileStmtContext::getRuleIndex() const {
-  return PrystParser::RuleWhileStmt;
-}
-
-
-std::any PrystParser::WhileStmtContext::accept(tree::ParseTreeVisitor *visitor) {
-  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
-    return parserVisitor->visitWhileStmt(this);
-  else
-    return visitor->visitChildren(this);
-}
-
-PrystParser::WhileStmtContext* PrystParser::whileStmt() {
-  WhileStmtContext *_localctx = _tracker.createInstance<WhileStmtContext>(_ctx, getState());
-  enterRule(_localctx, 24, PrystParser::RuleWhileStmt);
-
-#if __cplusplus > 201703L
-  auto onExit = finally([=, this] {
-#else
-  auto onExit = finally([=] {
-#endif
-    exitRule();
-  });
-  try {
-    enterOuterAlt(_localctx, 1);
-    setState(160);
-    match(PrystParser::WHILE);
-    setState(161);
-    match(PrystParser::LPAREN);
-    setState(162);
-    expression();
-    setState(163);
-    match(PrystParser::RPAREN);
-    setState(164);
-    statement();
-   
-  }
-  catch (RecognitionException &e) {
-    _errHandler->reportError(this, e);
-    _localctx->exception = std::current_exception();
-    _errHandler->recover(this, _localctx->exception);
-  }
-
-  return _localctx;
-}
-
-//----------------- ForStmtContext ------------------------------------------------------------------
-
-PrystParser::ForStmtContext::ForStmtContext(ParserRuleContext *parent, size_t invokingState)
-  : ParserRuleContext(parent, invokingState) {
-}
-
-tree::TerminalNode* PrystParser::ForStmtContext::FOR() {
-  return getToken(PrystParser::FOR, 0);
-}
-
-tree::TerminalNode* PrystParser::ForStmtContext::LPAREN() {
-  return getToken(PrystParser::LPAREN, 0);
-}
-
-std::vector<tree::TerminalNode *> PrystParser::ForStmtContext::SEMICOLON() {
-  return getTokens(PrystParser::SEMICOLON);
-}
-
-tree::TerminalNode* PrystParser::ForStmtContext::SEMICOLON(size_t i) {
-  return getToken(PrystParser::SEMICOLON, i);
-}
-
-tree::TerminalNode* PrystParser::ForStmtContext::RPAREN() {
-  return getToken(PrystParser::RPAREN, 0);
-}
-
-PrystParser::StatementContext* PrystParser::ForStmtContext::statement() {
-  return getRuleContext<PrystParser::StatementContext>(0);
-}
-
-PrystParser::VariableDeclContext* PrystParser::ForStmtContext::variableDecl() {
-  return getRuleContext<PrystParser::VariableDeclContext>(0);
-}
-
-PrystParser::ExpressionStmtContext* PrystParser::ForStmtContext::expressionStmt() {
-  return getRuleContext<PrystParser::ExpressionStmtContext>(0);
-}
-
-std::vector<PrystParser::ExpressionContext *> PrystParser::ForStmtContext::expression() {
-  return getRuleContexts<PrystParser::ExpressionContext>();
-}
-
-PrystParser::ExpressionContext* PrystParser::ForStmtContext::expression(size_t i) {
-  return getRuleContext<PrystParser::ExpressionContext>(i);
-}
-
-
-size_t PrystParser::ForStmtContext::getRuleIndex() const {
-  return PrystParser::RuleForStmt;
-}
-
-
-std::any PrystParser::ForStmtContext::accept(tree::ParseTreeVisitor *visitor) {
-  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
-    return parserVisitor->visitForStmt(this);
-  else
-    return visitor->visitChildren(this);
-}
-
-PrystParser::ForStmtContext* PrystParser::forStmt() {
-  ForStmtContext *_localctx = _tracker.createInstance<ForStmtContext>(_ctx, getState());
-  enterRule(_localctx, 26, PrystParser::RuleForStmt);
-  size_t _la = 0;
-
-#if __cplusplus > 201703L
-  auto onExit = finally([=, this] {
-#else
-  auto onExit = finally([=] {
-#endif
-    exitRule();
-  });
-  try {
-    enterOuterAlt(_localctx, 1);
-    setState(166);
-    match(PrystParser::FOR);
-    setState(167);
-    match(PrystParser::LPAREN);
-    setState(171);
-    _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 12, _ctx)) {
-    case 1: {
-      setState(168);
-      variableDecl();
-      break;
-    }
-
-    case 2: {
-      setState(169);
-      expressionStmt();
-      break;
-    }
-
-    case 3: {
-      setState(170);
-      match(PrystParser::SEMICOLON);
-      break;
-    }
-
-    default:
-      break;
-    }
-    setState(174);
-    _errHandler->sync(this);
-
-    _la = _input->LA(1);
-    if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 247090592629250) != 0)) {
-      setState(173);
-      expression();
-    }
-    setState(176);
-    match(PrystParser::SEMICOLON);
-    setState(178);
-    _errHandler->sync(this);
-
-    _la = _input->LA(1);
-    if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 247090592629250) != 0)) {
-      setState(177);
-      expression();
-    }
-    setState(180);
-    match(PrystParser::RPAREN);
-    setState(181);
-    statement();
-   
-  }
-  catch (RecognitionException &e) {
-    _errHandler->reportError(this, e);
-    _localctx->exception = std::current_exception();
-    _errHandler->recover(this, _localctx->exception);
-  }
-
-  return _localctx;
-}
-
-//----------------- ReturnStmtContext ------------------------------------------------------------------
-
-PrystParser::ReturnStmtContext::ReturnStmtContext(ParserRuleContext *parent, size_t invokingState)
-  : ParserRuleContext(parent, invokingState) {
-}
-
-tree::TerminalNode* PrystParser::ReturnStmtContext::RETURN() {
-  return getToken(PrystParser::RETURN, 0);
-}
-
-tree::TerminalNode* PrystParser::ReturnStmtContext::SEMICOLON() {
-  return getToken(PrystParser::SEMICOLON, 0);
-}
-
-PrystParser::ExpressionContext* PrystParser::ReturnStmtContext::expression() {
-  return getRuleContext<PrystParser::ExpressionContext>(0);
-}
-
-
-size_t PrystParser::ReturnStmtContext::getRuleIndex() const {
-  return PrystParser::RuleReturnStmt;
-}
-
-
-std::any PrystParser::ReturnStmtContext::accept(tree::ParseTreeVisitor *visitor) {
-  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
-    return parserVisitor->visitReturnStmt(this);
-  else
-    return visitor->visitChildren(this);
-}
-
-PrystParser::ReturnStmtContext* PrystParser::returnStmt() {
-  ReturnStmtContext *_localctx = _tracker.createInstance<ReturnStmtContext>(_ctx, getState());
-  enterRule(_localctx, 28, PrystParser::RuleReturnStmt);
-  size_t _la = 0;
-
-#if __cplusplus > 201703L
-  auto onExit = finally([=, this] {
-#else
-  auto onExit = finally([=] {
-#endif
-    exitRule();
-  });
-  try {
-    enterOuterAlt(_localctx, 1);
-    setState(183);
-    match(PrystParser::RETURN);
-    setState(185);
-    _errHandler->sync(this);
-
-    _la = _input->LA(1);
-    if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 247090592629250) != 0)) {
-      setState(184);
-      expression();
-    }
-    setState(187);
-    match(PrystParser::SEMICOLON);
-   
-  }
-  catch (RecognitionException &e) {
-    _errHandler->reportError(this, e);
-    _localctx->exception = std::current_exception();
-    _errHandler->recover(this, _localctx->exception);
-  }
-
-  return _localctx;
-}
-
-//----------------- BlockContext ------------------------------------------------------------------
-
-PrystParser::BlockContext::BlockContext(ParserRuleContext *parent, size_t invokingState)
-  : ParserRuleContext(parent, invokingState) {
-}
-
-tree::TerminalNode* PrystParser::BlockContext::LBRACE() {
-  return getToken(PrystParser::LBRACE, 0);
-}
-
-tree::TerminalNode* PrystParser::BlockContext::RBRACE() {
-  return getToken(PrystParser::RBRACE, 0);
-}
-
-std::vector<PrystParser::DeclarationContext *> PrystParser::BlockContext::declaration() {
-  return getRuleContexts<PrystParser::DeclarationContext>();
-}
-
-PrystParser::DeclarationContext* PrystParser::BlockContext::declaration(size_t i) {
-  return getRuleContext<PrystParser::DeclarationContext>(i);
-}
-
-
-size_t PrystParser::BlockContext::getRuleIndex() const {
-  return PrystParser::RuleBlock;
-}
-
-
-std::any PrystParser::BlockContext::accept(tree::ParseTreeVisitor *visitor) {
-  if (auto parserVisitor = dynamic_cast<PrystVisitor*>(visitor))
-    return parserVisitor->visitBlock(this);
-  else
-    return visitor->visitChildren(this);
-}
-
-PrystParser::BlockContext* PrystParser::block() {
-  BlockContext *_localctx = _tracker.createInstance<BlockContext>(_ctx, getState());
-  enterRule(_localctx, 30, PrystParser::RuleBlock);
-  size_t _la = 0;
-
-#if __cplusplus > 201703L
-  auto onExit = finally([=, this] {
-#else
-  auto onExit = finally([=] {
-#endif
-    exitRule();
-  });
-  try {
-    enterOuterAlt(_localctx, 1);
-    setState(189);
-    match(PrystParser::LBRACE);
-    setState(193);
-    _errHandler->sync(this);
-    _la = _input->LA(1);
-    while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 281474087535114) != 0)) {
-      setState(190);
-      declaration();
-      setState(195);
-      _errHandler->sync(this);
-      _la = _input->LA(1);
-    }
-    setState(196);
-    match(PrystParser::RBRACE);
    
   }
   catch (RecognitionException &e) {
@@ -1681,7 +1642,7 @@ std::any PrystParser::ExpressionContext::accept(tree::ParseTreeVisitor *visitor)
 
 PrystParser::ExpressionContext* PrystParser::expression() {
   ExpressionContext *_localctx = _tracker.createInstance<ExpressionContext>(_ctx, getState());
-  enterRule(_localctx, 32, PrystParser::RuleExpression);
+  enterRule(_localctx, 22, PrystParser::RuleExpression);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1691,19 +1652,19 @@ PrystParser::ExpressionContext* PrystParser::expression() {
     exitRule();
   });
   try {
-    setState(200);
+    setState(214);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 17, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 21, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(198);
+      setState(212);
       assignment();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(199);
+      setState(213);
       logicOr();
       break;
     }
@@ -1763,7 +1724,7 @@ std::any PrystParser::AssignmentContext::accept(tree::ParseTreeVisitor *visitor)
 
 PrystParser::AssignmentContext* PrystParser::assignment() {
   AssignmentContext *_localctx = _tracker.createInstance<AssignmentContext>(_ctx, getState());
-  enterRule(_localctx, 34, PrystParser::RuleAssignment);
+  enterRule(_localctx, 24, PrystParser::RuleAssignment);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1774,14 +1735,14 @@ PrystParser::AssignmentContext* PrystParser::assignment() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(205);
+    setState(219);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 18, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 22, _ctx)) {
     case 1: {
-      setState(202);
+      setState(216);
       call();
-      setState(203);
+      setState(217);
       match(PrystParser::DOT);
       break;
     }
@@ -1789,11 +1750,11 @@ PrystParser::AssignmentContext* PrystParser::assignment() {
     default:
       break;
     }
-    setState(207);
+    setState(221);
     match(PrystParser::IDENTIFIER);
-    setState(208);
+    setState(222);
     match(PrystParser::EQUAL);
-    setState(209);
+    setState(223);
     expression();
    
   }
@@ -1843,7 +1804,7 @@ std::any PrystParser::LogicOrContext::accept(tree::ParseTreeVisitor *visitor) {
 
 PrystParser::LogicOrContext* PrystParser::logicOr() {
   LogicOrContext *_localctx = _tracker.createInstance<LogicOrContext>(_ctx, getState());
-  enterRule(_localctx, 36, PrystParser::RuleLogicOr);
+  enterRule(_localctx, 26, PrystParser::RuleLogicOr);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1855,17 +1816,17 @@ PrystParser::LogicOrContext* PrystParser::logicOr() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(211);
+    setState(225);
     logicAnd();
-    setState(216);
+    setState(230);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::OR) {
-      setState(212);
+      setState(226);
       match(PrystParser::OR);
-      setState(213);
+      setState(227);
       logicAnd();
-      setState(218);
+      setState(232);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -1917,7 +1878,7 @@ std::any PrystParser::LogicAndContext::accept(tree::ParseTreeVisitor *visitor) {
 
 PrystParser::LogicAndContext* PrystParser::logicAnd() {
   LogicAndContext *_localctx = _tracker.createInstance<LogicAndContext>(_ctx, getState());
-  enterRule(_localctx, 38, PrystParser::RuleLogicAnd);
+  enterRule(_localctx, 28, PrystParser::RuleLogicAnd);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1929,17 +1890,17 @@ PrystParser::LogicAndContext* PrystParser::logicAnd() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(219);
+    setState(233);
     equality();
-    setState(224);
+    setState(238);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::AND) {
-      setState(220);
+      setState(234);
       match(PrystParser::AND);
-      setState(221);
+      setState(235);
       equality();
-      setState(226);
+      setState(240);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -1999,7 +1960,7 @@ std::any PrystParser::EqualityContext::accept(tree::ParseTreeVisitor *visitor) {
 
 PrystParser::EqualityContext* PrystParser::equality() {
   EqualityContext *_localctx = _tracker.createInstance<EqualityContext>(_ctx, getState());
-  enterRule(_localctx, 40, PrystParser::RuleEquality);
+  enterRule(_localctx, 30, PrystParser::RuleEquality);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2011,15 +1972,15 @@ PrystParser::EqualityContext* PrystParser::equality() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(227);
+    setState(241);
     comparison();
-    setState(232);
+    setState(246);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::NOT_EQUAL
 
     || _la == PrystParser::EQUAL_EQUAL) {
-      setState(228);
+      setState(242);
       _la = _input->LA(1);
       if (!(_la == PrystParser::NOT_EQUAL
 
@@ -2030,9 +1991,9 @@ PrystParser::EqualityContext* PrystParser::equality() {
         _errHandler->reportMatch(this);
         consume();
       }
-      setState(229);
+      setState(243);
       comparison();
-      setState(234);
+      setState(248);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2108,7 +2069,7 @@ std::any PrystParser::ComparisonContext::accept(tree::ParseTreeVisitor *visitor)
 
 PrystParser::ComparisonContext* PrystParser::comparison() {
   ComparisonContext *_localctx = _tracker.createInstance<ComparisonContext>(_ctx, getState());
-  enterRule(_localctx, 42, PrystParser::RuleComparison);
+  enterRule(_localctx, 32, PrystParser::RuleComparison);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2120,14 +2081,14 @@ PrystParser::ComparisonContext* PrystParser::comparison() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(235);
+    setState(249);
     addition();
-    setState(240);
+    setState(254);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 3342336) != 0)) {
-      setState(236);
+      setState(250);
       _la = _input->LA(1);
       if (!((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & 3342336) != 0))) {
@@ -2137,9 +2098,9 @@ PrystParser::ComparisonContext* PrystParser::comparison() {
         _errHandler->reportMatch(this);
         consume();
       }
-      setState(237);
+      setState(251);
       addition();
-      setState(242);
+      setState(256);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2199,7 +2160,7 @@ std::any PrystParser::AdditionContext::accept(tree::ParseTreeVisitor *visitor) {
 
 PrystParser::AdditionContext* PrystParser::addition() {
   AdditionContext *_localctx = _tracker.createInstance<AdditionContext>(_ctx, getState());
-  enterRule(_localctx, 44, PrystParser::RuleAddition);
+  enterRule(_localctx, 34, PrystParser::RuleAddition);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2211,15 +2172,15 @@ PrystParser::AdditionContext* PrystParser::addition() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(243);
+    setState(257);
     multiplication();
-    setState(248);
+    setState(262);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::MINUS
 
     || _la == PrystParser::PLUS) {
-      setState(244);
+      setState(258);
       _la = _input->LA(1);
       if (!(_la == PrystParser::MINUS
 
@@ -2230,9 +2191,9 @@ PrystParser::AdditionContext* PrystParser::addition() {
         _errHandler->reportMatch(this);
         consume();
       }
-      setState(245);
+      setState(259);
       multiplication();
-      setState(250);
+      setState(264);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2300,7 +2261,7 @@ std::any PrystParser::MultiplicationContext::accept(tree::ParseTreeVisitor *visi
 
 PrystParser::MultiplicationContext* PrystParser::multiplication() {
   MultiplicationContext *_localctx = _tracker.createInstance<MultiplicationContext>(_ctx, getState());
-  enterRule(_localctx, 46, PrystParser::RuleMultiplication);
+  enterRule(_localctx, 36, PrystParser::RuleMultiplication);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2312,14 +2273,14 @@ PrystParser::MultiplicationContext* PrystParser::multiplication() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(251);
+    setState(265);
     unary();
-    setState(256);
+    setState(270);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 67121152) != 0)) {
-      setState(252);
+      setState(266);
       _la = _input->LA(1);
       if (!((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & 67121152) != 0))) {
@@ -2329,9 +2290,9 @@ PrystParser::MultiplicationContext* PrystParser::multiplication() {
         _errHandler->reportMatch(this);
         consume();
       }
-      setState(253);
+      setState(267);
       unary();
-      setState(258);
+      setState(272);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2391,7 +2352,7 @@ std::any PrystParser::UnaryContext::accept(tree::ParseTreeVisitor *visitor) {
 
 PrystParser::UnaryContext* PrystParser::unary() {
   UnaryContext *_localctx = _tracker.createInstance<UnaryContext>(_ctx, getState());
-  enterRule(_localctx, 48, PrystParser::RuleUnary);
+  enterRule(_localctx, 38, PrystParser::RuleUnary);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2402,7 +2363,7 @@ PrystParser::UnaryContext* PrystParser::unary() {
     exitRule();
   });
   try {
-    setState(262);
+    setState(276);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::MINUS:
@@ -2410,7 +2371,7 @@ PrystParser::UnaryContext* PrystParser::unary() {
       case PrystParser::INCREMENT:
       case PrystParser::DECREMENT: {
         enterOuterAlt(_localctx, 1);
-        setState(259);
+        setState(273);
         _la = _input->LA(1);
         if (!((((_la & ~ 0x3fULL) == 0) &&
           ((1ULL << _la) & 50348544) != 0))) {
@@ -2420,7 +2381,7 @@ PrystParser::UnaryContext* PrystParser::unary() {
           _errHandler->reportMatch(this);
           consume();
         }
-        setState(260);
+        setState(274);
         unary();
         break;
       }
@@ -2436,7 +2397,7 @@ PrystParser::UnaryContext* PrystParser::unary() {
       case PrystParser::STRING:
       case PrystParser::IDENTIFIER: {
         enterOuterAlt(_localctx, 2);
-        setState(261);
+        setState(275);
         postfix();
         break;
       }
@@ -2488,7 +2449,7 @@ std::any PrystParser::PostfixContext::accept(tree::ParseTreeVisitor *visitor) {
 
 PrystParser::PostfixContext* PrystParser::postfix() {
   PostfixContext *_localctx = _tracker.createInstance<PostfixContext>(_ctx, getState());
-  enterRule(_localctx, 50, PrystParser::RulePostfix);
+  enterRule(_localctx, 40, PrystParser::RulePostfix);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2500,16 +2461,16 @@ PrystParser::PostfixContext* PrystParser::postfix() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(264);
+    setState(278);
     primary();
-    setState(266);
+    setState(280);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == PrystParser::INCREMENT
 
     || _la == PrystParser::DECREMENT) {
-      setState(265);
+      setState(279);
       _la = _input->LA(1);
       if (!(_la == PrystParser::INCREMENT
 
@@ -2565,7 +2526,7 @@ std::any PrystParser::CallContext::accept(tree::ParseTreeVisitor *visitor) {
 
 PrystParser::CallContext* PrystParser::call() {
   CallContext *_localctx = _tracker.createInstance<CallContext>(_ctx, getState());
-  enterRule(_localctx, 52, PrystParser::RuleCall);
+  enterRule(_localctx, 42, PrystParser::RuleCall);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -2577,19 +2538,19 @@ PrystParser::CallContext* PrystParser::call() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(268);
+    setState(282);
     primary();
-    setState(272);
+    setState(286);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 27, _ctx);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 31, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(269);
+        setState(283);
         callSuffix(); 
       }
-      setState(274);
+      setState(288);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 27, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 31, _ctx);
     }
    
   }
@@ -2620,18 +2581,6 @@ PrystParser::ArgumentsContext* PrystParser::CallSuffixContext::arguments() {
   return getRuleContext<PrystParser::ArgumentsContext>(0);
 }
 
-tree::TerminalNode* PrystParser::CallSuffixContext::LBRACKET() {
-  return getToken(PrystParser::LBRACKET, 0);
-}
-
-PrystParser::ExpressionContext* PrystParser::CallSuffixContext::expression() {
-  return getRuleContext<PrystParser::ExpressionContext>(0);
-}
-
-tree::TerminalNode* PrystParser::CallSuffixContext::RBRACKET() {
-  return getToken(PrystParser::RBRACKET, 0);
-}
-
 tree::TerminalNode* PrystParser::CallSuffixContext::DOT() {
   return getToken(PrystParser::DOT, 0);
 }
@@ -2655,7 +2604,7 @@ std::any PrystParser::CallSuffixContext::accept(tree::ParseTreeVisitor *visitor)
 
 PrystParser::CallSuffixContext* PrystParser::callSuffix() {
   CallSuffixContext *_localctx = _tracker.createInstance<CallSuffixContext>(_ctx, getState());
-  enterRule(_localctx, 54, PrystParser::RuleCallSuffix);
+  enterRule(_localctx, 44, PrystParser::RuleCallSuffix);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2666,43 +2615,32 @@ PrystParser::CallSuffixContext* PrystParser::callSuffix() {
     exitRule();
   });
   try {
-    setState(286);
+    setState(296);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::LPAREN: {
         enterOuterAlt(_localctx, 1);
-        setState(275);
+        setState(289);
         match(PrystParser::LPAREN);
-        setState(277);
+        setState(291);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if ((((_la & ~ 0x3fULL) == 0) &&
           ((1ULL << _la) & 247090592629250) != 0)) {
-          setState(276);
+          setState(290);
           arguments();
         }
-        setState(279);
+        setState(293);
         match(PrystParser::RPAREN);
         break;
       }
 
-      case PrystParser::LBRACKET: {
-        enterOuterAlt(_localctx, 2);
-        setState(280);
-        match(PrystParser::LBRACKET);
-        setState(281);
-        expression();
-        setState(282);
-        match(PrystParser::RBRACKET);
-        break;
-      }
-
       case PrystParser::DOT: {
-        enterOuterAlt(_localctx, 3);
-        setState(284);
+        enterOuterAlt(_localctx, 2);
+        setState(294);
         match(PrystParser::DOT);
-        setState(285);
+        setState(295);
         match(PrystParser::IDENTIFIER);
         break;
       }
@@ -2794,7 +2732,7 @@ std::any PrystParser::PrimaryContext::accept(tree::ParseTreeVisitor *visitor) {
 
 PrystParser::PrimaryContext* PrystParser::primary() {
   PrimaryContext *_localctx = _tracker.createInstance<PrimaryContext>(_ctx, getState());
-  enterRule(_localctx, 56, PrystParser::RulePrimary);
+  enterRule(_localctx, 46, PrystParser::RulePrimary);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -2804,83 +2742,83 @@ PrystParser::PrimaryContext* PrystParser::primary() {
     exitRule();
   });
   try {
-    setState(303);
+    setState(313);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PrystParser::TRUE: {
         enterOuterAlt(_localctx, 1);
-        setState(288);
+        setState(298);
         match(PrystParser::TRUE);
         break;
       }
 
       case PrystParser::FALSE: {
         enterOuterAlt(_localctx, 2);
-        setState(289);
+        setState(299);
         match(PrystParser::FALSE);
         break;
       }
 
       case PrystParser::NULL_: {
         enterOuterAlt(_localctx, 3);
-        setState(290);
+        setState(300);
         match(PrystParser::NULL_);
         break;
       }
 
       case PrystParser::THIS: {
         enterOuterAlt(_localctx, 4);
-        setState(291);
+        setState(301);
         match(PrystParser::THIS);
         break;
       }
 
       case PrystParser::NUMBER: {
         enterOuterAlt(_localctx, 5);
-        setState(292);
+        setState(302);
         match(PrystParser::NUMBER);
         break;
       }
 
       case PrystParser::STRING: {
         enterOuterAlt(_localctx, 6);
-        setState(293);
+        setState(303);
         match(PrystParser::STRING);
         break;
       }
 
       case PrystParser::IDENTIFIER: {
         enterOuterAlt(_localctx, 7);
-        setState(294);
+        setState(304);
         match(PrystParser::IDENTIFIER);
         break;
       }
 
       case PrystParser::LPAREN: {
         enterOuterAlt(_localctx, 8);
-        setState(295);
+        setState(305);
         match(PrystParser::LPAREN);
-        setState(296);
+        setState(306);
         expression();
-        setState(297);
+        setState(307);
         match(PrystParser::RPAREN);
         break;
       }
 
       case PrystParser::SUPER: {
         enterOuterAlt(_localctx, 9);
-        setState(299);
+        setState(309);
         match(PrystParser::SUPER);
-        setState(300);
+        setState(310);
         match(PrystParser::DOT);
-        setState(301);
+        setState(311);
         match(PrystParser::IDENTIFIER);
         break;
       }
 
       case PrystParser::NEW: {
         enterOuterAlt(_localctx, 10);
-        setState(302);
+        setState(312);
         newExpression();
         break;
       }
@@ -2940,7 +2878,7 @@ std::any PrystParser::NewExpressionContext::accept(tree::ParseTreeVisitor *visit
 
 PrystParser::NewExpressionContext* PrystParser::newExpression() {
   NewExpressionContext *_localctx = _tracker.createInstance<NewExpressionContext>(_ctx, getState());
-  enterRule(_localctx, 58, PrystParser::RuleNewExpression);
+  enterRule(_localctx, 48, PrystParser::RuleNewExpression);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2952,22 +2890,22 @@ PrystParser::NewExpressionContext* PrystParser::newExpression() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(305);
+    setState(315);
     match(PrystParser::NEW);
-    setState(306);
+    setState(316);
     match(PrystParser::IDENTIFIER);
-    setState(307);
+    setState(317);
     match(PrystParser::LPAREN);
-    setState(309);
+    setState(319);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 247090592629250) != 0)) {
-      setState(308);
+      setState(318);
       arguments();
     }
-    setState(311);
+    setState(321);
     match(PrystParser::RPAREN);
    
   }
@@ -3017,7 +2955,7 @@ std::any PrystParser::ArgumentsContext::accept(tree::ParseTreeVisitor *visitor) 
 
 PrystParser::ArgumentsContext* PrystParser::arguments() {
   ArgumentsContext *_localctx = _tracker.createInstance<ArgumentsContext>(_ctx, getState());
-  enterRule(_localctx, 60, PrystParser::RuleArguments);
+  enterRule(_localctx, 50, PrystParser::RuleArguments);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -3029,17 +2967,17 @@ PrystParser::ArgumentsContext* PrystParser::arguments() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(313);
+    setState(323);
     expression();
-    setState(318);
+    setState(328);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == PrystParser::COMMA) {
-      setState(314);
+      setState(324);
       match(PrystParser::COMMA);
-      setState(315);
+      setState(325);
       expression();
-      setState(320);
+      setState(330);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -3056,7 +2994,7 @@ PrystParser::ArgumentsContext* PrystParser::arguments() {
 
 bool PrystParser::sempred(RuleContext *context, size_t ruleIndex, size_t predicateIndex) {
   switch (ruleIndex) {
-    case 8: return typeSempred(antlrcpp::downCast<TypeContext *>(context), predicateIndex);
+    case 9: return typeSempred(antlrcpp::downCast<TypeContext *>(context), predicateIndex);
 
   default:
     break;
