@@ -422,11 +422,10 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
 
         // Get the member offset
         auto memberName = ctx->call()->callSuffix().back()->IDENTIFIER()->getText();
-        auto ptrType = llvm::dyn_cast<llvm::PointerType>(object->getType());
-        if (!ptrType) {
+        if (!object->getType()->isPointerTy()) {
             throw std::runtime_error("Expected pointer type in member assignment");
         }
-        auto elementType = ptrType->getElementType();
+        auto elementType = object->getType()->getPointerElementType();
         auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
         if (!structType) {
             throw std::runtime_error("Expected identifier in member assignment");
@@ -751,7 +750,6 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
                     std::string calleeName = ctx->primary()->getText();
                     llvm::FunctionType* funcType = functionTypes[calleeName];
 
-
                     if (!funcType) {
                         throw std::runtime_error("Unknown function: " + calleeName);
                     }
@@ -764,11 +762,10 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             std::string memberName = suffixCtx->IDENTIFIER()->getText();
 
             // Get the struct type from the object
-            auto ptrType = llvm::dyn_cast<llvm::PointerType>(callee->getType());
-            if (!ptrType) {
+            if (!callee->getType()->isPointerTy()) {
                 throw std::runtime_error("Cannot access member of non-pointer type");
             }
-            auto elementType = ptrType->getElementType();
+            auto elementType = callee->getType()->getPointerElementType();
             auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
             if (!structType) {
                 throw std::runtime_error("Cannot access member of non-object type");
