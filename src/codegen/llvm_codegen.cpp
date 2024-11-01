@@ -426,7 +426,7 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
         if (!ptrType) {
             throw std::runtime_error("Expected pointer type in member assignment");
         }
-        auto elementType = object->getType()->getPointerElementType();
+        auto elementType = ptrType->getElementType();
         auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
         if (!structType) {
             throw std::runtime_error("Expected identifier in member assignment");
@@ -758,7 +758,6 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
 
                     lastValue = builder->CreateCall(funcType, callee, args, "calltmp");
                 }
-
             }
         } else if (suffixCtx->DOT()) {
             // Member access
@@ -769,7 +768,7 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             if (!ptrType) {
                 throw std::runtime_error("Cannot access member of non-pointer type");
             }
-            auto elementType = callee->getType()->getPointerElementType();
+            auto elementType = ptrType->getElementType();
             auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
             if (!structType) {
                 throw std::runtime_error("Cannot access member of non-object type");
