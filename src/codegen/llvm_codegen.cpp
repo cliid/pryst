@@ -7,6 +7,21 @@
 #include <stdexcept>
 #include <iostream>
 
+// Helper function implementations
+size_t LLVMCodegen::getMemberIndex(llvm::StructType* structType, const std::string& memberName) {
+    std::string className = structType->getName().str();
+    auto& members = memberIndices[className];
+    auto it = members.find(memberName);
+    if (it == members.end()) {
+        throw std::runtime_error("Member not found: " + memberName);
+    }
+    return it->second;
+}
+
+void LLVMCodegen::addClassMember(const std::string& className, const std::string& memberName, size_t index) {
+    memberIndices[className][memberName] = index;
+}
+
 LLVMCodegen::LLVMCodegen()
     : context(std::make_unique<llvm::LLVMContext>()),
       module(std::make_unique<llvm::Module>("pryst", *context)),
@@ -157,12 +172,15 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
     std::vector<llvm::Type*> memberTypes;
     std::vector<std::string> memberNames;
 
+    size_t memberIndex = 0;
     for (auto memberCtx : ctx->classMember()) {
         if (memberCtx->variableDecl()) {
             auto varDecl = memberCtx->variableDecl();
             llvm::Type* memberType = getLLVMType(varDecl->type()->getText());
             memberTypes.push_back(memberType);
-            memberNames.push_back(varDecl->IDENTIFIER()->getText());
+            std::string memberName = varDecl->IDENTIFIER()->getText();
+            memberNames.push_back(memberName);
+            addClassMember(className, memberName, memberIndex++);
         } else if (memberCtx->functionDecl()) {
             visit(memberCtx->functionDecl());
         }
@@ -170,8 +188,7 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
 
     // Create the struct type for the class
     llvm::StructType* classType = llvm::StructType::create(*context, memberTypes, className);
-
-    // Optionally, store member names and types in a map if needed
+    classTypes[className] = classType;
 
     return nullptr;
 }
@@ -399,9 +416,23 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
     llvm::Value* varAddress;
 
     if (ctx->call()) {
-        // Handle member assignments (not fully implemented)
-        // For simplicity, assume it's a variable
-        throw std::runtime_error("Member assignment not implemented");
+        // Handle member assignments
+        visit(ctx->call());
+        llvm::Value* object = lastValue;
+
+        // Get the member offset
+        auto memberName = ctx->call()->callSuffix().back()->IDENTIFIER()->getText();
+        auto structType = llvm::dyn_cast<llvm::StructType>(object->getType()->getPointerElementType());
+        if (!structType) {
+            throw std::runtime_error("Expected identifier in member assignment");
+        }
+
+        // Create GEP instruction to get member address
+        std::vector<llvm::Value*> indices = {
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), getMemberIndex(structType, memberName))
+        };
+        varAddress = builder->CreateGEP(structType, object, indices, "member.addr");
     } else {
         varName = ctx->IDENTIFIER()->getText();
         auto it = namedValues.find(varName);
@@ -714,19 +745,32 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
                     // Create a function type matching the callee's type
                     std::string calleeName = ctx->primary()->getText();
                     llvm::FunctionType* funcType = functionTypes[calleeName];
-                    
+
                     if (!funcType) {
                         throw std::runtime_error("Unknown function: " + calleeName);
                     }
-                    
+
                     lastValue = builder->CreateCall(funcType, callee, args, "calltmp");
                 }
 
             }
         } else if (suffixCtx->DOT()) {
-            // Member access (not fully implemented)
+            // Member access
             std::string memberName = suffixCtx->IDENTIFIER()->getText();
-            throw std::runtime_error("Member access not implemented");
+
+            // Get the struct type from the object
+            auto structType = llvm::dyn_cast<llvm::StructType>(callee->getType()->getPointerElementType());
+            if (!structType) {
+                throw std::runtime_error("Cannot access member of non-object type");
+            }
+
+            // Create GEP instruction to get member address
+            std::vector<llvm::Value*> indices = {
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), getMemberIndex(structType, memberName))
+            };
+            lastValue = builder->CreateGEP(structType, callee, indices, "member.ptr");
+            lastValue = builder->CreateLoad(lastValue->getType()->getPointerElementType(), lastValue, "member");
         } else if (suffixCtx->LBRACKET()) {
             // Array indexing (not implemented)
             throw std::runtime_error("Array indexing not implemented");
