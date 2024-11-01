@@ -1,21 +1,15 @@
 #include "aot_compiler.hpp"
-#include <llvm/TargetParser/Host.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/MC/TargetRegistry.h>
-#include <llvm/Target/TargetMachine.h>
-#include <llvm/Target/TargetOptions.h>
+#include <llvm/CodeGen/CodeGen.h>
 #include <llvm/IR/LegacyPassManager.h>
-#include <llvm/Support/raw_ostream.h>
-#include <system_error>
 #include <llvm/IR/Verifier.h>
-#include <llvm/Passes/PassBuilder.h>
-#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
+#include <llvm/TargetParser/Host.h>
+#include <llvm/MC/TargetRegistry.h>
 #include <llvm/MC/MCContext.h>
 #include <llvm/MC/MCTargetOptions.h>
 #include <llvm/MC/MCAsmBackend.h>
@@ -28,6 +22,7 @@
 #include <llvm/MC/MCELFObjectWriter.h>
 #include <llvm/MC/MCELFStreamer.h>
 #include <llvm/MC/MCAsmInfo.h>
+#include <system_error>
 
 AOTCompiler::AOTCompiler() {
     llvm::InitializeNativeTarget();
@@ -65,27 +60,16 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
         return;
     }
 
-    llvm::LoopAnalysisManager LAM;
-    llvm::FunctionAnalysisManager FAM;
-    llvm::CGSCCAnalysisManager CGAM;
-    llvm::ModuleAnalysisManager MAM;
+    // Create the legacy pass manager
+    llvm::legacy::PassManager pass;
 
-    llvm::PassBuilder PB(targetMachine.get());
-
-    PB.registerModuleAnalyses(MAM);
-    PB.registerCGSCCAnalyses(CGAM);
-    PB.registerFunctionAnalyses(FAM);
-    PB.registerLoopAnalyses(LAM);
-    PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
-
-    // Run optimization passes
-    llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
-    MPM.run(module, MAM);
-
-    // Emit object file
-    if (auto EC = targetMachine->emit(module, dest, llvm::CGFT_ObjectFile)) {
-        llvm::errs() << "Could not emit module: " << EC.message();
+    // Add passes to emit object file
+    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CodeGen::CGFT_ObjectFile)) {
+        llvm::errs() << "TargetMachine can't emit a file of this type\n";
         return;
     }
+
+    // Run the passes
+    pass.run(module);
     dest.flush();
 }
