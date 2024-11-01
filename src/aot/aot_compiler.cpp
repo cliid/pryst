@@ -58,6 +58,13 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
 
     module.setDataLayout(targetMachine->createDataLayout());
 
+    std::error_code EC;
+    llvm::raw_fd_ostream dest(outputFilename, EC, llvm::sys::fs::OF_None);
+    if (EC) {
+        llvm::errs() << "Could not open file: " << EC.message();
+        return;
+    }
+
     llvm::LoopAnalysisManager LAM;
     llvm::FunctionAnalysisManager FAM;
     llvm::CGSCCAnalysisManager CGAM;
@@ -76,8 +83,9 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
     MPM.run(module, MAM);
 
     // Emit object file
-    if (auto EC = targetMachine->emitToObjectFile(module, outputFilename)) {
-        llvm::errs() << "Could not emit module to file: " << EC.message();
+    if (auto EC = targetMachine->emit(module, dest, llvm::CGFT_ObjectFile)) {
+        llvm::errs() << "Could not emit module: " << EC.message();
         return;
     }
+    dest.flush();
 }
