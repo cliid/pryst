@@ -55,9 +55,15 @@ private:
     std::unordered_map<std::string, llvm::AllocaInst*> namedValues;
     std::unordered_map<std::string, llvm::Function*> functions;
 
+    // Class member tracking
+    std::unordered_map<std::string, llvm::StructType*> classTypes;
+    std::unordered_map<std::string, std::unordered_map<std::string, size_t>> memberIndices;
+
     // Helper methods
     llvm::Type* getLLVMType(const std::string& typeName);
     llvm::AllocaInst* createEntryBlockAlloca(llvm::Function* function, const std::string& varName, llvm::Type* type);
+    size_t getMemberIndex(llvm::StructType* structType, const std::string& memberName);
+    void addClassMember(const std::string& className, const std::string& memberName, size_t index);
 
     llvm::Value* lastValue;
     llvm::Function* currentFunction;
