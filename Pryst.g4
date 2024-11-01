@@ -12,7 +12,7 @@ declaration
     ;
 
 functionDecl
-    : type IDENTIFIER LPAREN paramList? RPAREN block
+    : type IDENTIFIER LPAREN paramList? RPAREN LBRACE declaration* RBRACE
     ;
 
 variableDecl
@@ -20,12 +20,16 @@ variableDecl
     ;
 
 classDeclaration
-    : CLASS IDENTIFIER (EXTENDS IDENTIFIER)? LBRACE classMember* RBRACE
+    : CLASS IDENTIFIER (EXTENDS IDENTIFIER)? classBody
+    ;
+
+classBody
+    : LBRACE classMember* RBRACE
     ;
 
 classMember
-    : variableDecl
-    | functionDecl
+    : type IDENTIFIER (EQUAL expression)? SEMICOLON  # classVariableDecl
+    | type IDENTIFIER LPAREN paramList? RPAREN LBRACE declaration* RBRACE # classFunctionDecl
     ;
 
 paramList
@@ -47,38 +51,14 @@ type
     ;
 
 statement
-    : expressionStmt
-    | ifStmt
-    | whileStmt
-    | forStmt
-    | returnStmt
-    | block
-    ;
-
-expressionStmt
-    : expression SEMICOLON
-    ;
-
-ifStmt
-    : IF LPAREN expression RPAREN statement (ELSE statement)?
-    ;
-
-whileStmt
-    : WHILE LPAREN expression RPAREN statement
-    ;
-
-forStmt
-    : FOR LPAREN (variableDecl | expressionStmt | SEMICOLON)
+    : expression SEMICOLON                          # exprStatement
+    | IF LPAREN expression RPAREN statement (ELSE statement)?  # ifStatement
+    | WHILE LPAREN expression RPAREN statement               # whileStatement
+    | FOR LPAREN (variableDecl | expression SEMICOLON | SEMICOLON)
       expression? SEMICOLON
-      expression? RPAREN statement
-    ;
-
-returnStmt
-    : RETURN expression? SEMICOLON
-    ;
-
-block
-    : LBRACE declaration* RBRACE
+      expression? RPAREN statement                  # forStatement
+    | RETURN expression? SEMICOLON                  # returnStatement
+    | LBRACE declaration* RBRACE                    # blockStatement
     ;
 
 expression
@@ -129,7 +109,6 @@ call
 
 callSuffix
     : LPAREN arguments? RPAREN
-    | LBRACKET expression RBRACKET
     | DOT IDENTIFIER
     ;
 
