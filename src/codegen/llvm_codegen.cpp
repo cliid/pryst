@@ -185,8 +185,8 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
     // Handle optional superclass
     std::vector<llvm::Type*> memberTypes;
     std::vector<std::string> memberNames;
-    size_t memberIndex = 0;
-    size_t baseOffset = 0;
+    std::unordered_map<std::string, size_t> memberOffsets;
+    size_t totalOffset = 0;
 
     // Build inheritance chain from base to derived
     std::vector<std::string> inheritanceChain;
@@ -211,18 +211,14 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
         classInheritance[className] = baseClass;
 
         // Copy base class members and their indices
-        for (unsigned i = 0; i < baseType->getNumElements(); i++) {
-            memberTypes.push_back(baseType->getElementType(i));
-            // Get member name from base class's memberIndices
-            for (const auto& pair : memberIndices[baseClass]) {
-                if (pair.second == i) {
-                    memberNames.push_back(pair.first);
-                    addClassMember(className, pair.first, memberIndex++);
-                    break;
-                }
-            }
+        for (const auto& pair : memberIndices[baseClass]) {
+            std::string memberName = pair.first;
+            size_t baseIndex = pair.second;
+            memberTypes.push_back(baseType->getElementType(baseIndex));
+            memberNames.push_back(memberName);
+            memberOffsets[memberName] = totalOffset + baseIndex;
         }
-        baseOffset += baseType->getNumElements();
+        totalOffset += baseType->getNumElements();
     }
 
     // Add class's own members
@@ -233,7 +229,7 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
             memberTypes.push_back(memberType);
             std::string memberName = varDecl->IDENTIFIER()->getText();
             memberNames.push_back(memberName);
-            addClassMember(className, memberName, memberIndex++);
+            memberOffsets[memberName] = totalOffset++;
         } else if (memberCtx->functionDecl()) {
             visit(memberCtx->functionDecl());
         }
@@ -242,6 +238,9 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
     // Create the struct type for the class
     llvm::StructType* classType = llvm::StructType::create(*context, memberTypes, className);
     classTypes[className] = classType;
+
+    // Update member indices with correct offsets
+    memberIndices[className] = memberOffsets;
 
     return nullptr;
 }
