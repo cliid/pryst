@@ -182,13 +182,7 @@ std::any LLVMCodegen::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
 std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) {
     std::string className = ctx->IDENTIFIER(0)->getText();
 
-    // Handle optional superclass
-    std::vector<llvm::Type*> memberTypes;
-    std::vector<std::string> memberNames;
-    std::unordered_map<std::string, size_t> memberOffsets;
-    size_t totalOffset = 0;
-
-    // Build inheritance chain from base to derived
+    // Build complete inheritance chain from base to derived
     std::vector<std::string> inheritanceChain;
     if (ctx->IDENTIFIER().size() > 1) {
         std::string currentClass = ctx->IDENTIFIER(1)->getText();
@@ -200,7 +194,13 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
         }
     }
 
-    // Process members from base class to derived
+    // First pass: collect all member types and names in order
+    std::vector<llvm::Type*> orderedTypes;
+    std::vector<std::string> orderedNames;
+    std::unordered_map<std::string, size_t> memberOffsets;
+    size_t currentOffset = 0;
+
+    // Add base class members first
     for (const auto& baseClass : inheritanceChain) {
         auto baseType = llvm::StructType::getTypeByName(*context, baseClass);
         if (!baseType) {
@@ -210,36 +210,38 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
         // Record inheritance relationship
         classInheritance[className] = baseClass;
 
-        // Copy base class members and their indices
-        for (const auto& pair : memberIndices[baseClass]) {
-            std::string memberName = pair.first;
-            size_t baseIndex = pair.second;
-            memberTypes.push_back(baseType->getElementType(baseIndex));
-            memberNames.push_back(memberName);
-            memberOffsets[memberName] = totalOffset + baseIndex;
+        // Add base class members in order
+        auto& baseMembers = memberIndices[baseClass];
+        std::vector<std::pair<std::string, size_t>> sortedMembers(baseMembers.begin(), baseMembers.end());
+        std::sort(sortedMembers.begin(), sortedMembers.end(),
+                 [](const auto& a, const auto& b) { return a.second < b.second; });
+
+        for (const auto& [memberName, baseIndex] : sortedMembers) {
+            orderedTypes.push_back(baseType->getElementType(baseIndex));
+            orderedNames.push_back(memberName);
+            memberOffsets[memberName] = currentOffset++;
         }
-        totalOffset += baseType->getNumElements();
     }
 
     // Add class's own members
     for (auto memberCtx : ctx->classMember()) {
         if (memberCtx->variableDecl()) {
             auto varDecl = memberCtx->variableDecl();
-            llvm::Type* memberType = getLLVMType(varDecl->type()->getText());
-            memberTypes.push_back(memberType);
             std::string memberName = varDecl->IDENTIFIER()->getText();
-            memberNames.push_back(memberName);
-            memberOffsets[memberName] = totalOffset++;
+            llvm::Type* memberType = getLLVMType(varDecl->type()->getText());
+            orderedTypes.push_back(memberType);
+            orderedNames.push_back(memberName);
+            memberOffsets[memberName] = currentOffset++;
         } else if (memberCtx->functionDecl()) {
             visit(memberCtx->functionDecl());
         }
     }
 
-    // Create the struct type for the class
-    llvm::StructType* classType = llvm::StructType::create(*context, memberTypes, className);
+    // Create the struct type with ordered members
+    llvm::StructType* classType = llvm::StructType::create(*context, orderedTypes, className);
     classTypes[className] = classType;
 
-    // Update member indices with correct offsets
+    // Store member indices in order
     memberIndices[className] = memberOffsets;
 
     return nullptr;
