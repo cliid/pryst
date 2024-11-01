@@ -1025,12 +1025,16 @@ std::any LLVMCodegen::visitNewExpression(PrystParser::NewExpressionContext* ctx)
         std::sort(sortedMembers.begin(), sortedMembers.end(),
                  [](const auto& a, const auto& b) { return a.second < b.second; });
 
+        // Get the struct type for this class
+        auto classStructType = llvm::StructType::getTypeByName(*context, cls);
+        if (!classStructType) continue;
+
         // Initialize members in order of their offsets
         for (const auto& [memberName, offset] : sortedMembers) {
-            auto type = llvm::StructType::getTypeByName(*context, cls);
-            if (!type) continue;
+            // Use the class's own struct type to get member type
+            llvm::Type* memberType = classStructType->getElementType(offset);
 
-            llvm::Type* memberType = type->getElementType(offset);
+            // Create GEP using the derived class type but with correct offset
             std::vector<llvm::Value*> indices = {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), offset)
