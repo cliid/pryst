@@ -422,7 +422,11 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
 
         // Get the member offset
         auto memberName = ctx->call()->callSuffix().back()->IDENTIFIER()->getText();
-        auto structType = llvm::dyn_cast<llvm::StructType>(object->getType()->getPointerElementType());
+        auto ptrType = llvm::dyn_cast<llvm::PointerType>(object->getType());
+        if (!ptrType) {
+            throw std::runtime_error("Expected pointer type in member assignment");
+        }
+        auto structType = llvm::dyn_cast<llvm::StructType>(ptrType->getElementType());
         if (!structType) {
             throw std::runtime_error("Expected identifier in member assignment");
         }
@@ -759,7 +763,11 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             std::string memberName = suffixCtx->IDENTIFIER()->getText();
 
             // Get the struct type from the object
-            auto structType = llvm::dyn_cast<llvm::StructType>(callee->getType()->getPointerElementType());
+            auto ptrType = llvm::dyn_cast<llvm::PointerType>(callee->getType());
+            if (!ptrType) {
+                throw std::runtime_error("Cannot access member of non-pointer type");
+            }
+            auto structType = llvm::dyn_cast<llvm::StructType>(ptrType->getElementType());
             if (!structType) {
                 throw std::runtime_error("Cannot access member of non-object type");
             }
@@ -770,8 +778,9 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), getMemberIndex(structType, memberName))
             };
             lastValue = builder->CreateGEP(structType, callee, indices, "member.ptr");
-            lastValue = builder->CreateLoad(lastValue->getType()->getPointerElementType(), lastValue, "member");
-        } else if (suffixCtx->LBRACKET()) {
+            auto elementType = structType->getElementType(getMemberIndex(structType, memberName));
+            lastValue = builder->CreateLoad(elementType, lastValue, "member");
+        } else if (ctx->LBRACKET()) {
             // Array indexing (not implemented)
             throw std::runtime_error("Array indexing not implemented");
         }
