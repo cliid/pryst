@@ -4,7 +4,6 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/PointerType.h>
 #include <llvm/Support/Casting.h>
 #include <stdexcept>
 #include <iostream>
