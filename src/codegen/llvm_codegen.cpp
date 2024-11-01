@@ -475,18 +475,30 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
 
     if (ctx->call()) {
         // Handle member assignments from function call (e.g., someFn().value = 3)
+        // or direct member access (e.g., obj.member = value)
         visit(ctx->call());
         llvm::Value* object = lastValue;
 
         if (!object) {
-            throw std::runtime_error("Function call returned null in member assignment");
+            throw std::runtime_error("Object is null in member assignment");
         }
 
+        // For direct member access, we need to load the object first
         if (!object->getType()->isPointerTy()) {
             throw std::runtime_error("Expected pointer type in member access");
         }
+
+        // Get the actual object type
         auto ptrType = llvm::cast<llvm::PointerType>(object->getType());
         auto elementType = ptrType->getContainedType(0);
+
+        // If the element type is a pointer (e.g., from a function call), load it
+        if (elementType->isPointerTy()) {
+            object = builder->CreateLoad(elementType, object, "obj.load");
+            ptrType = llvm::cast<llvm::PointerType>(object->getType());
+            elementType = ptrType->getContainedType(0);
+        }
+
         auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
         if (!structType) {
             throw std::runtime_error("Expected object type in member access");
