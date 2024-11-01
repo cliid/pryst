@@ -29,8 +29,11 @@ int main() {
     bool isHappy = true;
     str greeting = "Hello, Pryst!";
 
-    // Object creation
+    // Object creation and member access
     Dog myDog = new Dog();
+    myDog.age = 5;
+    myDog.name = "Buddy";
+    myDog.speak();
 
     // Function call
     int result = add(x, 5);
