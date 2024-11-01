@@ -87,7 +87,7 @@ expression
     ;
 
 assignment
-    : call EQUAL expression
+    : (call DOT)? IDENTIFIER EQUAL expression
     ;
 
 logicOr
