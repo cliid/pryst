@@ -5,8 +5,12 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
+# Get absolute path of input file
+INPUT_FILE=$(realpath "$1")
+shift
+
 # Change to build directory
 cd build || { echo "Error: build directory not found"; exit 1; }
 
-# Run pryst with all provided arguments
-./pryst "$@"
+# Run pryst with input file and remaining arguments
+./pryst "$INPUT_FILE" "$@"
