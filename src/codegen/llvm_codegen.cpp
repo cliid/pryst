@@ -168,12 +168,34 @@ std::any LLVMCodegen::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
 std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) {
     std::string className = ctx->IDENTIFIER(0)->getText();
 
-    // Handle optional superclass (not implemented here)
-    // Collect class members
+    // Handle optional superclass
     std::vector<llvm::Type*> memberTypes;
     std::vector<std::string> memberNames;
-
     size_t memberIndex = 0;
+
+    // If there's a superclass, include its members first
+    if (ctx->IDENTIFIER().size() > 1) {
+        std::string superClassName = ctx->IDENTIFIER(1)->getText();
+        auto superClassType = llvm::StructType::getTypeByName(*context, superClassName);
+        if (!superClassType) {
+            throw std::runtime_error("Superclass not found: " + superClassName);
+        }
+
+        // Copy superclass members and their indices
+        for (unsigned i = 0; i < superClassType->getNumElements(); i++) {
+            memberTypes.push_back(superClassType->getElementType(i));
+            // Get member name from superclass's memberIndices
+            for (const auto& pair : memberIndices[superClassName]) {
+                if (pair.second == i) {
+                    memberNames.push_back(pair.first);
+                    addClassMember(className, pair.first, memberIndex++);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Add class's own members
     for (auto memberCtx : ctx->classMember()) {
         if (memberCtx->variableDecl()) {
             auto varDecl = memberCtx->variableDecl();
