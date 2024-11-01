@@ -426,7 +426,8 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
         if (!ptrType) {
             throw std::runtime_error("Expected pointer type in member assignment");
         }
-        auto structType = llvm::dyn_cast<llvm::StructType>(ptrType->getElementType());
+        auto elementType = ptrType->getNonOpaquePointerElementType();
+        auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
         if (!structType) {
             throw std::runtime_error("Expected identifier in member assignment");
         }
@@ -767,20 +768,20 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             if (!ptrType) {
                 throw std::runtime_error("Cannot access member of non-pointer type");
             }
-            auto structType = llvm::dyn_cast<llvm::StructType>(ptrType->getElementType());
+            auto elementType = ptrType->getNonOpaquePointerElementType();
+            auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
             if (!structType) {
                 throw std::runtime_error("Cannot access member of non-object type");
             }
-
             // Create GEP instruction to get member address
             std::vector<llvm::Value*> indices = {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), getMemberIndex(structType, memberName))
             };
             lastValue = builder->CreateGEP(structType, callee, indices, "member.ptr");
-            auto elementType = structType->getElementType(getMemberIndex(structType, memberName));
-            lastValue = builder->CreateLoad(elementType, lastValue, "member");
-        } else if (ctx->LBRACKET()) {
+            auto memberType = structType->getElementType(getMemberIndex(structType, memberName));
+            lastValue = builder->CreateLoad(memberType, lastValue, "member");
+        } else if (suffixCtx->LBRACKET()) {
             // Array indexing (not implemented)
             throw std::runtime_error("Array indexing not implemented");
         }
