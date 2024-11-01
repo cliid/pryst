@@ -904,15 +904,33 @@ std::any LLVMCodegen::visitNewExpression(PrystParser::NewExpressionContext* ctx)
     llvm::Value* mem = builder->CreateCall(mallocFunc, {size}, "objmem");
     llvm::Value* obj = builder->CreateBitCast(mem, classPtrType, "obj");
 
-    // Initialize all members with default values
-    for (unsigned i = 0; i < classType->getNumElements(); i++) {
-        llvm::Type* memberType = classType->getElementType(i);
-        std::vector<llvm::Value*> indices = {
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), i)
-        };
-        llvm::Value* memberPtr = builder->CreateGEP(classType, obj, indices, "member.ptr");
-        builder->CreateStore(llvm::Constant::getNullValue(memberType), memberPtr);
+    // Build inheritance chain from base to derived
+    std::vector<std::string> inheritanceChain;
+    std::string currentClass = className;
+    while (!currentClass.empty()) {
+        inheritanceChain.insert(inheritanceChain.begin(), currentClass);
+        auto it = classInheritance.find(currentClass);
+        if (it == classInheritance.end()) break;
+        currentClass = it->second;
+    }
+
+    // Initialize members following inheritance chain
+    size_t memberOffset = 0;
+    for (const auto& cls : inheritanceChain) {
+        auto type = llvm::StructType::getTypeByName(*context, cls);
+        if (!type) continue;
+
+        // Initialize members for this class
+        for (unsigned i = 0; i < type->getNumElements(); i++) {
+            llvm::Type* memberType = type->getElementType(i);
+            std::vector<llvm::Value*> indices = {
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset + i)
+            };
+            llvm::Value* memberPtr = builder->CreateGEP(classType, obj, indices, "member.ptr");
+            builder->CreateStore(llvm::Constant::getNullValue(memberType), memberPtr);
+        }
+        memberOffset += type->getNumElements();
     }
 
     // Optionally, call constructor (not implemented)
