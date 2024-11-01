@@ -15,58 +15,29 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 
-# Find LLVM package, allow overriding LLVM_DIR
-list(APPEND CMAKE_PREFIX_PATH
-    "/usr/lib/llvm-20"                  # Ubuntu LLVM 20
-    "/usr/local/opt/llvm@20"            # Homebrew LLVM 20
-    "/usr/local/llvm-20"                # Custom LLVM 20
-    "/usr/local/lib/cmake/llvm"         # Original Mac path
-    "/opt/homebrew/opt/llvm/lib/cmake"  # M1 Mac Homebrew
-)
-find_package(LLVM REQUIRED CONFIG)
-
-if(NOT LLVM_FOUND)
-    message(FATAL_ERROR "LLVM 20 not found. Please install LLVM 20 or set LLVM_DIR to the correct path.")
-else()
-    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-    message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+# Platform-specific LLVM detection
+if(APPLE)
+    set(LLVM_DIR "/usr/local/lib/cmake/llvm" CACHE PATH "Path to LLVM CMake config")
 endif()
+
+find_package(LLVM REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-# Allow overriding ANTLR4 include and library paths
-if(NOT ANTLR4_INCLUDE_DIR)
-    # Try to find ANTLR4 runtime in common locations
-    foreach(path
-        "/usr/local/include/antlr4-runtime"                                                    # Default Unix
-        "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/include/antlr4-runtime"              # Original Mac path
-        "/usr/local/opt/antlr4-cpp-runtime/include/antlr4-runtime"                           # Alternative Homebrew
-        "/opt/homebrew/opt/antlr4-cpp-runtime/include/antlr4-runtime"                        # M1 Mac Homebrew
-    )
-        if(EXISTS "${path}")
-            set(ANTLR4_INCLUDE_DIR "${path}")
-            break()
-        endif()
-    endforeach()
+# Set ANTLR paths based on platform
+if(APPLE)
+    set(ANTLR4_INCLUDE_DIR "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/include/antlr4-runtime" CACHE PATH "ANTLR4 include directory")
+    set(ANTLR4_LIBRARY_DIR "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/lib" CACHE PATH "ANTLR4 library directory")
+else()
+    set(ANTLR4_INCLUDE_DIR "/usr/local/include/antlr4-runtime" CACHE PATH "ANTLR4 include directory")
+    set(ANTLR4_LIBRARY_DIR "/usr/local/lib" CACHE PATH "ANTLR4 library directory")
 endif()
 
-if(NOT ANTLR4_LIBRARY_DIR)
-    # Try to find ANTLR4 library in common locations
-    foreach(path
-        "/usr/local/lib"                                                    # Default Unix
-        "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2/lib"              # Original Mac path
-        "/usr/local/opt/antlr4-cpp-runtime/lib"                           # Alternative Homebrew
-        "/opt/homebrew/opt/antlr4-cpp-runtime/lib"                        # M1 Mac Homebrew
-    )
-        if(EXISTS "${path}")
-            set(ANTLR4_LIBRARY_DIR "${path}")
-            break()
-        endif()
-    endforeach()
-endif()
 include_directories(${ANTLR4_INCLUDE_DIR})
 link_directories(${ANTLR4_LIBRARY_DIR})
 
@@ -126,7 +97,7 @@ target_include_directories(pryst PRIVATE
     ${ANTLR4_INCLUDE_DIR}
 )
 
-# Link LLVM libraries
+# Update LLVM libraries to reduce duplicates
 llvm_map_components_to_libnames(LLVM_LIBS
     Core
     Support
@@ -142,10 +113,6 @@ llvm_map_components_to_libnames(LLVM_LIBS
     X86AsmParser
     X86Desc
     X86Info
-    AArch64CodeGen
-    AArch64AsmParser
-    AArch64Desc
-    AArch64Info
     MCParser
     Object
     BitWriter
@@ -153,6 +120,15 @@ llvm_map_components_to_libnames(LLVM_LIBS
     CodeGen
     BitReader
 )
+
+if(APPLE)
+    list(APPEND LLVM_LIBS
+        AArch64CodeGen
+        AArch64AsmParser
+        AArch64Desc
+        AArch64Info
+    )
+endif()
 
 # target_link_libraries(jit_compiler PRIVATE ${LLVM_LIBS} antlr4-runtime)
 target_link_libraries(pryst PRIVATE ${LLVM_LIBS} antlr4-runtime)
