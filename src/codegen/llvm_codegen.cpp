@@ -475,6 +475,7 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
         size_t memberIndex;
         llvm::StructType* memberOwnerType = structType;
         std::string currentClass = structType->getName().str();
+        size_t baseOffset = 0;
 
         try {
             memberIndex = getMemberIndex(structType, memberName);
@@ -495,6 +496,7 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
                     memberOwnerType = baseType;
                     break;
                 } catch (const std::runtime_error&) {
+                    baseOffset += baseType->getNumElements();
                     continue;
                 }
             }
@@ -503,9 +505,9 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
         // Create GEP instruction to get member address
         std::vector<llvm::Value*> indices = {
             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIndex)
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIndex + baseOffset)
         };
-        varAddress = builder->CreateGEP(memberOwnerType, object, indices, "member.addr");
+        varAddress = builder->CreateGEP(structType, object, indices, "member.addr");
     } else {
         varName = ctx->IDENTIFIER()->getText();
         auto it = namedValues.find(varName);
@@ -845,6 +847,7 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             size_t memberIndex;
             llvm::StructType* memberOwnerType = structType;
             std::string currentClass = structType->getName().str();
+            size_t baseOffset = 0;
 
             try {
                 memberIndex = getMemberIndex(structType, memberName);
@@ -865,6 +868,7 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
                         memberOwnerType = baseType;
                         break;
                     } catch (const std::runtime_error&) {
+                        baseOffset += baseType->getNumElements();
                         continue;
                     }
                 }
@@ -873,9 +877,9 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             // Create GEP instruction to get member address
             std::vector<llvm::Value*> indices = {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIndex)
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIndex + baseOffset)
             };
-            lastValue = builder->CreateGEP(memberOwnerType, callee, indices, "member.ptr");
+            lastValue = builder->CreateGEP(structType, callee, indices, "member.ptr");
             auto memberType = memberOwnerType->getElementType(memberIndex);
             lastValue = builder->CreateLoad(memberType, lastValue, "member");
         } else if (suffixCtx->LBRACKET()) {
