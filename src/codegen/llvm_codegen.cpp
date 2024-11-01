@@ -4,6 +4,7 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/PointerTypes.h>
 #include <llvm/Support/Casting.h>
 #include <stdexcept>
 #include <iostream>
@@ -425,7 +426,7 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
         if (!object->getType()->isPointerTy()) {
             throw std::runtime_error("Expected pointer type in member assignment");
         }
-        auto elementType = object->getType()->getPointerElementType();
+        auto elementType = object->getType()->getElementType();
         auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
         if (!structType) {
             throw std::runtime_error("Expected identifier in member assignment");
@@ -765,14 +766,12 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             if (!callee->getType()->isPointerTy()) {
                 throw std::runtime_error("Cannot access member of non-pointer type");
             }
-            auto elementType = callee->getType()->getPointerElementType();
+            auto elementType = callee->getType()->getElementType();
             auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
             if (!structType) {
                 throw std::runtime_error("Cannot access member of non-object type");
             }
-            if (!structType) {
-                throw std::runtime_error("Cannot access member of non-object type");
-            }
+
             // Create GEP instruction to get member address
             std::vector<llvm::Value*> indices = {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
