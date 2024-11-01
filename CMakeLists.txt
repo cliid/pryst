@@ -91,6 +91,8 @@ llvm_map_components_to_libnames(LLVM_LIBS
     Object
     BitWriter
     Analysis
+    CodeGen
+    BitReader
 )
 
 # target_link_libraries(jit_compiler PRIVATE ${LLVM_LIBS} antlr4-runtime)
