@@ -484,40 +484,37 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
         }
 
         // Find member in class hierarchy
-        size_t memberIndex;
-        llvm::StructType* memberOwnerType = structType;
         std::string currentClass = structType->getName().str();
-        size_t baseOffset = 0;
+        auto classIt = memberIndices.find(currentClass);
+        if (classIt == memberIndices.end()) {
+            throw std::runtime_error("Class not found: " + currentClass);
+        }
 
-        try {
-            memberIndex = getMemberIndex(structType, memberName);
-        } catch (const std::runtime_error&) {
+        // Get member offset directly from memberIndices
+        auto memberIt = classIt->second.find(memberName);
+        if (memberIt == classIt->second.end()) {
             // If not found in current class, check base classes
             while (true) {
-                auto it = classInheritance.find(currentClass);
-                if (it == classInheritance.end()) {
+                auto inheritIt = classInheritance.find(currentClass);
+                if (inheritIt == classInheritance.end()) {
                     throw std::runtime_error("Member not found: " + memberName);
                 }
-                currentClass = it->second;
-                auto baseType = llvm::StructType::getTypeByName(*context, currentClass);
-                if (!baseType) {
+                currentClass = inheritIt->second;
+                classIt = memberIndices.find(currentClass);
+                if (classIt == memberIndices.end()) {
                     throw std::runtime_error("Base class not found: " + currentClass);
                 }
-                try {
-                    memberIndex = getMemberIndex(baseType, memberName);
-                    memberOwnerType = baseType;
+                memberIt = classIt->second.find(memberName);
+                if (memberIt != classIt->second.end()) {
                     break;
-                } catch (const std::runtime_error&) {
-                    baseOffset += baseType->getNumElements();
-                    continue;
                 }
             }
         }
 
-        // Create GEP instruction to get member address
+        // Create GEP instruction to get member address using stored offset
         std::vector<llvm::Value*> indices = {
             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIndex + baseOffset)
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIt->second)
         };
         varAddress = builder->CreateGEP(structType, object, indices, "member.addr");
     } else {
@@ -856,43 +853,40 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             }
 
             // Find member in class hierarchy
-            size_t memberIndex;
-            llvm::StructType* memberOwnerType = structType;
             std::string currentClass = structType->getName().str();
-            size_t baseOffset = 0;
+            auto classIt = memberIndices.find(currentClass);
+            if (classIt == memberIndices.end()) {
+                throw std::runtime_error("Class not found: " + currentClass);
+            }
 
-            try {
-                memberIndex = getMemberIndex(structType, memberName);
-            } catch (const std::runtime_error&) {
+            // Get member offset directly from memberIndices
+            auto memberIt = classIt->second.find(memberName);
+            if (memberIt == classIt->second.end()) {
                 // If not found in current class, check base classes
                 while (true) {
-                    auto it = classInheritance.find(currentClass);
-                    if (it == classInheritance.end()) {
+                    auto inheritIt = classInheritance.find(currentClass);
+                    if (inheritIt == classInheritance.end()) {
                         throw std::runtime_error("Member not found: " + memberName);
                     }
-                    currentClass = it->second;
-                    auto baseType = llvm::StructType::getTypeByName(*context, currentClass);
-                    if (!baseType) {
+                    currentClass = inheritIt->second;
+                    classIt = memberIndices.find(currentClass);
+                    if (classIt == memberIndices.end()) {
                         throw std::runtime_error("Base class not found: " + currentClass);
                     }
-                    try {
-                        memberIndex = getMemberIndex(baseType, memberName);
-                        memberOwnerType = baseType;
+                    memberIt = classIt->second.find(memberName);
+                    if (memberIt != classIt->second.end()) {
                         break;
-                    } catch (const std::runtime_error&) {
-                        baseOffset += baseType->getNumElements();
-                        continue;
                     }
                 }
             }
 
-            // Create GEP instruction to get member address
+            // Create GEP instruction to get member address using stored offset
             std::vector<llvm::Value*> indices = {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIndex + baseOffset)
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberIt->second)
             };
             lastValue = builder->CreateGEP(structType, callee, indices, "member.ptr");
-            auto memberType = memberOwnerType->getElementType(memberIndex);
+            auto memberType = structType->getElementType(memberIt->second);
             lastValue = builder->CreateLoad(memberType, lastValue, "member");
         } else if (suffixCtx->LBRACKET()) {
             // Array indexing (not implemented)
