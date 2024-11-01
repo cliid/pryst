@@ -13,10 +13,24 @@ size_t LLVMCodegen::getMemberIndex(llvm::StructType* structType, const std::stri
     std::string className = structType->getName().str();
     auto& members = memberIndices[className];
     auto it = members.find(memberName);
-    if (it == members.end()) {
-        throw std::runtime_error("Member not found: " + memberName);
+    if (it != members.end()) {
+        return it->second;
     }
-    return it->second;
+
+    // Check superclass members if this class extends another
+    for (const auto& pair : classInheritance) {
+        if (pair.first == className) {
+            auto superClassType = llvm::StructType::getTypeByName(*context, pair.second);
+            if (superClassType) {
+                try {
+                    return getMemberIndex(superClassType, memberName);
+                } catch (const std::runtime_error&) {
+                    // Continue searching if not found in this superclass
+                }
+            }
+        }
+    }
+    throw std::runtime_error("Member not found: " + memberName);
 }
 
 void LLVMCodegen::addClassMember(const std::string& className, const std::string& memberName, size_t index) {
@@ -180,6 +194,9 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
         if (!superClassType) {
             throw std::runtime_error("Superclass not found: " + superClassName);
         }
+
+        // Record inheritance relationship
+        classInheritance[className] = superClassName;
 
         // Copy superclass members and their indices
         for (unsigned i = 0; i < superClassType->getNumElements(); i++) {

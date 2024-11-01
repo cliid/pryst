@@ -58,6 +58,7 @@ private:
     // Class member tracking
     std::unordered_map<std::string, llvm::StructType*> classTypes;
     std::unordered_map<std::string, std::unordered_map<std::string, size_t>> memberIndices;
+    std::unordered_map<std::string, std::string> classInheritance;  // Maps derived class to base class
 
     // Helper methods
     llvm::Type* getLLVMType(const std::string& typeName);
