@@ -26,7 +26,6 @@ public:
     virtual std::any visitReturnStatement(PrystParser::ReturnStatementContext* ctx) override;
     virtual std::any visitBlockStatement(PrystParser::BlockStatementContext* ctx) override;
     virtual std::any visitCall(PrystParser::CallContext* ctx) override;
-    virtual std::any visitCallSuffix(PrystParser::CallSuffixContext* ctx) override;
     virtual std::any visitPrimary(PrystParser::PrimaryContext* ctx) override;
     virtual std::any visitNewExpression(PrystParser::NewExpressionContext* ctx) override;
 

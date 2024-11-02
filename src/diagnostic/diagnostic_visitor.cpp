@@ -213,36 +213,30 @@ std::any DiagnosticVisitor::visitCall(PrystParser::CallContext* ctx) {
     // Visit primary expression
     visit(ctx->primary());
 
-    // Process call suffix chain
-    for (auto suffix : ctx->callSuffix()) {
-        visit(suffix);
-    }
-
-    printNode("Call Chain End");
-    return nullptr;
-}
-
-std::any DiagnosticVisitor::visitCallSuffix(PrystParser::CallSuffixContext* ctx) {
-    if (ctx->LPAREN()) {  // Function call
-        std::string details = ctx->IDENTIFIER() ?
-            "method: " + ctx->IDENTIFIER()->getText() :
-            "function call";
-        if (ctx->arguments()) {
-            details += " with " + std::to_string(ctx->arguments()->expression().size()) + " arguments";
+    // Process function calls
+    for (size_t i = 0; i < ctx->LPAREN().size(); i++) {
+        std::string details = "function call";
+        if (ctx->arguments(i)) {
+            details += " with " + std::to_string(ctx->arguments(i)->expression().size()) + " arguments";
         }
         printNode("Function Call", details);
 
-        ScopeGuard guard(indentLevel);
-        if (ctx->arguments()) {
-            printNode("Arguments");
+        if (ctx->arguments(i)) {
             ScopeGuard argsGuard(indentLevel);
-            for (auto arg : ctx->arguments()->expression()) {
+            printNode("Arguments");
+            for (auto arg : ctx->arguments(i)->expression()) {
                 visit(arg);
             }
         }
-    } else if (ctx->IDENTIFIER()) {  // Member access
-        printNode("Member Access", "member: " + ctx->IDENTIFIER()->getText());
     }
+
+    // Process member access (DOT operator)
+    for (size_t i = 0; i < ctx->DOT().size(); i++) {
+        std::string memberName = ctx->IDENTIFIER(i)->getText();
+        printNode("Member Access", "member: " + memberName);
+    }
+
+    printNode("Call Chain End");
     return nullptr;
 }
 
