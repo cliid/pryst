@@ -23,6 +23,7 @@
 #include <llvm/MC/MCELFStreamer.h>
 #include <llvm/MC/MCAsmInfo.h>
 #include <system_error>
+#include <optional>
 
 AOTCompiler::AOTCompiler() {
     llvm::InitializeNativeTarget();
@@ -47,7 +48,7 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
 
     llvm::MCTargetOptions MCOpt;
     llvm::TargetOptions opt;
-    auto RM = std::optional<llvm::Reloc::Model>();
+    auto RM = llvm::Optional<llvm::Reloc::Model>();
     targetMachine = std::unique_ptr<llvm::TargetMachine>(
         target->createTargetMachine(targetTriple, CPU, features, opt, RM));
 
@@ -64,7 +65,7 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
     llvm::legacy::PassManager pass;
 
     // Add passes to emit object file
-    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CodeGenFileType::ObjectFile)) {
+    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile)) {
         llvm::errs() << "TargetMachine can't emit a file of this type\n";
         return;
     }

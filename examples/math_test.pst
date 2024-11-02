@@ -1,0 +1,22 @@
+int main() {
+    // Test sqrt function
+    float x = 16.0;
+    print("sqrt(16.0) = ");
+    print(sqrt(x));
+
+    // Test pow function
+    float base = 2.0;
+    float exponent = 3.0;
+    print("pow(2.0, 3.0) = ");
+    print(pow(base, exponent));
+
+    // Test abs function with positive and negative numbers
+    int pos = 42;
+    int neg = -42;
+    print("abs(42) = ");
+    print(abs(pos));
+    print("abs(-42) = ");
+    print(abs(neg));
+
+    return 0;
+}
