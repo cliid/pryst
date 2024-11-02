@@ -1,0 +1,32 @@
+// Test file I/O operations
+fn main() {
+    // Test write operation
+    let content = "Hello, World!\nThis is a test file.\n";
+    let success = write_file("test.txt", content);
+    print(success);  // Should print true if write succeeded
+
+    // Test read operation
+    let read_content = read_file("test.txt");
+    print(read_content);  // Should print the content we just wrote
+
+    // Test append operation
+    let append_content = "This line was appended.\n";
+    success = append_file("test.txt", append_content);
+    print(success);  // Should print true if append succeeded
+
+    // Read again to verify append
+    read_content = read_file("test.txt");
+    print(read_content);  // Should print original content plus appended line
+
+    // Test reading non-existent file
+    read_content = read_file("nonexistent.txt");
+    print(read_content);  // Should print empty string
+
+    // Test writing to invalid path
+    success = write_file("/invalid/path/file.txt", "test");
+    print(success);  // Should print false
+
+    // Test appending to invalid path
+    success = append_file("/invalid/path/file.txt", "test");
+    print(success);  // Should print false
+}
