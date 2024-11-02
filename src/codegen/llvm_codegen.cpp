@@ -857,7 +857,7 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
     visit(ctx->primary());
     llvm::Value* callee = lastValue;
 
-    // Handle function calls and member access in sequence
+    // Handle function calls in sequence
     for (size_t i = 0; i < ctx->LPAREN().size(); i++) {
         std::cerr << "DEBUG: Handling function call" << std::endl;
 
@@ -907,88 +907,8 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             lastValue = builder->CreateCall(funcType, callee, args, "calltmp");
         }
 
-        // If function returns an object, keep it as a pointer for potential member access
-        if (lastValue->getType()->isPointerTy()) {
-            auto returnPtrType = llvm::cast<llvm::PointerType>(lastValue->getType());
-            auto returnElementType = returnPtrType->getContainedType(0);
-            if (llvm::isa<llvm::StructType>(returnElementType)) {
-                callee = lastValue;  // Keep as pointer for chained access
-            }
-        }
-    }
-
-    // Handle member access (DOT operator)
-    for (size_t i = 0; i < ctx->DOT().size(); i++) {
-        std::cerr << "DEBUG: Handling member access" << std::endl;
-        std::string memberName = ctx->IDENTIFIER(i)->getText();
-
-        // Get the struct type from the object
-        if (!callee->getType()->isPointerTy()) {
-            throw std::runtime_error("Cannot access member of non-pointer type");
-        }
-        auto ptrType = llvm::cast<llvm::PointerType>(callee->getType());
-        auto elementType = ptrType->getContainedType(0);
-
-        // If element type is a pointer (e.g., from function return), load it
-        if (elementType->isPointerTy()) {
-            callee = builder->CreateLoad(elementType, callee, "obj.load");
-            ptrType = llvm::cast<llvm::PointerType>(callee->getType());
-            elementType = ptrType->getContainedType(0);
-        }
-
-        auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
-        if (!structType) {
-            throw std::runtime_error("Cannot access member of non-object type");
-        }
-
-        // Find member in class hierarchy
-        std::string currentClass = structType->getName().str();
-        auto classIt = memberIndices.find(currentClass);
-        if (classIt == memberIndices.end()) {
-            throw std::runtime_error("Class not found: " + currentClass);
-        }
-
-        // Get member offset directly from memberIndices
-        auto memberIt = classIt->second.find(memberName);
-        bool memberFound = false;
-        size_t memberOffset = 0;
-
-        if (memberIt != classIt->second.end()) {
-            memberFound = true;
-            memberOffset = memberIt->second;
-        } else {
-            // If not found in current class, check base classes
-            std::string searchClass = currentClass;
-            while (!memberFound) {
-                auto inheritIt = classInheritance.find(searchClass);
-                if (inheritIt == classInheritance.end()) {
-                    break;  // No more base classes to check
-                }
-                searchClass = inheritIt->second;
-                auto baseClassIt = memberIndices.find(searchClass);
-                if (baseClassIt == memberIndices.end()) {
-                    throw std::runtime_error("Base class not found: " + searchClass);
-                }
-                memberIt = baseClassIt->second.find(memberName);
-                if (memberIt != baseClassIt->second.end()) {
-                    memberFound = true;
-                    memberOffset = memberIt->second;
-                    break;
-                }
-            }
-        }
-
-        if (!memberFound) {
-            throw std::runtime_error("Member '" + memberName + "' not found in class '" + currentClass + "' or any of its base classes");
-        }
-
-        // Create GEP instruction to get member address using stored offset
-        std::vector<llvm::Value*> indices = {
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset)
-        };
-        lastValue = builder->CreateGEP(structType, callee, indices, "member.ptr");
-        callee = lastValue;  // Update callee for chained access
+        // Update callee for potential chained function calls
+        callee = lastValue;
     }
 
     return nullptr;
