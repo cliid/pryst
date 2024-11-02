@@ -1,0 +1,13 @@
+// Test module aliasing
+import math as m;
+import string as str;
+
+function main() -> void {
+    // Test math module functions with alias
+    print(m.add(5, 3));        // Should print 8
+    print(m.subtract(10, 4));  // Should print 6
+
+    // Test string module functions with alias
+    print(str.concat("Hello, ", "World!"));  // Should print "Hello, World!"
+    print(str.length("Testing"));            // Should print 7
+}
