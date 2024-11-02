@@ -93,14 +93,12 @@ public:
     std::any visitUnary(PrystParser::UnaryContext* ctx) override;
     std::any visitPostfix(PrystParser::PostfixContext* ctx) override;
     std::any visitCall(PrystParser::CallContext* ctx) override;
-    std::any visitCallSuffix(PrystParser::CallSuffixContext* ctx) override;
     std::any visitPrimary(PrystParser::PrimaryContext* ctx) override;
     std::any visitNewExpression(PrystParser::NewExpressionContext* ctx) override;
 
 private:
     SymbolTable symbolTable;
     std::string currentFunction;
-    std::any currentCallType;  // Stores the type between visitCall and visitCallSuffix calls
 
     // Helper method for type checking
     void checkTypes(const std::string& expected, const std::string& actual, const std::string& errorMessage);

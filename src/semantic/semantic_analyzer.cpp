@@ -556,13 +556,51 @@ std::any SemanticAnalyzer::visitCall(PrystParser::CallContext* ctx) {
     }
     std::string type = std::any_cast<std::string>(typeResult);
 
-    for (auto suffixCtx : ctx->callSuffix()) {
-        currentCallType = type;
-        auto suffixResult = visit(suffixCtx);
-        if (suffixResult.type() != typeid(std::string)) {
-            throw std::runtime_error("Call suffix did not return a type string");
+    for (size_t i = 0; i < ctx->LPAREN().size(); ++i) {
+        // Function call
+        SymbolTable::FunctionInfo funcInfo;
+        if (symbolTable.classExists(type)) {
+            if (ctx->arguments(i)) {
+                throw std::runtime_error("Calling constructors with arguments not implemented");
+            }
+        } else if (symbolTable.functionExists(type)) {
+            funcInfo = symbolTable.getFunctionInfo(type);
+            size_t argCount = ctx->arguments(i) ? ctx->arguments(i)->expression().size() : 0;
+            if (argCount != funcInfo.paramTypes.size()) {
+                throw std::runtime_error("Function '" + type + "' expects " +
+                                     std::to_string(funcInfo.paramTypes.size()) + " arguments, got " +
+                                     std::to_string(argCount));
+            }
+            if (ctx->arguments(i)) {
+                for (size_t j = 0; j < argCount; ++j) {
+                    auto argTypeResult = visit(ctx->arguments(i)->expression(j));
+                    if (argTypeResult.type() != typeid(std::string)) {
+                        throw std::runtime_error("Argument expression did not return a type string");
+                    }
+                    std::string argType = std::any_cast<std::string>(argTypeResult);
+                    checkTypes(funcInfo.paramTypes[j], argType, "Type mismatch in function call argument");
+                }
+            }
+            type = funcInfo.returnType;
+        } else {
+            throw std::runtime_error("Undefined function: '" + type + "'");
         }
-        type = std::any_cast<std::string>(suffixResult);
+    }
+
+    for (size_t i = 0; i < ctx->DOT().size(); ++i) {
+        // Member access
+        if (!symbolTable.classExists(type)) {
+            throw std::runtime_error("Type '" + type + "' has no members");
+        }
+        std::string memberName = ctx->IDENTIFIER(i)->getText();
+        SymbolTable::ClassInfo classInfo = symbolTable.getClassInfo(type);
+        if (classInfo.members.find(memberName) != classInfo.members.end()) {
+            type = classInfo.members[memberName].type;
+        } else if (classInfo.methods.find(memberName) != classInfo.methods.end()) {
+            type = classInfo.methods[memberName].returnType;
+        } else {
+            throw std::runtime_error("Class '" + type + "' has no member named '" + memberName + "'");
+        }
     }
 
     return std::any(type);
