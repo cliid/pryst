@@ -587,22 +587,6 @@ std::any SemanticAnalyzer::visitCall(PrystParser::CallContext* ctx) {
         }
     }
 
-    for (size_t i = 0; i < ctx->DOT().size(); ++i) {
-        // Member access
-        if (!symbolTable.classExists(type)) {
-            throw std::runtime_error("Type '" + type + "' has no members");
-        }
-        std::string memberName = ctx->IDENTIFIER(i)->getText();
-        SymbolTable::ClassInfo classInfo = symbolTable.getClassInfo(type);
-        if (classInfo.members.find(memberName) != classInfo.members.end()) {
-            type = classInfo.members[memberName].type;
-        } else if (classInfo.methods.find(memberName) != classInfo.methods.end()) {
-            type = classInfo.methods[memberName].returnType;
-        } else {
-            throw std::runtime_error("Class '" + type + "' has no member named '" + memberName + "'");
-        }
-    }
-
     return std::any(type);
 }
 
