@@ -3,20 +3,30 @@ int main() {
     float x = 16.0;
     print("sqrt(16.0) = ");
     print(sqrt(x));
+    print("\n");
 
     // Test pow function
     float base = 2.0;
     float exponent = 3.0;
     print("pow(2.0, 3.0) = ");
     print(pow(base, exponent));
+    print("\n");
 
     // Test abs function with positive and negative numbers
     int pos = 42;
     int neg = -42;
     print("abs(42) = ");
     print(abs(pos));
+    print("\n");
     print("abs(-42) = ");
     print(abs(neg));
+    print("\n");
+
+    // Test abs function with float
+    float neg_float = -3.14;
+    print("abs(-3.14) = ");
+    print(abs(neg_float));
+    print("\n");
 
     return 0;
 }

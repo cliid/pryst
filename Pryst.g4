@@ -104,12 +104,7 @@ postfix
     ;
 
 call
-    : primary callSuffix*
-    ;
-
-callSuffix
-    : LPAREN arguments? RPAREN
-    | DOT IDENTIFIER
+    : primary (LPAREN arguments? RPAREN | DOT IDENTIFIER)*
     ;
 
 primary
