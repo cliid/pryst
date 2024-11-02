@@ -27,6 +27,7 @@ if(DEFINED ENV{LLVM_DIR})
     # Try to find LLVMConfig.cmake in common locations relative to LLVM_DIR
     list(APPEND CMAKE_PREFIX_PATH
         "$ENV{LLVM_DIR}"
+cmake
         "$ENV{LLVM_DIR}/lib/cmake/llvm"
         "$ENV{LLVM_DIR}/lib/cmake"
         "$ENV{LLVM_DIR}/share/llvm/cmake"
@@ -35,7 +36,7 @@ else()
     if(APPLE)
         set(LLVM_DIR "/usr/local" CACHE PATH "Path to LLVM CMake config")
     else()
-        set(LLVM_DIR "/usr/lib/llvm-20" CACHE PATH "Path to LLVM CMake config")
+        set(LLVM_DIR "/usr/lib/llvm-20/lib/cmake/llvm" CACHE PATH "Path to LLVM CMake config")
     endif()
 endif()
 
