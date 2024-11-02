@@ -312,12 +312,12 @@ std::any SemanticAnalyzer::visitExpression(PrystParser::ExpressionContext* ctx) 
 std::any SemanticAnalyzer::visitAssignment(PrystParser::AssignmentContext* ctx) {
     std::string varType;
 
-    if (ctx->call()) {
-        auto callResult = visit(ctx->call());
-        if (callResult.type() != typeid(std::string)) {
-            throw std::runtime_error("Call did not return a type string");
+    if (ctx->primary()) {
+        auto primaryResult = visit(ctx->primary());
+        if (primaryResult.type() != typeid(std::string)) {
+            throw std::runtime_error("Primary did not return a type string");
         }
-        std::string objectType = std::any_cast<std::string>(callResult);
+        std::string objectType = std::any_cast<std::string>(primaryResult);
 
         if (ctx->IDENTIFIER() == nullptr) {
             throw std::runtime_error("Expected identifier in member assignment");
