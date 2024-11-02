@@ -67,7 +67,8 @@ expression
     ;
 
 assignment
-    : (call DOT)? IDENTIFIER EQUAL expression
+    : IDENTIFIER EQUAL expression
+    | call DOT IDENTIFIER EQUAL expression
     ;
 
 logicOr
@@ -104,7 +105,7 @@ postfix
     ;
 
 call
-    : primary (LPAREN arguments? RPAREN | DOT IDENTIFIER)*
+    : primary (LPAREN arguments? RPAREN)*
     ;
 
 primary
