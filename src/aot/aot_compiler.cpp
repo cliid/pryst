@@ -48,7 +48,7 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
 
     llvm::MCTargetOptions MCOpt;
     llvm::TargetOptions opt;
-    auto RM = llvm::Optional<llvm::Reloc::Model>();
+    std::optional<llvm::Reloc::Model> RM = std::nullopt;
     targetMachine = std::unique_ptr<llvm::TargetMachine>(
         target->createTargetMachine(targetTriple, CPU, features, opt, RM));
 
@@ -65,7 +65,7 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
     llvm::legacy::PassManager pass;
 
     // Add passes to emit object file
-    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile)) {
+    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CodeGenFileType::ObjectFile)) {
         llvm::errs() << "TargetMachine can't emit a file of this type\n";
         return;
     }
