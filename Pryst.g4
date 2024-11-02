@@ -63,12 +63,13 @@ statement
 
 expression
     : assignment
+    | call
     | logicOr
     ;
 
 assignment
     : IDENTIFIER EQUAL expression
-    | call DOT IDENTIFIER EQUAL expression
+    | primary DOT IDENTIFIER EQUAL expression
     ;
 
 logicOr
