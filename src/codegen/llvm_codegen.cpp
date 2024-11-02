@@ -42,7 +42,171 @@ LLVMCodegen::LLVMCodegen()
       module(std::make_unique<llvm::Module>("pryst", *context)),
       builder(std::make_unique<llvm::IRBuilder<>>(*context)),
       lastValue(nullptr),
-      currentFunction(nullptr) {}
+      currentFunction(nullptr),
+      typeMetadata(std::make_unique<pryst::TypeMetadata>(*context, *module)) {
+
+    // Initialize reflection API
+    implementReflectionAPI();
+    implementTypeHelpers();
+
+    // Add printf declaration to the module
+    std::vector<llvm::Type*> printfArgs;
+    printfArgs.push_back(llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0));
+    llvm::FunctionType* printfType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),
+        printfArgs,
+        true  // varargs
+    );
+    llvm::Function::Create(
+        printfType,
+        llvm::Function::ExternalLinkage,
+        "printf",
+        module.get()
+    );
+
+    // Register print function
+    std::vector<llvm::Type*> printArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)
+    };
+    llvm::FunctionType* printFuncType = llvm::FunctionType::get(
+        llvm::Type::getVoidTy(*context),
+        printArgs,
+        false
+    );
+    llvm::Function* printFunc = llvm::Function::Create(
+        printFuncType,
+        llvm::Function::ExternalLinkage,
+        "print",
+        module.get()
+    );
+    functions["print"] = printFunc;
+    functionTypes["print"] = printFuncType;
+
+    // Register string manipulation functions
+    std::vector<llvm::Type*> lengthArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)
+    };
+    llvm::FunctionType* lengthFuncType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),
+        lengthArgs,
+        false
+    );
+    llvm::Function* lengthFunc = llvm::Function::Create(
+        lengthFuncType,
+        llvm::Function::ExternalLinkage,
+        "length",
+        module.get()
+    );
+    functions["length"] = lengthFunc;
+    functionTypes["length"] = lengthFuncType;
+
+    std::vector<llvm::Type*> substringArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+        llvm::Type::getInt32Ty(*context),
+        llvm::Type::getInt32Ty(*context)
+    };
+    llvm::FunctionType* substringFuncType = llvm::FunctionType::get(
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+        substringArgs,
+        false
+    );
+    llvm::Function* substringFunc = llvm::Function::Create(
+        substringFuncType,
+        llvm::Function::ExternalLinkage,
+        "substring",
+        module.get()
+    );
+    functions["substring"] = substringFunc;
+    functionTypes["substring"] = substringFuncType;
+
+    std::vector<llvm::Type*> concatArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)
+    };
+    llvm::FunctionType* concatFuncType = llvm::FunctionType::get(
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+        concatArgs,
+        false
+    );
+    llvm::Function* concatFunc = llvm::Function::Create(
+        concatFuncType,
+        llvm::Function::ExternalLinkage,
+        "concat",
+        module.get()
+    );
+    functions["concat"] = concatFunc;
+    functionTypes["concat"] = concatFuncType;
+
+    // Register math functions
+    std::vector<llvm::Type*> sqrtArgs = {
+        llvm::Type::getDoubleTy(*context)
+    };
+    llvm::FunctionType* sqrtFuncType = llvm::FunctionType::get(
+        llvm::Type::getDoubleTy(*context),
+        sqrtArgs,
+        false
+    );
+    llvm::Function* sqrtFunc = llvm::Function::Create(
+        sqrtFuncType,
+        llvm::Function::ExternalLinkage,
+        "sqrt",
+        module.get()
+    );
+    functions["sqrt"] = sqrtFunc;
+    functionTypes["sqrt"] = sqrtFuncType;
+
+    std::vector<llvm::Type*> powArgs = {
+        llvm::Type::getDoubleTy(*context),
+        llvm::Type::getDoubleTy(*context)
+    };
+    llvm::FunctionType* powFuncType = llvm::FunctionType::get(
+        llvm::Type::getDoubleTy(*context),
+        powArgs,
+        false
+    );
+    llvm::Function* powFunc = llvm::Function::Create(
+        powFuncType,
+        llvm::Function::ExternalLinkage,
+        "pow",
+        module.get()
+    );
+    functions["pow"] = powFunc;
+    functionTypes["pow"] = powFuncType;
+
+    std::vector<llvm::Type*> absArgs = {
+        llvm::Type::getDoubleTy(*context)
+    };
+    llvm::FunctionType* absFuncType = llvm::FunctionType::get(
+        llvm::Type::getDoubleTy(*context),
+        absArgs,
+        false
+    );
+    llvm::Function* absFunc = llvm::Function::Create(
+        absFuncType,
+        llvm::Function::ExternalLinkage,
+        "abs",
+        module.get()
+    );
+    functions["abs"] = absFunc;
+    functionTypes["abs"] = absFuncType;
+
+    // Register array functions
+    std::vector<llvm::Type*> arrayNewArgs = {
+        llvm::Type::getInt32Ty(*context)  // initial capacity
+    };
+    llvm::FunctionType* arrayNewType = llvm::FunctionType::get(
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+        arrayNewArgs,
+        false
+    );
+    llvm::Function* arrayNewFunc = llvm::Function::Create(
+        arrayNewType,
+        llvm::Function::ExternalLinkage,
+        "array_new",
+        module.get()
+    );
+    arrayFunctions["array_new"] = arrayNewFunc;
+}
 
 std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* programCtx) {
     currentFunction = createMainFunction();
@@ -67,15 +231,15 @@ llvm::Function* LLVMCodegen::createMainFunction() {
 }
 
 // Program: Handles the entire program
-std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
     for (auto decl : ctx->declaration()) {
         visit(decl);
     }
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Declaration: Dispatches to the appropriate declaration type
-std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext* ctx) {
     if (ctx->functionDecl()) {
         visit(ctx->functionDecl());
     } else if (ctx->variableDecl()) {
@@ -85,11 +249,11 @@ std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext* ctx) {
     } else {
         visit(ctx->statement());
     }
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Function Declaration: Handles function declarations
-std::any LLVMCodegen::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
     std::string funcName = ctx->IDENTIFIER()->getText();
     llvm::Type* returnType = getLLVMType(ctx->type()->getText());
 
@@ -165,11 +329,11 @@ std::any LLVMCodegen::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
     // Add the function to the functions map
     functions[funcName] = func;
 
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Variable Declaration: Handles variable declarations
-std::any LLVMCodegen::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
     std::string varName = ctx->IDENTIFIER()->getText();
     llvm::Type* varType = getLLVMType(ctx->type()->getText());
 
@@ -182,12 +346,16 @@ std::any LLVMCodegen::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
         builder->CreateStore(llvm::Constant::getNullValue(varType), alloca);
     }
 
+    // Add type metadata for reflection
+    auto typeInfo = std::make_shared<pryst::TypeInfo>(ctx->type()->getText());
+    addTypeInfo(alloca, typeInfo);
+
     namedValues[varName] = alloca;
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Class Declaration: Handles class declarations
-std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) {
     std::string className = ctx->IDENTIFIER(0)->getText();
 
     // Build complete inheritance chain from base to derived
@@ -210,6 +378,20 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
     std::vector<std::string> orderedNames;
     std::unordered_map<std::string, size_t> memberOffsets;
     size_t currentOffset = 0;
+
+    // Create class type info for reflection
+    auto classInfo = std::make_shared<pryst::ClassTypeInfo>(className);
+    if (!immediateBase.empty()) {
+        auto baseType = llvm::StructType::getTypeByName(*context, immediateBase);
+        if (!baseType) {
+            throw std::runtime_error("Base class not found: " + immediateBase);
+        }
+        auto baseInfo = typeMetadata->getClassTypeInfo(baseType);
+        if (!baseInfo) {
+            throw std::runtime_error("Base class type info not found: " + immediateBase);
+        }
+        classInfo = std::make_shared<pryst::ClassTypeInfo>(className, baseInfo);
+    }
 
     // Add base class members first
     for (const auto& baseClass : inheritanceChain) {
@@ -237,10 +419,15 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
         for (auto memberCtx : bodyCtx->classMember()) {
             if (auto varDecl = dynamic_cast<PrystParser::ClassVariableDeclContext*>(memberCtx)) {
                 std::string memberName = varDecl->IDENTIFIER()->getText();
-                llvm::Type* memberType = getLLVMType(varDecl->type()->getText());
+                std::string memberTypeName = varDecl->type()->getText();
+                llvm::Type* memberType = getLLVMType(memberTypeName);
                 orderedTypes.push_back(memberType);
                 orderedNames.push_back(memberName);
                 memberOffsets[memberName] = currentOffset++;
+
+                // Add member to class type info
+                auto memberTypeInfo = std::make_shared<pryst::BasicTypeInfo>(memberTypeName);
+                classInfo->addField(memberName, memberTypeInfo);
             } else if (auto funcDecl = dynamic_cast<PrystParser::ClassFunctionDeclContext*>(memberCtx)) {
                 visit(funcDecl);
             }
@@ -259,24 +446,50 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
         classInheritance[className] = immediateBase;
     }
 
-    return nullptr;
+    // Add type metadata for reflection
+    typeMetadata->addClassTypeInfo(classType, classInfo);
+
+    return antlrcpp::Any();
 }
 
 // Class Variable Declaration: Handles class member variables
-std::any LLVMCodegen::visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) {
     std::string memberName = ctx->IDENTIFIER()->getText();
-    llvm::Type* memberType = getLLVMType(ctx->type()->getText());
+    std::string memberTypeName = ctx->type()->getText();
+    llvm::Type* memberType = getLLVMType(memberTypeName);
+
+    // Add type metadata for reflection
+    auto typeInfo = std::make_shared<pryst::BasicTypeInfo>(memberTypeName);
+    if (lastValue) {
+        typeMetadata->addTypeInfo(lastValue, typeInfo);
+    }
 
     if (ctx->expression()) {
         visit(ctx->expression());
     }
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Class Function Declaration: Handles class member functions
-std::any LLVMCodegen::visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) {
     std::string funcName = ctx->IDENTIFIER()->getText();
-    llvm::Type* returnType = getLLVMType(ctx->type()->getText());
+    std::string returnTypeName = ctx->type()->getText();
+    llvm::Type* returnType = getLLVMType(returnTypeName);
+
+    // Create function type info for reflection
+    auto returnTypeInfo = std::make_shared<pryst::BasicTypeInfo>(returnTypeName);
+    std::vector<TypeInfoPtr> paramTypeInfos;
+
+    // Add parameter information
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            std::string paramName = param->IDENTIFIER()->getText();
+            std::string paramType = param->type()->getText();
+            paramTypeInfos.push_back(std::make_shared<pryst::BasicTypeInfo>(paramType));
+        }
+    }
+
+    auto funcTypeInfo = std::make_shared<pryst::FunctionTypeInfo>(returnTypeInfo, paramTypeInfos);
 
     // Save the current named values
     std::unordered_map<std::string, llvm::AllocaInst*> oldNamedValues = namedValues;
@@ -286,34 +499,39 @@ std::any LLVMCodegen::visitClassFunctionDecl(PrystParser::ClassFunctionDeclConte
         visit(decl);
     }
 
+    // Add function type metadata for reflection
+    if (currentFunction) {
+        typeMetadata->addFunctionTypeInfo(currentFunction, funcTypeInfo);
+    }
+
     // Restore the named values
     namedValues = oldNamedValues;
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Parameter List: Handled in function declaration
-std::any LLVMCodegen::visitParamList(PrystParser::ParamListContext* ctx) {
-    return nullptr;
+antlrcpp::Any LLVMCodegen::visitParamList(PrystParser::ParamListContext* ctx) {
+    return antlrcpp::Any();
 }
 
 // Parameter: Handled in function declaration
-std::any LLVMCodegen::visitParam(PrystParser::ParamContext* ctx) {
-    return nullptr;
+antlrcpp::Any LLVMCodegen::visitParam(PrystParser::ParamContext* ctx) {
+    return antlrcpp::Any();
 }
 
 // Type: Returns the LLVM type
-std::any LLVMCodegen::visitType(PrystParser::TypeContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitType(PrystParser::TypeContext* ctx) {
     return getLLVMType(ctx->getText());
 }
 
 // Expression Statement: Evaluates an expression
-std::any LLVMCodegen::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
     visit(ctx->expression());
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // If Statement: Handles if statements
-std::any LLVMCodegen::visitIfStatement(PrystParser::IfStatementContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitIfStatement(PrystParser::IfStatementContext* ctx) {
     visit(ctx->expression());
     llvm::Value* condValue = lastValue;
 
@@ -353,11 +571,11 @@ std::any LLVMCodegen::visitIfStatement(PrystParser::IfStatementContext* ctx) {
     mergeBlock->insertInto(function);
     builder->SetInsertPoint(mergeBlock);
 
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // While Statement: Handles while loops
-std::any LLVMCodegen::visitWhileStatement(PrystParser::WhileStatementContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitWhileStatement(PrystParser::WhileStatementContext* ctx) {
     llvm::Function* function = builder->GetInsertBlock()->getParent();
 
     llvm::BasicBlock* condBlock = llvm::BasicBlock::Create(*context, "whilecond", function);
@@ -380,11 +598,11 @@ std::any LLVMCodegen::visitWhileStatement(PrystParser::WhileStatementContext* ct
 
     builder->SetInsertPoint(afterBlock);
 
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // For Statement: Handles for loops
-std::any LLVMCodegen::visitForStatement(PrystParser::ForStatementContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitForStatement(PrystParser::ForStatementContext* ctx) {
     llvm::Function* function = builder->GetInsertBlock()->getParent();
 
     llvm::BasicBlock* preHeaderBlock = builder->GetInsertBlock();
@@ -439,22 +657,22 @@ std::any LLVMCodegen::visitForStatement(PrystParser::ForStatementContext* ctx) {
     // After loop
     builder->SetInsertPoint(afterBlock);
 
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Return Statement: Handles return statements
-std::any LLVMCodegen::visitReturnStatement(PrystParser::ReturnStatementContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitReturnStatement(PrystParser::ReturnStatementContext* ctx) {
     if (ctx->expression()) {
         visit(ctx->expression());
         builder->CreateRet(lastValue);
     } else {
         builder->CreateRetVoid();
     }
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Block: Handles a block of statements
-std::any LLVMCodegen::visitBlockStatement(PrystParser::BlockStatementContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitBlockStatement(PrystParser::BlockStatementContext* ctx) {
     // Save the current named values
     std::unordered_map<std::string, llvm::AllocaInst*> oldNamedValues = namedValues;
 
@@ -464,12 +682,21 @@ std::any LLVMCodegen::visitBlockStatement(PrystParser::BlockStatementContext* ct
 
     // Restore the named values
     namedValues = oldNamedValues;
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Expression: Handles expressions
+antlrcpp::Any LLVMCodegen::visitExpression(PrystParser::ExpressionContext* ctx) {
+    if (ctx->assignment()) {
+        visit(ctx->assignment());
+    } else if (ctx->logicOr()) {
+        visit(ctx->logicOr());
+    }
+    return antlrcpp::Any();
+}
+
 // Assignment: Handles both direct variable assignments and member access assignments
-std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
     std::cerr << "DEBUG: Starting visitAssignment" << std::endl;
     std::cerr << "DEBUG: Assignment context text: " << ctx->getText() << std::endl;
 
@@ -594,14 +821,17 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
     builder->CreateStore(exprValue, varAddress);
     lastValue = exprValue;
     std::cerr << "DEBUG: Assignment completed" << std::endl;
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Logical OR: Handles logical OR operations
-std::any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
     if (ctx->logicAnd().size() == 1) {
         visit(ctx->logicAnd(0));
-        return nullptr;
+        // Add type metadata for reflection
+        auto typeInfo = std::make_shared<pryst::BasicTypeInfo>("bool");
+        typeMetadata->addTypeInfo(lastValue, typeInfo);
+        return antlrcpp::Any();
     }
 
     llvm::Function* function = builder->GetInsertBlock()->getParent();
@@ -638,14 +868,20 @@ std::any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
     phiNode->addIncoming(rhsValue, rhsBlock);
 
     lastValue = phiNode;
-    return nullptr;
+    // Add type metadata for reflection
+    auto typeInfo = std::make_shared<pryst::BasicTypeInfo>("bool");
+    typeMetadata->addTypeInfo(lastValue, typeInfo);
+    return antlrcpp::Any();
 }
 
 // Logical AND: Handles logical AND operations
-std::any LLVMCodegen::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
     if (ctx->equality().size() == 1) {
         visit(ctx->equality(0));
-        return nullptr;
+        // Add type metadata for reflection
+        auto typeInfo = std::make_shared<pryst::BasicTypeInfo>("bool");
+        typeMetadata->addTypeInfo(lastValue, typeInfo);
+        return antlrcpp::Any();
     }
 
     // Implement short-circuit evaluation
@@ -676,11 +912,14 @@ std::any LLVMCodegen::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
     phiNode->addIncoming(rhsValue, rhsBlock);
 
     lastValue = phiNode;
-    return nullptr;
+    // Add type metadata for reflection
+    auto typeInfo = std::make_shared<pryst::BasicTypeInfo>("bool");
+    typeMetadata->addTypeInfo(lastValue, typeInfo);
+    return antlrcpp::Any();
 }
 
 // Equality: Handles equality comparisons
-std::any LLVMCodegen::visitEquality(PrystParser::EqualityContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitEquality(PrystParser::EqualityContext* ctx) {
     visit(ctx->comparison(0));
     llvm::Value* left = lastValue;
 
@@ -701,14 +940,16 @@ std::any LLVMCodegen::visitEquality(PrystParser::EqualityContext* ctx) {
                 lastValue = builder->CreateICmpNE(left, right, "neqtmp");
             }
         }
+        // Add type metadata for reflection
+        auto typeInfo = std::make_shared<pryst::BasicTypeInfo>("bool");
+        typeMetadata->addTypeInfo(lastValue, typeInfo);
         left = lastValue;
     }
 
-    return nullptr;
+    return antlrcpp::Any();
 }
-
 // Comparison: Handles comparison operations
-std::any LLVMCodegen::visitComparison(PrystParser::ComparisonContext* ctx) {
+antlrcpp::Any LLVMCodegen::visitComparison(PrystParser::ComparisonContext* ctx) {
     visit(ctx->addition(0));
     llvm::Value* left = lastValue;
 
@@ -725,14 +966,17 @@ std::any LLVMCodegen::visitComparison(PrystParser::ComparisonContext* ctx) {
         } else if (ctx->GREATER_EQUAL(i - 1)) {
             lastValue = builder->CreateICmpSGE(left, right, "getmp");
         }
+        // Add type metadata for reflection
+        auto typeInfo = std::make_shared<pryst::BasicTypeInfo>("bool");
+        typeMetadata->addTypeInfo(lastValue, typeInfo);
         left = lastValue;
     }
 
-    return nullptr;
+    return antlrcpp::Any();
 }
 
 // Addition/Subtraction: Handles addition and subtraction
-std::any LLVMCodegen::visitAddition(PrystParser::AdditionContext* ctx) {
+antlr4::Any LLVMCodegen::visitAddition(PrystParser::AdditionContext* ctx) {
     visit(ctx->multiplication(0));
     llvm::Value* left = lastValue;
 
@@ -753,14 +997,17 @@ std::any LLVMCodegen::visitAddition(PrystParser::AdditionContext* ctx) {
                 lastValue = builder->CreateSub(left, right, "subtmp");
             }
         }
+        // Add type metadata for reflection
+        auto typeInfo = std::make_shared<pryst::TypeInfo>(left->getType()->isFloatingPointTy() ? "float" : "int");
+        addTypeInfo(lastValue, typeInfo);
         left = lastValue;
     }
 
-    return nullptr;
+    return antlr4::Any();
 }
 
 // Multiplication/Division: Handles multiplication and division
-std::any LLVMCodegen::visitMultiplication(PrystParser::MultiplicationContext* ctx) {
+antlr4::Any LLVMCodegen::visitMultiplication(PrystParser::MultiplicationContext* ctx) {
     visit(ctx->unary(0));
     llvm::Value* left = lastValue;
 
@@ -787,14 +1034,17 @@ std::any LLVMCodegen::visitMultiplication(PrystParser::MultiplicationContext* ct
                 lastValue = builder->CreateSRem(left, right, "modtmp");
             }
         }
+        // Add type metadata for reflection
+        auto typeInfo = std::make_shared<pryst::TypeInfo>(left->getType()->isFloatingPointTy() ? "float" : "int");
+        addTypeInfo(lastValue, typeInfo);
         left = lastValue;
     }
 
-    return nullptr;
+    return antlr4::Any();
 }
 
 // Unary: Handles unary operations
-std::any LLVMCodegen::visitUnary(PrystParser::UnaryContext* ctx) {
+antlr4::Any LLVMCodegen::visitUnary(PrystParser::UnaryContext* ctx) {
     if (ctx->postfix()) {
         visit(ctx->postfix());
     } else if (ctx->unary()) {
@@ -807,45 +1057,63 @@ std::any LLVMCodegen::visitUnary(PrystParser::UnaryContext* ctx) {
             } else {
                 lastValue = builder->CreateNeg(operand, "negtmp");
             }
+            // Add type metadata for reflection
+            auto typeInfo = std::make_shared<pryst::TypeInfo>(operand->getType()->isFloatingPointTy() ? "float" : "int");
+            addTypeInfo(lastValue, typeInfo);
         } else if (ctx->BANG()) {
             lastValue = builder->CreateNot(operand, "nottmp");
+            // Add type metadata for reflection
+            auto typeInfo = std::make_shared<pryst::TypeInfo>("bool");
+            addTypeInfo(lastValue, typeInfo);
         } else if (ctx->INCREMENT()) {
             llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
             lastValue = builder->CreateAdd(operand, one, "inctmp");
+            // Add type metadata for reflection
+            auto typeInfo = std::make_shared<pryst::TypeInfo>("int");
+            addTypeInfo(lastValue, typeInfo);
             // Store the incremented value back if possible
             // This requires access to the variable's address
             throw std::runtime_error("Prefix increment not fully implemented");
         } else if (ctx->DECREMENT()) {
             llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
             lastValue = builder->CreateSub(operand, one, "dectmp");
+            // Add type metadata for reflection
+            auto typeInfo = std::make_shared<pryst::TypeInfo>("int");
+            addTypeInfo(lastValue, typeInfo);
             // Store the decremented value back if possible
             // This requires access to the variable's address
             throw std::runtime_error("Prefix decrement not fully implemented");
         }
     }
-    return nullptr;
+    return antlr4::Any();
 }
 
 // Postfix: Handles postfix operations
-std::any LLVMCodegen::visitPostfix(PrystParser::PostfixContext* ctx) {
+antlr4::Any LLVMCodegen::visitPostfix(PrystParser::PostfixContext* ctx) {
     visit(ctx->primary());
     llvm::Value* operand = lastValue;
 
     if (ctx->INCREMENT()) {
         llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
         llvm::Value* newValue = builder->CreateAdd(operand, one, "postinctmp");
+        // Add type metadata for reflection
+        auto typeInfo = std::make_shared<pryst::TypeInfo>("int");
+        addTypeInfo(newValue, typeInfo);
         // Store the incremented value back if possible
         // This requires access to the variable's address
         throw std::runtime_error("Postfix increment not fully implemented");
     } else if (ctx->DECREMENT()) {
         llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
         llvm::Value* newValue = builder->CreateSub(operand, one, "postdectmp");
+        // Add type metadata for reflection
+        auto typeInfo = std::make_shared<pryst::TypeInfo>("int");
+        addTypeInfo(newValue, typeInfo);
         // Store the decremented value back if possible
         // This requires access to the variable's address
         throw std::runtime_error("Postfix decrement not fully implemented");
     }
 
-    return nullptr;
+    return antlr4::Any();
 }
 
 
@@ -875,13 +1143,268 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
             std::string functionName = functionCallee->getName().str();
 
             if (functionName == "print") {
-                // Handle the print function
-                llvm::Function* printfFunc = declarePrintf();
-                llvm::Value* formatStr = builder->CreateGlobalString("%s\n");
-                args.insert(args.begin(), formatStr);
-                lastValue = builder->CreateCall(printfFunc, args, "calltmp");
+                // Handle the print function with type-specific format strings
+                llvm::Function* printfFunc = module->getFunction("printf");
+                if (!printfFunc) {
+                    throw std::runtime_error("printf function not found in module");
+                }
+
+                if (args.empty()) {
+                    throw std::runtime_error("print function requires one argument");
+                }
+
+                llvm::Value* arg = args[0];
+                llvm::Value* formatStr;
+
+                if (arg->getType()->isIntegerTy()) {
+                    formatStr = builder->CreateGlobalString("%d\n", "int_fmt");
+                } else if (arg->getType()->isDoubleTy()) {
+                    formatStr = builder->CreateGlobalString("%f\n", "float_fmt");
+                } else if (arg->getType()->isPointerTy()) {
+                    // For now, treat all pointers as string pointers (i8*)
+                    // We'll add more pointer type support when implementing arrays
+                    formatStr = builder->CreateGlobalString("%s\n", "str_fmt");
+                } else {
+                    throw std::runtime_error("Unsupported type for print function");
+                }
+
+                std::vector<llvm::Value*> printfArgs = {formatStr, arg};
+                lastValue = builder->CreateCall(printfFunc, printfArgs, "printtmp");
+            } else if (functionName == "sqrt") {
+                if (args.empty()) throw std::runtime_error("sqrt function requires one argument");
+                llvm::Value* arg = args[0];
+                if (arg->getType()->isIntegerTy()) {
+                    arg = builder->CreateSIToFP(arg, llvm::Type::getDoubleTy(*context), "inttodouble");
+                }
+                lastValue = builder->CreateCall(functionCallee, {arg}, "sqrttmp");
+            } else if (functionName == "pow") {
+                if (args.size() != 2) throw std::runtime_error("pow function requires two arguments");
+                llvm::Value* base = args[0];
+                llvm::Value* exp = args[1];
+                if (base->getType()->isIntegerTy()) {
+                    base = builder->CreateSIToFP(base, llvm::Type::getDoubleTy(*context), "inttodouble");
+                }
+                if (exp->getType()->isIntegerTy()) {
+                    exp = builder->CreateSIToFP(exp, llvm::Type::getDoubleTy(*context), "inttodouble");
+                }
+                lastValue = builder->CreateCall(functionCallee, {base, exp}, "powtmp");
+            } else if (functionName == "abs") {
+                if (args.empty()) throw std::runtime_error("abs function requires one argument");
+                llvm::Value* arg = args[0];
+                if (arg->getType()->isIntegerTy()) {
+                    llvm::Function* absFunc = llvm::Intrinsic::getOrInsertDeclaration(
+                        module.get(), llvm::Intrinsic::abs,
+                        {llvm::Type::getInt32Ty(*context)}
+                    );
+                    llvm::Value* isPoison = llvm::ConstantInt::getFalse(*context);
+                    lastValue = builder->CreateCall(absFunc, {arg, isPoison}, "abstmp");
+                } else {
+                    if (!arg->getType()->isDoubleTy()) {
+                        arg = builder->CreateFPExt(arg, llvm::Type::getDoubleTy(*context), "fpext");
+                    }
+                    llvm::Function* fabsFunc = llvm::Intrinsic::getOrInsertDeclaration(
+                        module.get(), llvm::Intrinsic::fabs,
+                        {llvm::Type::getDoubleTy(*context)}
+                    );
+                    lastValue = builder->CreateCall(fabsFunc, {arg}, "abstmp");
+                }
+            } else if (functionName == "length") {
+                if (args.empty()) throw std::runtime_error("length function requires one argument");
+                llvm::Value* arg = args[0];
+                if (!arg->getType()->isPointerTy()) {
+                    throw std::runtime_error("length function requires string argument");
+                }
+                // Get strlen function
+                llvm::Function* strlenFunc = module->getFunction("strlen");
+                if (!strlenFunc) {
+                    llvm::FunctionType* strlenType = llvm::FunctionType::get(
+                        llvm::Type::getInt64Ty(*context),
+                        {llvm::Type::getInt8PtrTy(*context)},
+                        false
+                    );
+                    strlenFunc = llvm::Function::Create(
+                        strlenType,
+                        llvm::Function::ExternalLinkage,
+                        "strlen",
+                        module.get()
+                    );
+                }
+                lastValue = builder->CreateCall(strlenFunc, {arg}, "strlentmp");
+            } else if (functionName == "substring") {
+                if (args.size() != 3) throw std::runtime_error("substring function requires three arguments: string, start, length");
+                llvm::Value* str = args[0];
+                llvm::Value* start = args[1];
+                llvm::Value* length = args[2];
+
+                if (!str->getType()->isPointerTy()) {
+                    throw std::runtime_error("First argument of substring must be a string");
+                }
+                if (!start->getType()->isIntegerTy() || !length->getType()->isIntegerTy()) {
+                    throw std::runtime_error("Start and length arguments of substring must be integers");
+                }
+
+                // Get malloc function
+                llvm::Function* mallocFunc = module->getFunction("malloc");
+                if (!mallocFunc) {
+                    llvm::FunctionType* mallocType = llvm::FunctionType::get(
+                        llvm::Type::getInt8PtrTy(*context),
+                        {llvm::Type::getInt64Ty(*context)},
+                        false
+                    );
+                    mallocFunc = llvm::Function::Create(
+                        mallocType,
+                        llvm::Function::ExternalLinkage,
+                        "malloc",
+                        module.get()
+                    );
+                }
+
+                // Allocate memory for the substring (length + 1 for null terminator)
+                llvm::Value* lengthPlusOne = builder->CreateAdd(
+                    builder->CreateIntCast(length, llvm::Type::getInt64Ty(*context), false),
+                    llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1),
+                    "substrlength"
+                );
+                llvm::Value* newStr = builder->CreateCall(mallocFunc, {lengthPlusOne}, "substrmem");
+
+                // Get strncpy function
+                llvm::Function* strncpyFunc = module->getFunction("strncpy");
+                if (!strncpyFunc) {
+                    llvm::FunctionType* strncpyType = llvm::FunctionType::get(
+                        llvm::Type::getInt8PtrTy(*context),
+                        {llvm::Type::getInt8PtrTy(*context), llvm::Type::getInt8PtrTy(*context), llvm::Type::getInt64Ty(*context)},
+                        false
+                    );
+                    strncpyFunc = llvm::Function::Create(
+                        strncpyType,
+                        llvm::Function::ExternalLinkage,
+                        "strncpy",
+                        module.get()
+                    );
+                }
+
+                // Calculate source pointer (str + start)
+                llvm::Value* sourcePtr = builder->CreateGEP(
+                    llvm::Type::getInt8Ty(*context),
+                    str,
+                    start,
+                    "sourceptr"
+                );
+
+                // Copy the substring
+                builder->CreateCall(strncpyFunc, {
+                    newStr,
+                    sourcePtr,
+                    builder->CreateIntCast(length, llvm::Type::getInt64Ty(*context), false)
+                }, "strncpytmp");
+
+                // Null terminate the string
+                llvm::Value* nullTermPtr = builder->CreateGEP(
+                    llvm::Type::getInt8Ty(*context),
+                    newStr,
+                    length,
+                    "nulltermptr"
+                );
+                builder->CreateStore(
+                    llvm::ConstantInt::get(llvm::Type::getInt8Ty(*context), 0),
+                    nullTermPtr
+                );
+
+                lastValue = newStr;
+            } else if (functionName == "concat") {
+                if (args.size() != 2) throw std::runtime_error("concat function requires two string arguments");
+                llvm::Value* str1 = args[0];
+                llvm::Value* str2 = args[1];
+
+                if (!str1->getType()->isPointerTy() || !str2->getType()->isPointerTy()) {
+                    throw std::runtime_error("Both arguments of concat must be strings");
+                }
+
+                // Get strlen function if not already available
+                llvm::Function* strlenFunc = module->getFunction("strlen");
+                if (!strlenFunc) {
+                    llvm::FunctionType* strlenType = llvm::FunctionType::get(
+                        llvm::Type::getInt64Ty(*context),
+                        {llvm::Type::getInt8PtrTy(*context)},
+                        false
+                    );
+                    strlenFunc = llvm::Function::Create(
+                        strlenType,
+                        llvm::Function::ExternalLinkage,
+                        "strlen",
+                        module.get()
+                    );
+                }
+
+                // Get lengths of both strings
+                llvm::Value* len1 = builder->CreateCall(strlenFunc, {str1}, "len1tmp");
+                llvm::Value* len2 = builder->CreateCall(strlenFunc, {str2}, "len2tmp");
+
+                // Calculate total length needed
+                llvm::Value* totalLen = builder->CreateAdd(
+                    builder->CreateAdd(len1, len2),
+                    llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1),
+                    "totallen"
+                );
+
+                // Get malloc function if not already available
+                llvm::Function* mallocFunc = module->getFunction("malloc");
+                if (!mallocFunc) {
+                    llvm::FunctionType* mallocType = llvm::FunctionType::get(
+                        llvm::Type::getInt8PtrTy(*context),
+                        {llvm::Type::getInt64Ty(*context)},
+                        false
+                    );
+                    mallocFunc = llvm::Function::Create(
+                        mallocType,
+                        llvm::Function::ExternalLinkage,
+                        "malloc",
+                        module.get()
+                    );
+                }
+
+                // Allocate memory for concatenated string
+                llvm::Value* newStr = builder->CreateCall(mallocFunc, {totalLen}, "concatmem");
+
+                // Get strcpy function
+                llvm::Function* strcpyFunc = module->getFunction("strcpy");
+                if (!strcpyFunc) {
+                    llvm::FunctionType* strcpyType = llvm::FunctionType::get(
+                        llvm::Type::getInt8PtrTy(*context),
+                        {llvm::Type::getInt8PtrTy(*context), llvm::Type::getInt8PtrTy(*context)},
+                        false
+                    );
+                    strcpyFunc = llvm::Function::Create(
+                        strcpyType,
+                        llvm::Function::ExternalLinkage,
+                        "strcpy",
+                        module.get()
+                    );
+                }
+
+                // Get strcat function
+                llvm::Function* strcatFunc = module->getFunction("strcat");
+                if (!strcatFunc) {
+                    llvm::FunctionType* strcatType = llvm::FunctionType::get(
+                        llvm::Type::getInt8PtrTy(*context),
+                        {llvm::Type::getInt8PtrTy(*context), llvm::Type::getInt8PtrTy(*context)},
+                        false
+                    );
+                    strcatFunc = llvm::Function::Create(
+                        strcatType,
+                        llvm::Function::ExternalLinkage,
+                        "strcat",
+                        module.get()
+                    );
+                }
+
+                // Copy first string
+                builder->CreateCall(strcpyFunc, {newStr, str1}, "strcpytmp");
+                // Concatenate second string
+                builder->CreateCall(strcatFunc, {newStr, str2}, "strcattmp");
+
+                lastValue = newStr;
             } else {
-                // Direct function call
                 lastValue = builder->CreateCall(functionCallee, args, "calltmp");
             }
         } else {
@@ -1043,6 +1566,11 @@ llvm::Type* LLVMCodegen::getLLVMType(const std::string& typeName) {
         return llvm::Type::getInt1Ty(*context);
     } else if (typeName == "str") {
         return llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0);
+    } else if (typeName.substr(0, 6) == "array<" && typeName.back() == '>') {
+        // Handle array types like array<int>, array<float>, etc.
+        std::string elementTypeName = typeName.substr(6, typeName.length() - 7);
+        llvm::Type* elementType = getLLVMType(elementTypeName);
+        return getOrCreateArrayType(elementType);
     } else {
         // Assume it's a user-defined class type
         llvm::StructType* structType = llvm::StructType::getTypeByName(*context, typeName);
@@ -1060,4 +1588,1108 @@ llvm::AllocaInst* LLVMCodegen::createEntryBlockAlloca(llvm::Function* function, 
     return tmpBuilder.CreateAlloca(type, nullptr, varName);
 }
 
+// Array Implementation
+llvm::StructType* LLVMCodegen::getOrCreateArrayType(llvm::Type* elementType) {
+    // Create type name based on element type
+    std::string typeName = "array.";
+    if (elementType->isIntegerTy()) {
+        typeName += "int";
+    } else if (elementType->isDoubleTy()) {
+        typeName += "float";
+    } else if (elementType->isPointerTy() &&
+               elementType->getPointerElementType()->isIntegerTy(8)) {
+        typeName += "str";
+    } else {
+        throw std::runtime_error("Unsupported array element type");
+    }
 
+    // Return cached type if it exists
+    if (auto* existingType = arrayTypes[typeName]) {
+        return existingType;
+    }
+
+    // Create new array type: { T*, i32, i32 } representing { buffer, length, capacity }
+    std::vector<llvm::Type*> members = {
+        llvm::PointerType::get(elementType, 0),  // buffer
+        llvm::Type::getInt32Ty(*context),        // length
+        llvm::Type::getInt32Ty(*context)         // capacity
+    };
+
+    auto* arrayType = llvm::StructType::create(*context, members, typeName);
+    arrayTypes[typeName] = arrayType;
+    return arrayType;
+}
+
+llvm::Value* LLVMCodegen::createArrayAlloc(llvm::Type* elementType, llvm::Value* size) {
+    // Get or create array type
+    llvm::StructType* arrayType = getOrCreateArrayType(elementType);
+
+    // Allocate array struct
+    llvm::Value* arrayStruct = builder->CreateAlloca(arrayType, nullptr, "array");
+
+    // Calculate buffer size (size * sizeof(elementType))
+    llvm::Value* elementSize = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context),
+        module->getDataLayout().getTypeAllocSize(elementType));
+    llvm::Value* bufferSize = builder->CreateMul(
+        builder->CreateZExt(size, llvm::Type::getInt64Ty(*context)),
+        elementSize,
+        "buffersize"
+    );
+
+    // Get malloc function
+    llvm::Function* mallocFunc = module->getFunction("malloc");
+    if (!mallocFunc) {
+        llvm::FunctionType* mallocType = llvm::FunctionType::get(
+            llvm::Type::getInt8PtrTy(*context),
+            {llvm::Type::getInt64Ty(*context)},
+            false
+        );
+        mallocFunc = llvm::Function::Create(
+            mallocType,
+            llvm::Function::ExternalLinkage,
+            "malloc",
+            module.get()
+        );
+    }
+
+    // Allocate buffer
+    llvm::Value* buffer = builder->CreateCall(mallocFunc, {bufferSize}, "arraybuffer");
+    buffer = builder->CreateBitCast(buffer,
+        llvm::PointerType::get(elementType, 0),
+        "typedbuffer"
+    );
+
+    // Store buffer pointer
+    llvm::Value* bufferPtr = builder->CreateStructGEP(arrayType, arrayStruct, 0);
+    builder->CreateStore(buffer, bufferPtr);
+
+    // Store length (initially 0)
+    llvm::Value* lengthPtr = builder->CreateStructGEP(arrayType, arrayStruct, 1);
+    builder->CreateStore(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0), lengthPtr);
+
+    // Store capacity
+    llvm::Value* capacityPtr = builder->CreateStructGEP(arrayType, arrayStruct, 2);
+    builder->CreateStore(size, capacityPtr);
+
+    return arrayStruct;
+}
+
+llvm::Value* LLVMCodegen::getArrayLength(llvm::Value* array) {
+    llvm::StructType* arrayType = llvm::cast<llvm::StructType>(
+        array->getType()->getPointerElementType()
+    );
+    llvm::Value* lengthPtr = builder->CreateStructGEP(arrayType, array, 1);
+    return builder->CreateLoad(llvm::Type::getInt32Ty(*context), lengthPtr);
+}
+
+llvm::Value* LLVMCodegen::getArrayBuffer(llvm::Value* array) {
+    llvm::StructType* arrayType = llvm::cast<llvm::StructType>(
+        array->getType()->getPointerElementType()
+    );
+    llvm::Value* bufferPtr = builder->CreateStructGEP(arrayType, array, 0);
+    return builder->CreateLoad(
+        llvm::PointerType::get(arrayType->getElementType(0)->getPointerElementType(), 0),
+        bufferPtr
+    );
+}
+
+// Helper function to declare malloc
+llvm::Function* LLVMCodegen::declareMalloc() {
+    // Return existing function if already declared
+    if (auto* existingFunc = module->getFunction("malloc")) {
+        return existingFunc;
+    }
+
+    // Create malloc function type: void* malloc(size_t)
+    llvm::FunctionType* mallocType = llvm::FunctionType::get(
+        llvm::Type::getInt8PtrTy(*context),
+        {llvm::Type::getInt64Ty(*context)},
+        false
+    );
+
+    // Create and return the function declaration
+    return llvm::Function::Create(
+        mallocType,
+        llvm::Function::ExternalLinkage,
+        "malloc",
+        module.get()
+    );
+}
+
+// Array push operation implementation
+llvm::Function* LLVMCodegen::declareArrayPush() {
+    if (auto* existingFunc = arrayFunctions["array_push"]) return existingFunc;
+
+    // Setup function and blocks
+    std::vector<llvm::Type*> pushArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+        llvm::Type::getInt32Ty(*context)
+    };
+    auto* pushFunc = llvm::Function::Create(
+        llvm::FunctionType::get(llvm::Type::getVoidTy(*context), pushArgs, false),
+        llvm::Function::ExternalLinkage,
+        "array_push",
+        module.get()
+    );
+
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", pushFunc);
+    auto* resizeBlock = llvm::BasicBlock::Create(*context, "resize", pushFunc);
+    auto* pushBlock = llvm::BasicBlock::Create(*context, "push", pushFunc);
+
+    // Entry block: Cast array and check capacity
+    builder->SetInsertPoint(entry);
+    auto args = pushFunc->arg_begin();
+    llvm::Value* array = builder->CreateBitCast(args++,
+        getOrCreateArrayType(llvm::Type::getInt32Ty(*context))->getPointerTo());
+    llvm::Value* value = args;
+
+    llvm::Value* length = getArrayLength(array);
+    llvm::Value* buffer = getArrayBuffer(array);
+    llvm::Value* capacity = builder->CreateLoad(
+        llvm::Type::getInt32Ty(*context),
+        builder->CreateStructGEP(array->getType()->getPointerElementType(), array, 2)
+    );
+
+    builder->CreateCondBr(
+        builder->CreateICmpEQ(length, capacity),
+        resizeBlock,
+        pushBlock
+    );
+
+    // Resize block: Double capacity and reallocate
+    builder->SetInsertPoint(resizeBlock);
+    llvm::Value* newCapacity = builder->CreateMul(
+        capacity,
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 2)
+    );
+
+    llvm::Value* elementSize = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context),
+        module->getDataLayout().getTypeAllocSize(llvm::Type::getInt32Ty(*context)));
+    llvm::Value* newBuffer = builder->CreateCall(
+        declareMalloc(),
+        {builder->CreateMul(
+            builder->CreateZExt(newCapacity, llvm::Type::getInt64Ty(*context)),
+            elementSize
+        )}
+    );
+    newBuffer = builder->CreateBitCast(newBuffer,
+        llvm::PointerType::get(llvm::Type::getInt32Ty(*context), 0)
+    );
+
+    // Copy old data and update array
+    builder->CreateMemCpy(
+        newBuffer, llvm::MaybeAlign(4),
+        buffer, llvm::MaybeAlign(4),
+        builder->CreateMul(
+            builder->CreateZExt(length, llvm::Type::getInt64Ty(*context)),
+            elementSize
+        )
+    );
+
+    builder->CreateStore(newBuffer,
+        builder->CreateStructGEP(array->getType()->getPointerElementType(), array, 0));
+    builder->CreateStore(newCapacity,
+        builder->CreateStructGEP(array->getType()->getPointerElementType(), array, 2));
+
+    // Update buffer for push block
+    buffer = newBuffer;
+    builder->CreateBr(pushBlock);
+
+    // Push block: Add element and increment length
+    builder->SetInsertPoint(pushBlock);
+
+    // Get pointer to element position
+    llvm::Value* elementPtr = builder->CreateGEP(
+        llvm::Type::getInt32Ty(*context),
+        buffer,
+        length,
+        "element.ptr"
+    );
+
+    // Store the value
+    builder->CreateStore(value, elementPtr);
+
+    // Increment length
+    llvm::Value* newLength = builder->CreateAdd(
+        length,
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 1),
+        "new.length"
+    );
+    builder->CreateStore(newLength,
+        builder->CreateStructGEP(array->getType()->getPointerElementType(), array, 1)
+    );
+
+    builder->CreateRetVoid();
+    arrayFunctions["array_push"] = pushFunc;
+    return pushFunc;
+}
+// Array pop operation implementation
+llvm::Function* LLVMCodegen::declareArrayPop() {
+    if (auto* existingFunc = arrayFunctions["array_pop"]) return existingFunc;
+
+    // Create function type for array_pop(array*) -> T
+    std::vector<llvm::Type*> popArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)  // array pointer
+    };
+    auto* popType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),  // Return type (we'll create overloads for different types)
+        popArgs,
+        false
+    );
+
+    // Create function
+    auto* popFunc = llvm::Function::Create(
+        popType,
+        llvm::Function::ExternalLinkage,
+        "array_pop",
+        module.get()
+    );
+
+    // Create blocks
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", popFunc);
+    auto* emptyCheck = llvm::BasicBlock::Create(*context, "empty_check", popFunc);
+    auto* popBlock = llvm::BasicBlock::Create(*context, "pop", popFunc);
+    auto* errorBlock = llvm::BasicBlock::Create(*context, "error", popFunc);
+
+    // Entry block: Cast array and get length
+    builder->SetInsertPoint(entry);
+    auto* array = builder->CreateBitCast(popFunc->arg_begin(),
+        getOrCreateArrayType(llvm::Type::getInt32Ty(*context))->getPointerTo());
+
+    // Get array length and buffer
+    auto* length = getArrayLength(array);
+    auto* buffer = getArrayBuffer(array);
+
+    // Check if array is empty
+    auto* isEmpty = builder->CreateICmpEQ(
+        length,
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0)
+    );
+    builder->CreateCondBr(isEmpty, errorBlock, popBlock);
+
+    // Error block: Return 0 or throw error
+    builder->SetInsertPoint(errorBlock);
+    builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
+
+    // Pop block: Get last element and decrement length
+    builder->SetInsertPoint(popBlock);
+    auto* newLength = builder->CreateSub(
+        length,
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 1),
+        "new.length"
+    );
+
+    // Get last element
+    auto* lastElementPtr = builder->CreateGEP(
+        llvm::Type::getInt32Ty(*context),
+        buffer,
+        newLength,
+        "last.element.ptr"
+    );
+    auto* lastElement = builder->CreateLoad(
+        llvm::Type::getInt32Ty(*context),
+        lastElementPtr,
+        "last.element"
+    );
+
+    // Update length
+    builder->CreateStore(newLength,
+        builder->CreateStructGEP(array->getType()->getPointerElementType(), array, 1)
+    );
+
+    // Return the popped value
+    builder->CreateRet(lastElement);
+
+    arrayFunctions["array_pop"] = popFunc;
+    return popFunc;
+}
+// Array get operation implementation
+llvm::Function* LLVMCodegen::declareArrayGet() {
+    if (auto* existingFunc = arrayFunctions["array_get"]) return existingFunc;
+
+    // Create function type for array_get(array*, i32) -> T
+    std::vector<llvm::Type*> getArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // array pointer
+        llvm::Type::getInt32Ty(*context)                             // index
+    };
+    auto* getType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),  // Return type (we'll create overloads for different types)
+        getArgs,
+        false
+    );
+
+    // Create function
+    auto* getFunc = llvm::Function::Create(
+        getType,
+        llvm::Function::ExternalLinkage,
+        "array_get",
+        module.get()
+    );
+
+    // Create blocks
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", getFunc);
+    auto* validIndex = llvm::BasicBlock::Create(*context, "valid_index", getFunc);
+    auto* errorBlock = llvm::BasicBlock::Create(*context, "error", getFunc);
+
+    // Entry block: Cast array and check index bounds
+    builder->SetInsertPoint(entry);
+    auto args = getFunc->arg_begin();
+    auto* array = builder->CreateBitCast(args++,
+        getOrCreateArrayType(llvm::Type::getInt32Ty(*context))->getPointerTo());
+    auto* index = args;
+
+    // Get array length and buffer
+    auto* length = getArrayLength(array);
+    auto* buffer = getArrayBuffer(array);
+
+    // Check if index is within bounds
+    auto* isValidIndex = builder->CreateICmpULT(
+        index,
+        length,
+        "is_valid_index"
+    );
+    builder->CreateCondBr(isValidIndex, validIndex, errorBlock);
+
+    // Error block: Return 0 or throw error
+    builder->SetInsertPoint(errorBlock);
+    builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
+
+    // Valid index block: Get element at index
+    builder->SetInsertPoint(validIndex);
+    auto* elementPtr = builder->CreateGEP(
+        llvm::Type::getInt32Ty(*context),
+        buffer,
+        index,
+        "element.ptr"
+    );
+    auto* element = builder->CreateLoad(
+        llvm::Type::getInt32Ty(*context),
+        elementPtr,
+        "element"
+    );
+
+    // Return the element
+    builder->CreateRet(element);
+
+    arrayFunctions["array_get"] = getFunc;
+    return getFunc;
+}
+// Array set operation implementation
+llvm::Function* LLVMCodegen::declareArraySet() {
+    if (auto* existingFunc = arrayFunctions["array_set"]) return existingFunc;
+
+    // Create function type for array_set(array*, i32, T)
+    std::vector<llvm::Type*> setArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // array pointer
+        llvm::Type::getInt32Ty(*context),                            // index
+        llvm::Type::getInt32Ty(*context)                             // value
+    };
+    auto* setType = llvm::FunctionType::get(
+        llvm::Type::getVoidTy(*context),  // Return type (void)
+        setArgs,
+        false
+    );
+
+    // Create function
+    auto* setFunc = llvm::Function::Create(
+        setType,
+        llvm::Function::ExternalLinkage,
+        "array_set",
+        module.get()
+    );
+
+    // Create blocks
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", setFunc);
+    auto* validIndex = llvm::BasicBlock::Create(*context, "valid_index", setFunc);
+    auto* errorBlock = llvm::BasicBlock::Create(*context, "error", setFunc);
+
+    // Entry block: Cast array and check index bounds
+    builder->SetInsertPoint(entry);
+    auto args = setFunc->arg_begin();
+    auto* array = builder->CreateBitCast(args++,
+        getOrCreateArrayType(llvm::Type::getInt32Ty(*context))->getPointerTo());
+    auto* index = args++;
+    auto* value = args;
+
+    // Get array length and buffer
+    auto* length = getArrayLength(array);
+    auto* buffer = getArrayBuffer(array);
+
+    // Check if index is within bounds
+    auto* isValidIndex = builder->CreateICmpULT(
+        index,
+        length,
+        "is_valid_index"
+    );
+    builder->CreateCondBr(isValidIndex, validIndex, errorBlock);
+
+    // Error block: Return without doing anything
+    builder->SetInsertPoint(errorBlock);
+    builder->CreateRetVoid();
+
+    // Valid index block: Set element at index
+    builder->SetInsertPoint(validIndex);
+    auto* elementPtr = builder->CreateGEP(
+        llvm::Type::getInt32Ty(*context),
+        buffer,
+        index,
+        "element.ptr"
+    );
+    builder->CreateStore(value, elementPtr);
+    builder->CreateRetVoid();
+
+    arrayFunctions["array_set"] = setFunc;
+    return setFunc;
+}
+// File I/O operations implementation
+
+// Read file operation
+llvm::Function* LLVMCodegen::declareFileRead() {
+    if (auto* existingFunc = functions["read_file"]) return existingFunc;
+
+    // Create function type for read_file(filename: str) -> str
+    std::vector<llvm::Type*> readArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)  // filename (string)
+    };
+    auto* readType = llvm::FunctionType::get(
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // Return type (string)
+        readArgs,
+        false
+    );
+
+    // Create function
+    auto* readFunc = llvm::Function::Create(
+        readType,
+        llvm::Function::ExternalLinkage,
+        "read_file",
+        module.get()
+    );
+
+    // Create blocks
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", readFunc);
+    auto* readBlock = llvm::BasicBlock::Create(*context, "read", readFunc);
+    auto* errorBlock = llvm::BasicBlock::Create(*context, "error", readFunc);
+
+    // Entry block: Open file
+    builder->SetInsertPoint(entry);
+    auto* filename = readFunc->arg_begin();
+
+    // Declare fopen
+    std::vector<llvm::Type*> fopenArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // filename
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)   // mode
+    };
+    auto* fopenType = llvm::FunctionType::get(
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // FILE*
+        fopenArgs,
+        false
+    );
+    auto* fopen = module->getOrInsertFunction("fopen", fopenType);
+
+    // Open file in read mode
+    auto* mode = builder->CreateGlobalStringPtr("r", "read_mode");
+    auto* file = builder->CreateCall(fopen, {filename, mode}, "file");
+
+    // Check if file opened successfully
+    auto* isFileNull = builder->CreateICmpEQ(
+        file,
+        llvm::ConstantPointerNull::get(llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)),
+        "is_file_null"
+    );
+    builder->CreateCondBr(isFileNull, errorBlock, readBlock);
+
+    // Error block: Return empty string
+    builder->SetInsertPoint(errorBlock);
+    auto* emptyStr = builder->CreateGlobalStringPtr("", "empty_str");
+    builder->CreateRet(emptyStr);
+
+    // Read block: Read file contents
+    builder->SetInsertPoint(readBlock);
+
+    // Get file size using fseek and ftell
+    std::vector<llvm::Type*> fseekArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // FILE*
+        llvm::Type::getInt64Ty(*context),                            // offset
+        llvm::Type::getInt32Ty(*context)                             // whence
+    };
+    auto* fseekType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),
+        fseekArgs,
+        false
+    );
+    auto* fseek = module->getOrInsertFunction("fseek", fseekType);
+
+    std::vector<llvm::Type*> ftellArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)  // FILE*
+    };
+    auto* ftellType = llvm::FunctionType::get(
+        llvm::Type::getInt64Ty(*context),
+        ftellArgs,
+        false
+    );
+    auto* ftell = module->getOrInsertFunction("ftell", ftellType);
+
+    // Seek to end
+    builder->CreateCall(fseek, {
+        file,
+        llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0),
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 2)  // SEEK_END
+    });
+
+    // Get size
+    auto* size = builder->CreateCall(ftell, {file}, "file_size");
+
+    // Seek back to start
+    builder->CreateCall(fseek, {
+        file,
+        llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0),
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0)  // SEEK_SET
+    });
+
+    // Allocate buffer
+    auto* buffer = builder->CreateCall(
+        declareMalloc(),
+        {builder->CreateAdd(
+            size,
+            llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1)  // +1 for null terminator
+        )},
+        "buffer"
+    );
+
+    // Read file
+    std::vector<llvm::Type*> freadArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // buffer
+        llvm::Type::getInt64Ty(*context),                            // size
+        llvm::Type::getInt64Ty(*context),                            // count
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)   // FILE*
+    };
+    auto* freadType = llvm::FunctionType::get(
+        llvm::Type::getInt64Ty(*context),
+        freadArgs,
+        false
+    );
+    auto* fread = module->getOrInsertFunction("fread", freadType);
+
+    builder->CreateCall(fread, {
+        buffer,
+        llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1),  // size = 1 byte
+        size,                                                          // count = file size
+        file
+    });
+
+    // Null terminate
+    auto* endPtr = builder->CreateGEP(
+        llvm::Type::getInt8Ty(*context),
+        buffer,
+        size,
+        "end_ptr"
+    );
+    builder->CreateStore(
+        llvm::ConstantInt::get(llvm::Type::getInt8Ty(*context), 0),
+        endPtr
+    );
+
+    // Close file
+    std::vector<llvm::Type*> fcloseArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)  // FILE*
+    };
+    auto* fcloseType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),
+        fcloseArgs,
+        false
+    );
+    auto* fclose = module->getOrInsertFunction("fclose", fcloseType);
+    builder->CreateCall(fclose, {file});
+
+    // Return buffer
+    builder->CreateRet(buffer);
+
+    functions["read_file"] = readFunc;
+    return readFunc;
+}
+
+// Write file operation
+llvm::Function* LLVMCodegen::declareFileWrite() {
+    if (auto* existingFunc = functions["write_file"]) return existingFunc;
+
+    // Create function type for write_file(filename: str, content: str) -> bool
+    std::vector<llvm::Type*> writeArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // filename
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)   // content
+    };
+    auto* writeType = llvm::FunctionType::get(
+        llvm::Type::getInt1Ty(*context),  // Return type (bool)
+        writeArgs,
+        false
+    );
+
+    // Create function
+    auto* writeFunc = llvm::Function::Create(
+        writeType,
+        llvm::Function::ExternalLinkage,
+        "write_file",
+        module.get()
+    );
+
+    // Create blocks
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", writeFunc);
+    auto* writeBlock = llvm::BasicBlock::Create(*context, "write", writeFunc);
+    auto* errorBlock = llvm::BasicBlock::Create(*context, "error", writeFunc);
+
+    // Entry block: Open file
+    builder->SetInsertPoint(entry);
+    auto args = writeFunc->arg_begin();
+    auto* filename = args++;
+    auto* content = args;
+
+    // Declare fopen
+    std::vector<llvm::Type*> fopenArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // filename
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)   // mode
+    };
+    auto* fopenType = llvm::FunctionType::get(
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // FILE*
+        fopenArgs,
+        false
+    );
+    auto* fopen = module->getOrInsertFunction("fopen", fopenType);
+
+    // Open file in write mode
+    auto* mode = builder->CreateGlobalStringPtr("w", "write_mode");
+    auto* file = builder->CreateCall(fopen, {filename, mode}, "file");
+
+    // Check if file opened successfully
+    auto* isFileNull = builder->CreateICmpEQ(
+        file,
+        llvm::ConstantPointerNull::get(llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)),
+        "is_file_null"
+    );
+    builder->CreateCondBr(isFileNull, errorBlock, writeBlock);
+
+    // Error block: Return false
+    builder->SetInsertPoint(errorBlock);
+    builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt1Ty(*context), 0));
+
+    // Write block: Write content to file
+    builder->SetInsertPoint(writeBlock);
+
+    // Get content length using strlen
+    std::vector<llvm::Type*> strlenArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)  // str
+    };
+    auto* strlenType = llvm::FunctionType::get(
+        llvm::Type::getInt64Ty(*context),
+        strlenArgs,
+        false
+    );
+    auto* strlen = module->getOrInsertFunction("strlen", strlenType);
+    auto* contentLen = builder->CreateCall(strlen, {content}, "content_len");
+
+    // Write content
+    std::vector<llvm::Type*> fwriteArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // buffer
+        llvm::Type::getInt64Ty(*context),                            // size
+        llvm::Type::getInt64Ty(*context),                            // count
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)   // FILE*
+    };
+    auto* fwriteType = llvm::FunctionType::get(
+        llvm::Type::getInt64Ty(*context),
+        fwriteArgs,
+        false
+    );
+    auto* fwrite = module->getOrInsertFunction("fwrite", fwriteType);
+
+    auto* bytesWritten = builder->CreateCall(fwrite, {
+        content,
+        llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1),  // size = 1 byte
+        contentLen,                                                     // count = content length
+        file
+    }, "bytes_written");
+
+    // Close file
+    std::vector<llvm::Type*> fcloseArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)  // FILE*
+    };
+    auto* fcloseType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),
+        fcloseArgs,
+        false
+    );
+    auto* fclose = module->getOrInsertFunction("fclose", fcloseType);
+    builder->CreateCall(fclose, {file});
+
+    // Return true if bytes written equals content length
+    auto* success = builder->CreateICmpEQ(bytesWritten, contentLen, "success");
+    builder->CreateRet(success);
+
+    functions["write_file"] = writeFunc;
+    return writeFunc;
+}
+
+// Append to file operation
+llvm::Function* LLVMCodegen::declareFileAppend() {
+    if (auto* existingFunc = functions["append_file"]) return existingFunc;
+
+    // Create function type for append_file(filename: str, content: str) -> bool
+    std::vector<llvm::Type*> appendArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // filename
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)   // content
+    };
+    auto* appendType = llvm::FunctionType::get(
+        llvm::Type::getInt1Ty(*context),  // Return type (bool)
+        appendArgs,
+        false
+    );
+
+    // Create function
+    auto* appendFunc = llvm::Function::Create(
+        appendType,
+        llvm::Function::ExternalLinkage,
+        "append_file",
+        module.get()
+    );
+
+    // Create blocks
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", appendFunc);
+    auto* appendBlock = llvm::BasicBlock::Create(*context, "append", appendFunc);
+    auto* errorBlock = llvm::BasicBlock::Create(*context, "error", appendFunc);
+
+    // Entry block: Open file
+    builder->SetInsertPoint(entry);
+    auto args = appendFunc->arg_begin();
+    auto* filename = args++;
+    auto* content = args;
+
+    // Declare fopen
+    std::vector<llvm::Type*> fopenArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // filename
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)   // mode
+    };
+    auto* fopenType = llvm::FunctionType::get(
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // FILE*
+        fopenArgs,
+        false
+    );
+    auto* fopen = module->getOrInsertFunction("fopen", fopenType);
+
+    // Open file in append mode
+    auto* mode = builder->CreateGlobalStringPtr("a", "append_mode");
+    auto* file = builder->CreateCall(fopen, {filename, mode}, "file");
+
+    // Check if file opened successfully
+    auto* isFileNull = builder->CreateICmpEQ(
+        file,
+        llvm::ConstantPointerNull::get(llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)),
+        "is_file_null"
+    );
+    builder->CreateCondBr(isFileNull, errorBlock, appendBlock);
+
+    // Error block: Return false
+    builder->SetInsertPoint(errorBlock);
+    builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt1Ty(*context), 0));
+
+    // Append block: Append content to file
+    builder->SetInsertPoint(appendBlock);
+
+    // Get content length using strlen
+    std::vector<llvm::Type*> strlenArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)  // str
+    };
+    auto* strlenType = llvm::FunctionType::get(
+        llvm::Type::getInt64Ty(*context),
+        strlenArgs,
+        false
+    );
+    auto* strlen = module->getOrInsertFunction("strlen", strlenType);
+    auto* contentLen = builder->CreateCall(strlen, {content}, "content_len");
+
+    // Write content
+    std::vector<llvm::Type*> fwriteArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),  // buffer
+        llvm::Type::getInt64Ty(*context),                            // size
+        llvm::Type::getInt64Ty(*context),                            // count
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)   // FILE*
+    };
+    auto* fwriteType = llvm::FunctionType::get(
+        llvm::Type::getInt64Ty(*context),
+        fwriteArgs,
+        false
+    );
+    auto* fwrite = module->getOrInsertFunction("fwrite", fwriteType);
+
+    auto* bytesWritten = builder->CreateCall(fwrite, {
+        content,
+        llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1),  // size = 1 byte
+        contentLen,                                                     // count = content length
+        file
+    }, "bytes_written");
+
+    // Close file
+    std::vector<llvm::Type*> fcloseArgs = {
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)  // FILE*
+    };
+    auto* fcloseType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),
+        fcloseArgs,
+        false
+    );
+    auto* fclose = module->getOrInsertFunction("fclose", fcloseType);
+    builder->CreateCall(fclose, {file});
+
+    // Return true if bytes written equals content length
+    auto* success = builder->CreateICmpEQ(bytesWritten, contentLen, "success");
+    builder->CreateRet(success);
+
+    functions["append_file"] = appendFunc;
+    return appendFunc;
+}
+// Type conversion operations implementation
+
+// toString operation
+llvm::Function* LLVMCodegen::declareToString() {
+    if (auto* existingFunc = functions["toString"]) return existingFunc;
+
+    // Create function type for toString(value: any) -> str
+    std::vector<llvm::Type*> toStrArgs = {
+        llvm::Type::getInt8PtrTy(*context)  // Generic pointer type for any value
+    };
+    auto* toStrType = llvm::FunctionType::get(
+        llvm::Type::getInt8PtrTy(*context),  // Return type (string)
+        toStrArgs,
+        false
+    );
+
+    // Create function
+    auto* toStrFunc = llvm::Function::Create(
+        toStrType,
+        llvm::Function::ExternalLinkage,
+        "toString",
+        module.get()
+    );
+
+    // Create blocks
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", toStrFunc);
+    auto* intCase = llvm::BasicBlock::Create(*context, "int_case", toStrFunc);
+    auto* floatCase = llvm::BasicBlock::Create(*context, "float_case", toStrFunc);
+    auto* boolCase = llvm::BasicBlock::Create(*context, "bool_case", toStrFunc);
+    auto* defaultCase = llvm::BasicBlock::Create(*context, "default_case", toStrFunc);
+
+    // Entry block: Check value type
+    builder->SetInsertPoint(entry);
+    auto* value = toStrFunc->arg_begin();
+
+    // Allocate buffer for result
+    auto* buffer = builder->CreateCall(
+        declareMalloc(),
+        {llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 64)},  // 64 bytes should be enough
+        "buffer"
+    );
+
+    // Declare sprintf
+    std::vector<llvm::Type*> sprintfArgs = {
+        llvm::Type::getInt8PtrTy(*context),  // buffer
+        llvm::Type::getInt8PtrTy(*context),  // format
+        llvm::Type::getInt8PtrTy(*context)   // value
+    };
+    auto* sprintfType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),
+        sprintfArgs,
+        true  // varargs
+    );
+    auto* sprintf = module->getOrInsertFunction("sprintf", sprintfType);
+
+    // Convert based on type
+    auto* valueType = value->getType();
+    if (valueType == llvm::Type::getInt32Ty(*context)) {
+        builder->CreateBr(intCase);
+    } else if (valueType == llvm::Type::getDoubleTy(*context)) {
+        builder->CreateBr(floatCase);
+    } else if (valueType == llvm::Type::getInt1Ty(*context)) {
+        builder->CreateBr(boolCase);
+    } else {
+        builder->CreateBr(defaultCase);
+    }
+
+    // Int case: Convert int to string
+    builder->SetInsertPoint(intCase);
+    auto* intFormat = builder->CreateGlobalStringPtr("%d", "int_format");
+    builder->CreateCall(sprintf, {buffer, intFormat, value});
+    builder->CreateRet(buffer);
+
+    // Float case: Convert float to string
+    builder->SetInsertPoint(floatCase);
+    auto* floatFormat = builder->CreateGlobalStringPtr("%.6f", "float_format");
+    builder->CreateCall(sprintf, {buffer, floatFormat, value});
+    builder->CreateRet(buffer);
+
+    // Bool case: Convert bool to string
+    builder->SetInsertPoint(boolCase);
+    auto* trueStr = builder->CreateGlobalStringPtr("true", "true_str");
+    auto* falseStr = builder->CreateGlobalStringPtr("false", "false_str");
+    auto* boolStr = builder->CreateSelect(value, trueStr, falseStr, "bool_str");
+    builder->CreateRet(boolStr);
+
+    // Default case: Return empty string
+    builder->SetInsertPoint(defaultCase);
+    auto* emptyStr = builder->CreateGlobalStringPtr("", "empty_str");
+    builder->CreateRet(emptyStr);
+
+    functions["toString"] = toStrFunc;
+    return toStrFunc;
+}
+
+// toInt operation
+llvm::Function* LLVMCodegen::declareToInt() {
+    if (auto* existingFunc = functions["toInt"]) return existingFunc;
+
+    // Create function type for toInt(value: any) -> int
+    std::vector<llvm::Type*> toIntArgs = {
+        llvm::Type::getInt8PtrTy(*context)  // Generic pointer type for any value
+    };
+    auto* toIntType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),  // Return type (int)
+        toIntArgs,
+        false
+    );
+
+    // Create function
+    auto* toIntFunc = llvm::Function::Create(
+        toIntType,
+        llvm::Function::ExternalLinkage,
+        "toInt",
+        module.get()
+    );
+
+    // Create blocks
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", toIntFunc);
+    auto* strCase = llvm::BasicBlock::Create(*context, "str_case", toIntFunc);
+    auto* floatCase = llvm::BasicBlock::Create(*context, "float_case", toIntFunc);
+    auto* boolCase = llvm::BasicBlock::Create(*context, "bool_case", toIntFunc);
+    auto* defaultCase = llvm::BasicBlock::Create(*context, "default_case", toIntFunc);
+
+    // Entry block: Check value type
+    builder->SetInsertPoint(entry);
+    auto* value = toIntFunc->arg_begin();
+
+    // Convert based on type
+    auto* valueType = value->getType();
+    if (valueType == llvm::Type::getInt8PtrTy(*context)) {
+        builder->CreateBr(strCase);
+    } else if (valueType == llvm::Type::getDoubleTy(*context)) {
+        builder->CreateBr(floatCase);
+    } else if (valueType == llvm::Type::getInt1Ty(*context)) {
+        builder->CreateBr(boolCase);
+    } else {
+        builder->CreateBr(defaultCase);
+    }
+
+    // String case: Convert string to int using atoi
+    builder->SetInsertPoint(strCase);
+    std::vector<llvm::Type*> atoiArgs = {
+        llvm::Type::getInt8PtrTy(*context)  // str
+    };
+    auto* atoiType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*context),
+        atoiArgs,
+        false
+    );
+    auto* atoi = module->getOrInsertFunction("atoi", atoiType);
+    auto* intVal = builder->CreateCall(atoi, {value}, "int_val");
+    builder->CreateRet(intVal);
+
+    // Float case: Convert float to int by truncation
+    builder->SetInsertPoint(floatCase);
+    auto* intVal2 = builder->CreateFPToSI(value, llvm::Type::getInt32Ty(*context), "int_val");
+    builder->CreateRet(intVal2);
+
+    // Bool case: Convert bool to int (true = 1, false = 0)
+    builder->SetInsertPoint(boolCase);
+    auto* intVal3 = builder->CreateZExt(value, llvm::Type::getInt32Ty(*context), "int_val");
+    builder->CreateRet(intVal3);
+
+    // Default case: Return 0
+    builder->SetInsertPoint(defaultCase);
+    builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
+
+    functions["toInt"] = toIntFunc;
+    return toIntFunc;
+}
+
+// toFloat operation
+llvm::Function* LLVMCodegen::declareToFloat() {
+    if (auto* existingFunc = functions["toFloat"]) return existingFunc;
+
+    // Create function type for toFloat(value: any) -> float
+    std::vector<llvm::Type*> toFloatArgs = {
+        llvm::Type::getInt8PtrTy(*context)  // Generic pointer type for any value
+    };
+    auto* toFloatType = llvm::FunctionType::get(
+        llvm::Type::getDoubleTy(*context),  // Return type (float)
+        toFloatArgs,
+        false
+    );
+
+    // Create function
+    auto* toFloatFunc = llvm::Function::Create(
+        toFloatType,
+        llvm::Function::ExternalLinkage,
+        "toFloat",
+        module.get()
+    );
+
+    // Create blocks
+    auto* entry = llvm::BasicBlock::Create(*context, "entry", toFloatFunc);
+    auto* strCase = llvm::BasicBlock::Create(*context, "str_case", toFloatFunc);
+    auto* intCase = llvm::BasicBlock::Create(*context, "int_case", toFloatFunc);
+    auto* boolCase = llvm::BasicBlock::Create(*context, "bool_case", toFloatFunc);
+    auto* defaultCase = llvm::BasicBlock::Create(*context, "default_case", toFloatFunc);
+
+    // Entry block: Check value type
+    builder->SetInsertPoint(entry);
+    auto* value = toFloatFunc->arg_begin();
+
+    // Convert based on type
+    auto* valueType = value->getType();
+    if (valueType == llvm::Type::getInt8PtrTy(*context)) {
+        builder->CreateBr(strCase);
+    } else if (valueType == llvm::Type::getInt32Ty(*context)) {
+        builder->CreateBr(intCase);
+    } else if (valueType == llvm::Type::getInt1Ty(*context)) {
+        builder->CreateBr(boolCase);
+    } else {
+        builder->CreateBr(defaultCase);
+    }
+
+    // String case: Convert string to float using atof
+    builder->SetInsertPoint(strCase);
+    std::vector<llvm::Type*> atofArgs = {
+        llvm::Type::getInt8PtrTy(*context)  // str
+    };
+    auto* atofType = llvm::FunctionType::get(
+        llvm::Type::getDoubleTy(*context),
+        atofArgs,
+        false
+    );
+    auto* atof = module->getOrInsertFunction("atof", atofType);
+    auto* floatVal = builder->CreateCall(atof, {value}, "float_val");
+    builder->CreateRet(floatVal);
+
+    // Int case: Convert int to float
+    builder->SetInsertPoint(intCase);
+    auto* floatVal2 = builder->CreateSIToFP(value, llvm::Type::getDoubleTy(*context), "float_val");
+    builder->CreateRet(floatVal2);
+
+
+    // Bool case: Convert bool to float (true = 1.0, false = 0.0)
+    builder->SetInsertPoint(boolCase);
+    auto* intVal = builder->CreateZExt(value, llvm::Type::getInt32Ty(*context), "int_val");
+    auto* floatVal3 = builder->CreateSIToFP(intVal, llvm::Type::getDoubleTy(*context), "float_val");
+    builder->CreateRet(floatVal3);
+
+    // Default case: Return 0.0
+    builder->SetInsertPoint(defaultCase);
+    builder->CreateRet(llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0.0));
+
+    functions["toFloat"] = toFloatFunc;
+    return toFloatFunc;
+}
