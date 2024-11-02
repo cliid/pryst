@@ -1,0 +1,75 @@
+// Test reflection capabilities
+class Animal {
+    str name;
+    int age;
+
+    fn<void>(str n, int a) setInfo {
+        name = n;
+        age = a;
+    }
+
+    fn<str>() getName {
+        return name;
+    }
+
+    fn<int>() getAge {
+        return age;
+    }
+}
+
+class Dog extends Animal {
+    str breed;
+
+    fn<void>(str n, int a, str b) setInfo {
+        name = n;
+        age = a;
+        breed = b;
+    }
+
+    fn<str>() getBreed {
+        return breed;
+    }
+}
+
+fn<void>() main() {
+    // Test basic type reflection
+    let i = 42;
+    let f = 3.14;
+    let b = true;
+    let s = "hello";
+
+    print("Basic type reflection:");
+    print(getType(i));  // Should print "int"
+    print(getType(f));  // Should print "float"
+    print(getType(b));  // Should print "bool"
+    print(getType(s));  // Should print "str"
+
+    // Test class reflection and inheritance
+    print("\nClass reflection and inheritance:");
+    Animal a;
+    Dog d;
+
+    a.setInfo("Generic", 5);
+    d.setInfo("Buddy", 3, "Labrador");
+
+    print(getType(a));  // Should print "Animal"
+    print(getType(d));  // Should print "Dog"
+
+    // Test instance checking
+    print("\nInstance checking:");
+    print(isInstance(d, "Dog"));     // Should print true
+    print(isInstance(d, "Animal"));  // Should print true (inheritance)
+    print(isInstance(a, "Dog"));     // Should print false
+
+    // Test method reflection
+    print("\nMethod reflection:");
+    print(d.getName());  // Should print "Buddy"
+    print(d.getAge());   // Should print 3
+    print(d.getBreed()); // Should print "Labrador"
+
+    // Test function type reflection
+    print("\nFunction type reflection:");
+    fn<str>() getNameRef = d.getName;
+    print(getType(getNameRef));  // Should print "function"
+    print(getNameRef());         // Should print "Buddy"
+}
