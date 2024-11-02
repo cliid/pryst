@@ -39,7 +39,6 @@ public:
     std::any visitUnary(PrystParser::UnaryContext* ctx) override;
     std::any visitPostfix(PrystParser::PostfixContext* ctx) override;
     std::any visitCall(PrystParser::CallContext* ctx) override;
-    std::any visitCallSuffix(PrystParser::CallSuffixContext* ctx) override;
     std::any visitPrimary(PrystParser::PrimaryContext* ctx) override;
     std::any visitNewExpression(PrystParser::NewExpressionContext* ctx) override;
     std::any visitArguments(PrystParser::ArgumentsContext* ctx) override;
