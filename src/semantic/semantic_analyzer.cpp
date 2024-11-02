@@ -582,6 +582,13 @@ std::any SemanticAnalyzer::visitCall(PrystParser::CallContext* ctx) {
                         throw std::runtime_error("Argument expression did not return a type string");
                     }
                     std::string argType = std::any_cast<std::string>(argTypeResult);
+                    // Special handling for math functions with numeric arguments
+                    if ((type == "sqrt" || type == "pow" || type == "abs") &&
+                        (funcInfo.paramTypes[j] == "float" || funcInfo.paramTypes[j] == "int") &&
+                        (argType == "float" || argType == "int")) {
+                        // Allow implicit conversion between int and float for math functions
+                        continue;
+                    }
                     checkTypes(funcInfo.paramTypes[j], argType, "Type mismatch in function call argument");
                 }
             }
