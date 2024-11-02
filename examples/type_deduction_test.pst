@@ -1,0 +1,70 @@
+// Test function type deduction
+fn add(int x, int y) {
+    return x + y;  // Should deduce int
+}
+
+fn addFloat(float x, float y) {
+    if (x > y) {
+        return x + y;  // Should deduce float
+    }
+    return y + x;  // Multiple returns of same type
+}
+
+fn mixed(int x, float y) {
+    return x + y;  // Should deduce float due to promotion
+}
+
+// Test explicit return type
+int explicit_return(int x) {
+    return x;  // Must match int
+}
+
+// Test type conversion
+fn conversion_test() {
+    let x = 42;
+    let s1 = str(x);      // Using typeName(expr)
+    let s2 = (str) x;     // Using (typeName) expr
+    let f1 = float(x);    // int to float
+    let i1 = int(f1);     // float to int
+
+    print(s1);
+    print(s2);
+    print(f1);
+    print(i1);
+}
+
+// Test function type syntax
+fn<int>(int, int) higher_order(fn<int>(int, int) func, int x, int y) {
+    return func(x, y);
+}
+
+// Test class conversion
+class Point {
+    float x;
+    float y;
+
+    static fn c!Point(str coords) {
+        // Convert "x,y" string to Point
+        let parts = coords.split(",");
+        let point = new Point();
+        point.x = float(parts[0]);
+        point.y = float(parts[1]);
+        return point;
+    }
+}
+
+fn main() {
+    print(add(5, 3));
+    print(addFloat(2.5, 3.7));
+    print(mixed(1, 2.5));
+    print(explicit_return(10));
+
+    conversion_test();
+
+    let add_func = (int x, int y) { return x + y; };
+    print(higher_order(add_func, 10, 20));
+
+    let point = Point("1.5,2.5");
+    print(point.x);
+    print(point.y);
+}

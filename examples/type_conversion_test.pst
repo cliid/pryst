@@ -1,0 +1,51 @@
+// Test type conversion operations
+fn main() {
+    // Test integer conversions
+    let num = 42;
+    let str_num = toString(num);
+    print(str_num);  // Should print "42"
+
+    // Test float conversions
+    let float_num = 3.14159;
+    let str_float = toString(float_num);
+    print(str_float);  // Should print "3.141590"
+
+    // Test boolean conversions
+    let bool_val = true;
+    let str_bool = toString(bool_val);
+    print(str_bool);  // Should print "true"
+
+    // Test string to number conversions
+    let num_str = "123";
+    let parsed_int = toInt(num_str);
+    print(parsed_int);  // Should print 123
+
+    let float_str = "3.14159";
+    let parsed_float = toFloat(float_str);
+    print(parsed_float);  // Should print 3.14159
+
+    // Test invalid conversions
+    let invalid_num = toInt("not a number");
+    print(invalid_num);  // Should print 0
+
+    let invalid_float = toFloat("not a float");
+    print(invalid_float);  // Should print 0.0
+
+    // Test type conversion chaining
+    let chain_test = toString(toInt("42"));
+    print(chain_test);  // Should print "42"
+
+    // Test boolean to number conversions
+    let bool_to_int = toInt(true);
+    print(bool_to_int);  // Should print 1
+
+    let bool_to_float = toFloat(false);
+    print(bool_to_float);  // Should print 0.0
+
+    // Test number type conversions
+    let float_to_int = toInt(3.99);
+    print(float_to_int);  // Should print 3 (truncated)
+
+    let int_to_float = toFloat(42);
+    print(int_to_float);  // Should print 42.0
+}
