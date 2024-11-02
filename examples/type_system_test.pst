@@ -1,0 +1,94 @@
+// Test type conversion expressions
+fn test_type_conversions() {
+    // Test int to string conversion using both syntaxes
+    let x = 42;
+    let s1 = str(x);        // type(expr) syntax
+    let s2 = (str) x;       // (type) expr syntax
+    print(s1);              // Should print "42"
+    print(s2);              // Should print "42"
+
+    // Test float to string conversion
+    let f = 3.14;
+    let s3 = str(f);        // type(expr) syntax
+    let s4 = (str) f;       // (type) expr syntax
+    print(s3);              // Should print "3.14"
+    print(s4);              // Should print "3.14"
+
+    // Test string to int conversion
+    let numStr = "123";
+    let i1 = int(numStr);   // type(expr) syntax
+    let i2 = (int) numStr;  // (type) expr syntax
+    print(i1);              // Should print 123
+    print(i2);              // Should print 123
+
+    // Test string to float conversion
+    let floatStr = "3.14";
+    let f1 = float(floatStr);   // type(expr) syntax
+    let f2 = (float) floatStr;  // (type) expr syntax
+    print(f1);              // Should print 3.14
+    print(f2);              // Should print 3.14
+
+    // Test int to float conversion
+    let i = 42;
+    let f3 = float(i);      // type(expr) syntax
+    let f4 = (float) i;     // (type) expr syntax
+    print(f3);              // Should print 42.0
+    print(f4);              // Should print 42.0
+}
+
+// Test function type syntax and return type checking
+fn<int> explicit_return_type(int x) {
+    return x * 2;           // Valid: returns int
+}
+
+fn implicit_return_type(int x) {
+    return x * 2;           // Type deduced as int
+}
+
+fn<float> mixed_returns(int x) {
+    if (x > 0) {
+        return float(x);    // Returns float
+    } else {
+        return 3.14;        // Returns float
+    }
+}
+
+// Test anonymous functions with type deduction
+fn test_anonymous_functions() {
+    // Anonymous function with explicit parameter types
+    let double = (int x) { return x * 2; };
+    print(double(21));      // Should print 42
+
+    // Anonymous function with type deduction
+    let add = (int x, float y) { return x + y; };
+    print(add(3, 0.14));    // Should print 3.14
+}
+
+// Test class conversion methods
+class Point {
+    float x;
+    float y;
+
+    fn c!Point(str s) {
+        // Format expected: "x,y"
+        let parts = s.split(",");
+        this.x = float(parts[0]);
+        this.y = float(parts[1]);
+    }
+}
+
+fn test_class_conversion() {
+    let pointStr = "3.14,2.718";
+    let point = c!Point(pointStr);
+    print(point.x);         // Should print 3.14
+    print(point.y);         // Should print 2.718
+}
+
+fn main() {
+    test_type_conversions();
+    print(explicit_return_type(21));    // Should print 42
+    print(implicit_return_type(21));    // Should print 42
+    print(mixed_returns(1));            // Should print 1.0
+    test_anonymous_functions();
+    test_class_conversion();
+}
