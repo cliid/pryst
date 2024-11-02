@@ -2,6 +2,8 @@
 #include <llvm/IR/Module.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/Error.h>
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
+#include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
 #include <iostream>
 
 JITCompiler::JITCompiler() {
@@ -15,6 +17,17 @@ JITCompiler::JITCompiler() {
         std::exit(1);
     }
     jit = std::move(*JIT);
+
+    // Add dynamic library search generator to find external symbols
+    auto& DL = jit->getDataLayout();
+    auto& JD = jit->getMainJITDylib();
+    auto Generator = llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix());
+    if (!Generator) {
+        std::cerr << "Failed to create dynamic library search generator: "
+                  << llvm::toString(Generator.takeError()) << std::endl;
+        std::exit(1);
+    }
+    JD.addGenerator(std::move(*Generator));
 }
 
 void JITCompiler::compileAndRun(std::unique_ptr<llvm::Module> module) {
@@ -33,7 +46,7 @@ void JITCompiler::compileAndRun(std::unique_ptr<llvm::Module> module) {
     }
 
     // Cast the symbol address to a function pointer
-    int (*mainFunc)() = reinterpret_cast<int(*)()>(mainSymbol->getValue());
+    int (*mainFunc)() = reinterpret_cast<int(*)()>(mainSymbol->getAddress());
 
     // Call the JIT'd code
     int result = mainFunc();

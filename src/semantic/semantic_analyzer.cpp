@@ -1,6 +1,7 @@
 #include "semantic_analyzer.hpp"
 #include <stdexcept>
 #include <iostream>
+#include <algorithm>
 
 // *********************** SymbolTable Implementation ***********************
 
@@ -21,12 +22,11 @@ void SymbolTable::popScope() {
         }
     }
     // Remove functions declared in the current scope
-    for (auto it = functions.begin(); it != functions.end();) {
-        if (it->second.scopeLevel == currentScopeLevel) {
-            it = functions.erase(it);
-        } else {
-            ++it;
-        }
+    for (auto& [name, funcList] : functions) {
+        funcList.erase(
+            std::remove_if(funcList.begin(), funcList.end(),
+                [this](const FunctionInfo& func) { return func.scopeLevel == currentScopeLevel; }),
+            funcList.end());
     }
     --currentScopeLevel;
 }
@@ -82,41 +82,57 @@ void SymbolTable::clearCurrentScopeVariables() {
 
 // Function management
 bool SymbolTable::functionExists(const std::string& name) const {
-    return functions.find(name) != functions.end();
+    auto it = functions.find(name);
+    if (it == functions.end()) return false;
+    return !it->second.empty();
 }
 
 void SymbolTable::addFunction(const std::string& name, const std::string& returnType, const std::vector<std::string>& paramTypes) {
-    if (functionExists(name)) {
-        throw std::runtime_error("Function '" + name + "' already declared");
+    auto& functionList = functions[name];
+    // Check if a function with the same parameter types already exists
+    for (const auto& func : functionList) {
+        if (func.paramTypes == paramTypes) {
+            throw std::runtime_error("Function '" + name + "' already declared with these parameter types");
+        }
     }
-    functions[name] = FunctionInfo{returnType, paramTypes, currentScopeLevel};
+    functionList.push_back(FunctionInfo{returnType, paramTypes, currentScopeLevel});
 }
 
 SymbolTable::FunctionInfo SymbolTable::getFunctionInfo(const std::string& name) const {
     auto it = functions.find(name);
-    if (it != functions.end()) {
-        return it->second;
+    if (it == functions.end() || it->second.empty()) {
+        throw std::runtime_error("Undefined function: '" + name + "'");
     }
-    throw std::runtime_error("Undefined function: '" + name + "'");
+    // For print function, find the matching overload based on parameter types
+    if (name == "print" && !it->second.empty()) {
+        for (const auto& func : it->second) {
+            if (func.paramTypes.size() == 1) {
+                return func;
+            }
+        }
+    }
+    return it->second.front();
 }
 
 std::unordered_map<std::string, SymbolTable::FunctionInfo> SymbolTable::getCurrentScopeFunctions() const {
     std::unordered_map<std::string, FunctionInfo> currentScopeFuncs;
-    for (const auto& [name, info] : functions) {
-        if (info.scopeLevel == currentScopeLevel) {
-            currentScopeFuncs[name] = info;
+    for (const auto& [name, funcList] : functions) {
+        for (const auto& func : funcList) {
+            if (func.scopeLevel == currentScopeLevel) {
+                currentScopeFuncs[name] = func;
+                break;  // Only add the first function with this name at current scope
+            }
         }
     }
     return currentScopeFuncs;
 }
 
 void SymbolTable::clearCurrentScopeFunctions() {
-    for (auto it = functions.begin(); it != functions.end();) {
-        if (it->second.scopeLevel == currentScopeLevel) {
-            it = functions.erase(it);
-        } else {
-            ++it;
-        }
+    for (auto& [name, funcList] : functions) {
+        funcList.erase(
+            std::remove_if(funcList.begin(), funcList.end(),
+                [this](const FunctionInfo& func) { return func.scopeLevel == currentScopeLevel; }),
+            funcList.end());
     }
 }
 
@@ -146,6 +162,9 @@ bool areTypesCompatibleForEquality(const std::string& type1, const std::string& 
 bool areTypesCompatibleForComparison(const std::string& type1, const std::string& type2);
 
 SemanticAnalyzer::SemanticAnalyzer() : currentFunction("") {
+    symbolTable.addFunction("print", "void", {"int"});
+    symbolTable.addFunction("print", "void", {"float"});
+    symbolTable.addFunction("print", "void", {"bool"});
     symbolTable.addFunction("print", "void", {"str"});
 }
 
@@ -556,75 +575,30 @@ std::any SemanticAnalyzer::visitCall(PrystParser::CallContext* ctx) {
     }
     std::string type = std::any_cast<std::string>(typeResult);
 
-    for (auto suffixCtx : ctx->callSuffix()) {
+    // Process member access chain
+    for (auto identifier : ctx->IDENTIFIER()) {
+        std::string memberName = identifier->getText();
         currentCallType = type;
-        auto suffixResult = visit(suffixCtx);
-        if (suffixResult.type() != typeid(std::string)) {
-            throw std::runtime_error("Call suffix did not return a type string");
-        }
-        type = std::any_cast<std::string>(suffixResult);
-    }
-
-    return std::any(type);
-}
-
-std::any SemanticAnalyzer::visitCallSuffix(PrystParser::CallSuffixContext* ctx) {
-    if (ctx->LPAREN()) {
-        // Function call
-        SymbolTable::FunctionInfo funcInfo;
-        std::string type = std::any_cast<std::string>(currentCallType);
-
-        if (symbolTable.classExists(type)) {
-            if (ctx->arguments()) {
-                throw std::runtime_error("Calling constructors with arguments not implemented");
-            }
-            return std::any(type);
-        } else if (symbolTable.functionExists(type)) {
-            funcInfo = symbolTable.getFunctionInfo(type);
-        } else {
-            throw std::runtime_error("Undefined function: '" + type + "'");
-        }
-
-        size_t argCount = ctx->arguments() ? ctx->arguments()->expression().size() : 0;
-        if (argCount != funcInfo.paramTypes.size()) {
-            throw std::runtime_error("Function '" + type + "' expects " +
-                                  std::to_string(funcInfo.paramTypes.size()) + " arguments, got " +
-                                  std::to_string(argCount));
-        }
-
-        if (ctx->arguments()) {
-            for (size_t i = 0; i < argCount; ++i) {
-                auto argTypeResult = visit(ctx->arguments()->expression(i));
-                if (argTypeResult.type() != typeid(std::string)) {
-                    throw std::runtime_error("Argument expression did not return a type string");
-                }
-                std::string argType = std::any_cast<std::string>(argTypeResult);
-                checkTypes(funcInfo.paramTypes[i], argType, "Type mismatch in function call argument");
-            }
-        }
-
-        return std::any(funcInfo.returnType);
-    } else if (ctx->DOT()) {
-        // Member access
-        std::string type = std::any_cast<std::string>(currentCallType);
-        std::string memberName = ctx->IDENTIFIER()->getText();
 
         if (!symbolTable.classExists(type)) {
             throw std::runtime_error("Type '" + type + "' has no members");
         }
 
         SymbolTable::ClassInfo classInfo = symbolTable.getClassInfo(type);
-
         if (classInfo.members.find(memberName) != classInfo.members.end()) {
-            return std::any(classInfo.members[memberName].type);
+            type = classInfo.members[memberName].type;
         } else if (classInfo.methods.find(memberName) != classInfo.methods.end()) {
-            return std::any(classInfo.methods[memberName].returnType);
+            type = classInfo.methods[memberName].returnType;
         } else {
             throw std::runtime_error("Class '" + type + "' has no member named '" + memberName + "'");
         }
     }
 
-    throw std::runtime_error("Invalid call suffix");
+    return std::any(type);
+}
+
+std::any SemanticAnalyzer::visitCallSuffix(PrystParser::CallSuffixContext* ctx) {
+    throw std::runtime_error("CallSuffix should not be called directly");
 }
 
 std::any SemanticAnalyzer::visitPrimary(PrystParser::PrimaryContext* ctx) {
@@ -639,6 +613,51 @@ std::any SemanticAnalyzer::visitPrimary(PrystParser::PrimaryContext* ctx) {
         return std::any(std::string("str"));
     } else if (ctx->IDENTIFIER()) {
         std::string name = ctx->IDENTIFIER()->getText();
+
+        if (ctx->LPAREN()) {  // Function call
+            if (!symbolTable.functionExists(name)) {
+                throw std::runtime_error("Undefined function: '" + name + "'");
+            }
+
+            SymbolTable::FunctionInfo funcInfo = symbolTable.getFunctionInfo(name);
+            size_t argCount = ctx->arguments() ? ctx->arguments()->expression().size() : 0;
+
+            // Special handling for print function
+            if (name == "print") {
+                if (argCount != 1) {
+                    throw std::runtime_error("print function expects exactly one argument");
+                }
+                auto argTypeResult = visit(ctx->arguments()->expression(0));
+                if (argTypeResult.type() != typeid(std::string)) {
+                    throw std::runtime_error("Argument expression did not return a type string");
+                }
+                std::string argType = std::any_cast<std::string>(argTypeResult);
+                if (argType != "int" && argType != "float" && argType != "bool" && argType != "str") {
+                    throw std::runtime_error("print function only accepts int, float, bool, or str arguments");
+                }
+                return std::any(std::string("void"));
+            }
+
+            // Regular function call
+            if (argCount != funcInfo.paramTypes.size()) {
+                throw std::runtime_error("Function '" + name + "' expects " +
+                                      std::to_string(funcInfo.paramTypes.size()) + " arguments, got " +
+                                      std::to_string(argCount));
+            }
+
+            if (ctx->arguments()) {
+                for (size_t i = 0; i < argCount; ++i) {
+                    auto argTypeResult = visit(ctx->arguments()->expression(i));
+                    if (argTypeResult.type() != typeid(std::string)) {
+                        throw std::runtime_error("Argument expression did not return a type string");
+                    }
+                    std::string argType = std::any_cast<std::string>(argTypeResult);
+                    checkTypes(funcInfo.paramTypes[i], argType, "Type mismatch in function call argument");
+                }
+            }
+
+            return std::any(funcInfo.returnType);
+        }
 
         if (symbolTable.variableExists(name)) {
             return std::any(symbolTable.getVariableType(name));

@@ -547,8 +547,10 @@ public:
     CallContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     PrimaryContext *primary();
-    std::vector<CallSuffixContext *> callSuffix();
-    CallSuffixContext* callSuffix(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> DOT();
+    antlr4::tree::TerminalNode* DOT(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> IDENTIFIER();
+    antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -561,9 +563,6 @@ public:
   public:
     CallSuffixContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *LPAREN();
-    antlr4::tree::TerminalNode *RPAREN();
-    ArgumentsContext *arguments();
     antlr4::tree::TerminalNode *DOT();
     antlr4::tree::TerminalNode *IDENTIFIER();
 
@@ -586,8 +585,9 @@ public:
     antlr4::tree::TerminalNode *STRING();
     antlr4::tree::TerminalNode *IDENTIFIER();
     antlr4::tree::TerminalNode *LPAREN();
-    ExpressionContext *expression();
     antlr4::tree::TerminalNode *RPAREN();
+    ArgumentsContext *arguments();
+    ExpressionContext *expression();
     antlr4::tree::TerminalNode *SUPER();
     antlr4::tree::TerminalNode *DOT();
     NewExpressionContext *newExpression();
