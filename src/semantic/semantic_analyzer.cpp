@@ -790,9 +790,10 @@ std::any SemanticAnalyzer::visitClassFunctionDecl(PrystParser::ClassFunctionDecl
 }
 
 void SemanticAnalyzer::checkTypes(const std::string& expected, const std::string& actual, const std::string& errorMessage) {
-    if (expected != actual) {
-        throw std::runtime_error(errorMessage + ": expected '" + expected + "', got '" + actual + "'");
-    }
+    if (expected == actual) return;
+    // Allow implicit conversion between numeric types (int and float)
+    if ((expected == "int" || expected == "float") && (actual == "int" || actual == "float")) return;
+    throw std::runtime_error(errorMessage + ": expected '" + expected + "', got '" + actual + "'");
 }
 
 std::string SemanticAnalyzer::getMemberVariableType(const std::string& className, const std::string& memberName) {
