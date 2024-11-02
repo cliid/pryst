@@ -147,6 +147,10 @@ bool areTypesCompatibleForComparison(const std::string& type1, const std::string
 
 SemanticAnalyzer::SemanticAnalyzer() : currentFunction("") {
     symbolTable.addFunction("print", "void", {"str"});
+    symbolTable.addFunction("sqrt", "float", {"float"});
+    symbolTable.addFunction("pow", "float", {"float", "float"});
+    symbolTable.addFunction("abs", "float", {"float"});
+    symbolTable.addFunction("abs", "int", {"int"});
 }
 
 std::any SemanticAnalyzer::visitProgram(PrystParser::ProgramContext* ctx) {
