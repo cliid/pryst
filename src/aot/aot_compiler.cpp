@@ -1,4 +1,6 @@
 #include "aot_compiler.hpp"
+#include <optional>
+#include <system_error>
 #include <llvm/Support/CodeGen.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Verifier.h>
@@ -6,9 +8,9 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Support/Host.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
-#include <llvm/TargetParser/Host.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/MC/MCContext.h>
 #include <llvm/MC/MCTargetOptions.h>
@@ -22,7 +24,6 @@
 #include <llvm/MC/MCELFObjectWriter.h>
 #include <llvm/MC/MCELFStreamer.h>
 #include <llvm/MC/MCAsmInfo.h>
-#include <system_error>
 
 AOTCompiler::AOTCompiler() {
     llvm::InitializeNativeTarget();
@@ -47,7 +48,7 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
 
     llvm::MCTargetOptions MCOpt;
     llvm::TargetOptions opt;
-    auto RM = std::optional<llvm::Reloc::Model>();
+    llvm::Optional<llvm::Reloc::Model> RM;
     targetMachine = std::unique_ptr<llvm::TargetMachine>(
         target->createTargetMachine(targetTriple, CPU, features, opt, RM));
 
@@ -64,7 +65,7 @@ void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilenam
     llvm::legacy::PassManager pass;
 
     // Add passes to emit object file
-    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CodeGenFileType::ObjectFile)) {
+    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile)) {
         llvm::errs() << "TargetMachine can't emit a file of this type\n";
         return;
     }

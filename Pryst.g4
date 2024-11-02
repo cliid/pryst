@@ -104,12 +104,11 @@ postfix
     ;
 
 call
-    : primary callSuffix*
+    : primary (DOT IDENTIFIER)*
     ;
 
 callSuffix
-    : LPAREN arguments? RPAREN
-    | DOT IDENTIFIER
+    : DOT IDENTIFIER
     ;
 
 primary
@@ -119,7 +118,7 @@ primary
     | THIS
     | NUMBER
     | STRING
-    | IDENTIFIER
+    | IDENTIFIER (LPAREN arguments? RPAREN)?
     | LPAREN expression RPAREN
     | SUPER DOT IDENTIFIER
     | newExpression
