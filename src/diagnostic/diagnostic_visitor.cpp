@@ -178,16 +178,16 @@ std::any DiagnosticVisitor::visitExpression(PrystParser::ExpressionContext* ctx)
 
 std::any DiagnosticVisitor::visitAssignment(PrystParser::AssignmentContext* ctx) {
     std::string details;
-    if (ctx->call()) {
-        // Member assignment (call.IDENTIFIER = expr)
-        details = "target: " + ctx->call()->getText() + "." + ctx->IDENTIFIER()->getText();
+    if (ctx->primary()) {
+        // Member assignment (primary.IDENTIFIER = expr)
+        details = "target: " + ctx->primary()->getText() + "." + ctx->IDENTIFIER()->getText();
         printNode("Assignment (Member)", details);
         printNode("Location", "Line " + std::to_string(ctx->getStart()->getLine()) + ", Column " + std::to_string(ctx->getStart()->getCharPositionInLine()));
 
         ScopeGuard guard(indentLevel);
         printNode("Object Access Start");
         ScopeGuard accessGuard(indentLevel);
-        visit(ctx->call());
+        visit(ctx->primary());
         printNode("Final Member", "member: " + ctx->IDENTIFIER()->getText());
         printNode("Access End");
     } else {
