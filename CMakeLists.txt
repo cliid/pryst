@@ -68,7 +68,8 @@ endif()
 # Find ANTLR4 runtime in search paths
 foreach(base_path ${ANTLR4_SEARCH_PATHS})
     if(EXISTS "${base_path}/include/antlr4-runtime")
-        set(ANTLR4_INCLUDE_DIR "${base_path}/include/antlr4-runtime" CACHE PATH "ANTLR4 include directory")
+        set(ANTLR4_INCLUDE_DIR "${base_path}/include" CACHE PATH "ANTLR4 include directory")
+        set(ANTLR4_RUNTIME_INCLUDE_DIR "${base_path}/include/antlr4-runtime" CACHE PATH "ANTLR4 runtime include directory")
         set(ANTLR4_LIBRARY_DIR "${base_path}/lib" CACHE PATH "ANTLR4 library directory")
         break()
     endif()
@@ -82,7 +83,13 @@ if(DEFINED ENV{ANTLR4_LIBRARY_DIR})
     set(ANTLR4_LIBRARY_DIR "$ENV{ANTLR4_LIBRARY_DIR}" CACHE PATH "ANTLR4 library directory" FORCE)
 endif()
 
-include_directories(${ANTLR4_INCLUDE_DIR})
+# Include directories for all targets
+include_directories(
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/generated
+    ${ANTLR4_INCLUDE_DIR}
+    ${ANTLR4_RUNTIME_INCLUDE_DIR}
+)
 link_directories(${ANTLR4_LIBRARY_DIR})
 
 # Verify ANTLR4 runtime library exists
@@ -139,6 +146,8 @@ target_include_directories(pryst PRIVATE
     src/generated
     ${LLVM_INCLUDE_DIRS}
     ${ANTLR4_INCLUDE_DIR}
+    ${ANTLR4_RUNTIME_INCLUDE_DIR}
+    ${ANTLR4_RUNTIME_INCLUDE_DIR}/tree
 )
 
 # Update LLVM libraries to essential components
