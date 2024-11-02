@@ -230,12 +230,6 @@ std::any DiagnosticVisitor::visitCall(PrystParser::CallContext* ctx) {
         }
     }
 
-    // Process member access (DOT operator)
-    for (size_t i = 0; i < ctx->DOT().size(); i++) {
-        std::string memberName = ctx->IDENTIFIER(i)->getText();
-        printNode("Member Access", "member: " + memberName);
-    }
-
     printNode("Call Chain End");
     return nullptr;
 }
