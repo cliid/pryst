@@ -1,0 +1,49 @@
+// Test function types and anonymous functions
+fn main() {
+    // Test anonymous function with basic syntax
+    let add = (int x, int y) {
+        return x + y;
+    };
+    print(add(5, 3));  // Should print 8
+
+    // Test function type in parameter
+    fn apply(fn<int>(int, int) func, int x, int y) {
+        return func(x, y);
+    }
+
+    // Test passing anonymous function as argument
+    let result = apply((int a, int b) {
+        return a * b;
+    }, 4, 5);
+    print(result);  // Should print 20
+
+    // Test function type as variable
+    let fn<float>(float, float) divide = (float x, float y) {
+        return x / y;
+    };
+    print(divide(10.0, 2.0));  // Should print 5.0
+
+    // Test higher-order function returning function
+    fn makeMultiplier(int factor) -> fn<int>(int) {
+        return (int x) {
+            return x * factor;
+        };
+    }
+
+    let double = makeMultiplier(2);
+    print(double(5));  // Should print 10
+
+    // Test nested function types
+    fn<int>(fn<int>(int)) compose = (fn<int>(int) f) {
+        return (int x) {
+            return f(f(x));
+        };
+    };
+
+    let addOne = (int x) {
+        return x + 1;
+    };
+
+    let addTwo = compose(addOne);
+    print(addTwo(5));  // Should print 7
+}

@@ -1,0 +1,5 @@
+int main() {
+    // Simple variable declaration with numeric literal
+    float x = 42.0;
+    return 0;
+}
