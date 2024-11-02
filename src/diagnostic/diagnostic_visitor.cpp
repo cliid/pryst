@@ -213,9 +213,9 @@ std::any DiagnosticVisitor::visitCall(PrystParser::CallContext* ctx) {
     // Visit primary expression
     visit(ctx->primary());
 
-    // Process call suffix chain
-    for (auto suffix : ctx->callSuffix()) {
-        visit(suffix);
+    // Process member access chain
+    for (auto identifier : ctx->IDENTIFIER()) {
+        printNode("Member Access", "member: " + identifier->getText());
     }
 
     printNode("Call Chain End");
@@ -223,24 +223,8 @@ std::any DiagnosticVisitor::visitCall(PrystParser::CallContext* ctx) {
 }
 
 std::any DiagnosticVisitor::visitCallSuffix(PrystParser::CallSuffixContext* ctx) {
-    if (ctx->LPAREN()) {  // Function call
-        std::string details = ctx->IDENTIFIER() ?
-            "method: " + ctx->IDENTIFIER()->getText() :
-            "function call";
-        if (ctx->arguments()) {
-            details += " with " + std::to_string(ctx->arguments()->expression().size()) + " arguments";
-        }
-        printNode("Function Call", details);
-
-        ScopeGuard guard(indentLevel);
-        if (ctx->arguments()) {
-            printNode("Arguments");
-            ScopeGuard argsGuard(indentLevel);
-            for (auto arg : ctx->arguments()->expression()) {
-                visit(arg);
-            }
-        }
-    } else if (ctx->IDENTIFIER()) {  // Member access
+    // Member access only
+    if (ctx->IDENTIFIER()) {  // Member access
         printNode("Member Access", "member: " + ctx->IDENTIFIER()->getText());
     }
     return nullptr;
@@ -249,7 +233,18 @@ std::any DiagnosticVisitor::visitCallSuffix(PrystParser::CallSuffixContext* ctx)
 std::any DiagnosticVisitor::visitPrimary(PrystParser::PrimaryContext* ctx) {
     std::string details;
     if (ctx->IDENTIFIER()) {
-        details = "identifier: " + ctx->IDENTIFIER()->getText();
+        std::string name = ctx->IDENTIFIER()->getText();
+        if (ctx->LPAREN()) {  // Function call
+            details = "function call: " + name;
+            if (ctx->arguments()) {
+                details += " with " + std::to_string(ctx->arguments()->expression().size()) + " arguments";
+                if (name == "print") {
+                    details += " (builtin print function)";
+                }
+            }
+        } else {
+            details = "identifier: " + name;
+        }
     } else if (ctx->NUMBER()) {
         details = "number: " + ctx->NUMBER()->getText();
     } else if (ctx->STRING()) {
@@ -266,7 +261,13 @@ std::any DiagnosticVisitor::visitPrimary(PrystParser::PrimaryContext* ctx) {
     printNode("Primary", details);
     ScopeGuard guard(indentLevel);
 
-    if (ctx->expression()) {
+    if (ctx->arguments()) {
+        printNode("Arguments");
+        ScopeGuard argsGuard(indentLevel);
+        for (auto arg : ctx->arguments()->expression()) {
+            visit(arg);
+        }
+    } else if (ctx->expression()) {
         visit(ctx->expression());
     } else if (ctx->newExpression()) {
         visit(ctx->newExpression());
