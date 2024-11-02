@@ -1140,9 +1140,4 @@ llvm::AllocaInst* LLVMCodegen::createEntryBlockAlloca(llvm::Function* function, 
     return tmpBuilder.CreateAlloca(type, nullptr, varName);
 }
 
-std::any LLVMCodegen::visitCallSuffix(PrystParser::CallSuffixContext* ctx) {
-    // This method is called by visitCall to process each suffix
-    // The base type is passed through the call chain in visitCall
-    throw std::runtime_error("CallSuffix should be processed within visitCall");
-    return nullptr;
-}
+
