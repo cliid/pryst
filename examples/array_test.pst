@@ -1,0 +1,44 @@
+// Test array operations
+fn main() {
+    // Create a new array
+    let arr = array_new(5);  // Initial capacity of 5
+
+    // Test push operation
+    array_push(arr, 10);
+    array_push(arr, 20);
+    array_push(arr, 30);
+
+    // Test get operation
+    let val = array_get(arr, 0);  // Should be 10
+    print(val);  // Should print 10
+    val = array_get(arr, 1);  // Should be 20
+    print(val);  // Should print 20
+
+    // Test set operation
+    array_set(arr, 1, 25);  // Change 20 to 25
+    val = array_get(arr, 1);  // Should be 25
+    print(val);  // Should print 25
+
+    // Test pop operation
+    val = array_pop(arr);  // Should be 30
+    print(val);  // Should print 30
+
+    // Test pushing more elements to trigger resize
+    array_push(arr, 40);
+    array_push(arr, 50);
+    array_push(arr, 60);
+    array_push(arr, 70);
+
+    // Test get after resize
+    val = array_get(arr, 5);  // Should be 60
+    print(val);  // Should print 60
+
+    // Test set after resize
+    array_set(arr, 5, 65);  // Change 60 to 65
+    val = array_get(arr, 5);  // Should be 65
+    print(val);  // Should print 65
+
+    // Test pop after resize
+    val = array_pop(arr);  // Should be 70
+    print(val);  // Should print 70
+}

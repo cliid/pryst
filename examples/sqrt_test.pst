@@ -1,0 +1,8 @@
+int main() {
+    // Test sqrt function
+    float x = 16.0;
+    print("sqrt(16.0) = ");
+    print(sqrt(x));
+    print("\n");
+    return 0;
+}

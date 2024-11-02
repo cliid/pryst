@@ -1,0 +1,57 @@
+// Test anonymous functions and type deduction
+fn main() {
+    // Test anonymous function with explicit types
+    let add = (int x, int y) -> int {
+        return x + y;
+    };
+    print(add(5, 3));  // Should print 8
+
+    // Test anonymous function with type deduction
+    let multiply = (int x, int y) {
+        return x * y;
+    };
+    print(multiply(4, 6));  // Should print 24
+
+    // Test function with fn keyword and type deduction
+    fn calculate(int x, int y) {
+        return x * y + x;
+    }
+    print(calculate(3, 4));  // Should print 15
+
+    // Test nested anonymous functions
+    let outer = (int x) -> int {
+        let inner = (int y) {
+            return x + y;  // Captures x from outer scope
+        };
+        return inner(10);
+    };
+    print(outer(5));  // Should print 15
+
+    // Test type checking with explicit return type
+    let divide = (float x, float y) -> float {
+        return x / y;
+    };
+    print(divide(10.0, 2.0));  // Should print 5.0
+
+    // Test type error cases (these should cause compile-time errors)
+    /*
+    let error1 = (int x) -> float {
+        return x;  // Error: Return type mismatch
+    };
+
+    let error2 = (int x) {
+        return "string";  // Error: Deduced return type is int
+    };
+    */
+
+    // Test higher-order function
+    let apply = (int x, (int) -> int fn) -> int {
+        return fn(x);
+    };
+
+    let double = (int x) {
+        return x * 2;
+    };
+
+    print(apply(5, double));  // Should print 10
+}
