@@ -475,10 +475,10 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
 
     llvm::Value* varAddress;
 
-    // Handle call.IDENTIFIER = expr case
-    if (ctx->call()) {
-        std::cerr << "DEBUG: Handling call.IDENTIFIER assignment" << std::endl;
-        visit(ctx->call());
+    // Handle primary.IDENTIFIER = expr case
+    if (ctx->primary()) {
+        std::cerr << "DEBUG: Handling primary.IDENTIFIER assignment" << std::endl;
+        visit(ctx->primary());
         llvm::Value* object = lastValue;
 
         if (!object) {
