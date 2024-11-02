@@ -1,0 +1,14 @@
+module string;
+
+// String manipulation functions
+function concat(a: str, b: str) -> str {
+    return a + b;
+}
+
+function length(s: str) -> int {
+    return len(s);
+}
+
+function substring(s: str, start: int, end: int) -> str {
+    return substr(s, start, end);
+}

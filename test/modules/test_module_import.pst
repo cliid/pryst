@@ -1,0 +1,16 @@
+// Test basic module imports
+import math;
+import string;
+
+function main() -> void {
+    // Test math module functions
+    print(add(5, 3));        // Should print 8
+    print(subtract(10, 4));  // Should print 6
+    print(multiply(3, 4));   // Should print 12
+    print(divide(15, 3));    // Should print 5
+
+    // Test string module functions
+    print(concat("Hello, ", "World!"));  // Should print "Hello, World!"
+    print(length("Testing"));            // Should print 7
+    print(substring("Hello", 1, 4));     // Should print "ell"
+}
