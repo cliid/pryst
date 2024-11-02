@@ -59,7 +59,7 @@ public:
 private:
     int currentScopeLevel;
     std::unordered_map<std::string, VariableInfo> variables;
-    std::unordered_map<std::string, FunctionInfo> functions;
+    std::unordered_map<std::string, std::vector<FunctionInfo>> functions;
     std::unordered_map<std::string, ClassInfo> classes;
 };
 

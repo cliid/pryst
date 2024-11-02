@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PrystBaseVisitor.h"
+#include <antlr4-runtime/support/Any.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
@@ -13,36 +14,36 @@ public:
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* programCtx);
 
     // Overrides for visiting different AST nodes
-    std::any visitProgram(PrystParser::ProgramContext* ctx) override;
-    std::any visitDeclaration(PrystParser::DeclarationContext* ctx) override;
-    std::any visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) override;
-    std::any visitVariableDecl(PrystParser::VariableDeclContext* ctx) override;
-    std::any visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) override;
-    std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) override;
-    std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) override;
-    std::any visitParamList(PrystParser::ParamListContext* ctx) override;
-    std::any visitParam(PrystParser::ParamContext* ctx) override;
-    std::any visitType(PrystParser::TypeContext* ctx) override;
-    std::any visitExprStatement(PrystParser::ExprStatementContext* ctx) override;
-    std::any visitIfStatement(PrystParser::IfStatementContext* ctx) override;
-    std::any visitWhileStatement(PrystParser::WhileStatementContext* ctx) override;
-    std::any visitForStatement(PrystParser::ForStatementContext* ctx) override;
-    std::any visitReturnStatement(PrystParser::ReturnStatementContext* ctx) override;
-    std::any visitBlockStatement(PrystParser::BlockStatementContext* ctx) override;
-    std::any visitAssignment(PrystParser::AssignmentContext* ctx) override;
-    std::any visitLogicOr(PrystParser::LogicOrContext* ctx) override;
-    std::any visitLogicAnd(PrystParser::LogicAndContext* ctx) override;
-    std::any visitEquality(PrystParser::EqualityContext* ctx) override;
-    std::any visitComparison(PrystParser::ComparisonContext* ctx) override;
-    std::any visitAddition(PrystParser::AdditionContext* ctx) override;
-    std::any visitMultiplication(PrystParser::MultiplicationContext* ctx) override;
-    std::any visitUnary(PrystParser::UnaryContext* ctx) override;
-    std::any visitPostfix(PrystParser::PostfixContext* ctx) override;
-    std::any visitCall(PrystParser::CallContext* ctx) override;
-    std::any visitCallSuffix(PrystParser::CallSuffixContext* ctx) override;
-    std::any visitPrimary(PrystParser::PrimaryContext* ctx) override;
-    std::any visitNewExpression(PrystParser::NewExpressionContext* ctx) override;
-    std::any visitArguments(PrystParser::ArgumentsContext* ctx) override;
+    antlrcpp::Any visitProgram(PrystParser::ProgramContext* ctx) override;
+    antlrcpp::Any visitDeclaration(PrystParser::DeclarationContext* ctx) override;
+    antlrcpp::Any visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) override;
+    antlrcpp::Any visitVariableDecl(PrystParser::VariableDeclContext* ctx) override;
+    antlrcpp::Any visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) override;
+    antlrcpp::Any visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) override;
+    antlrcpp::Any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) override;
+    antlrcpp::Any visitParamList(PrystParser::ParamListContext* ctx) override;
+    antlrcpp::Any visitParam(PrystParser::ParamContext* ctx) override;
+    antlrcpp::Any visitType(PrystParser::TypeContext* ctx) override;
+    antlrcpp::Any visitExprStatement(PrystParser::ExprStatementContext* ctx) override;
+    antlrcpp::Any visitIfStatement(PrystParser::IfStatementContext* ctx) override;
+    antlrcpp::Any visitWhileStatement(PrystParser::WhileStatementContext* ctx) override;
+    antlrcpp::Any visitForStatement(PrystParser::ForStatementContext* ctx) override;
+    antlrcpp::Any visitReturnStatement(PrystParser::ReturnStatementContext* ctx) override;
+    antlrcpp::Any visitBlockStatement(PrystParser::BlockStatementContext* ctx) override;
+    antlrcpp::Any visitAssignment(PrystParser::AssignmentContext* ctx) override;
+    antlrcpp::Any visitLogicOr(PrystParser::LogicOrContext* ctx) override;
+    antlrcpp::Any visitLogicAnd(PrystParser::LogicAndContext* ctx) override;
+    antlrcpp::Any visitEquality(PrystParser::EqualityContext* ctx) override;
+    antlrcpp::Any visitComparison(PrystParser::ComparisonContext* ctx) override;
+    antlrcpp::Any visitAddition(PrystParser::AdditionContext* ctx) override;
+    antlrcpp::Any visitMultiplication(PrystParser::MultiplicationContext* ctx) override;
+    antlrcpp::Any visitUnary(PrystParser::UnaryContext* ctx) override;
+    antlrcpp::Any visitPostfix(PrystParser::PostfixContext* ctx) override;
+    antlrcpp::Any visitCall(PrystParser::CallContext* ctx) override;
+    antlrcpp::Any visitCallSuffix(PrystParser::CallSuffixContext* ctx) override;
+    antlrcpp::Any visitPrimary(PrystParser::PrimaryContext* ctx) override;
+    antlrcpp::Any visitNewExpression(PrystParser::NewExpressionContext* ctx) override;
+    antlrcpp::Any visitArguments(PrystParser::ArgumentsContext* ctx) override;
 
 private:
     std::unordered_map<std::string, llvm::FunctionType*> functionTypes;
@@ -70,4 +71,5 @@ private:
 
     llvm::Function* createMainFunction();
     llvm::Function* declarePrintf();
+    llvm::Function* declareBoolToStr();
 };

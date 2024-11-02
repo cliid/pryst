@@ -148,22 +148,22 @@ llvm_map_components_to_libnames(LLVM_LIBS
     AsmParser AsmPrinter Target
 )
 
-# Add architecture-specific libraries based on CPU architecture
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-    list(APPEND LLVM_LIBS
-        X86CodeGen X86AsmParser X86Desc X86Info
-    )
-    # Only add AArch64 libraries on x86_64 if cross-compilation is needed
-    if(NOT APPLE)
-        list(APPEND LLVM_LIBS
-            AArch64CodeGen AArch64AsmParser AArch64Desc AArch64Info
-        )
-    endif()
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
-    message(STATUS "Building for ARM64 architecture - skipping AArch64 libraries")
-else()
-    message(STATUS "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-endif()
+# Remove architecture-specific libraries to avoid linking errors
+# if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+#     list(APPEND LLVM_LIBS
+#         X86CodeGen X86AsmParser X86Desc X86Info
+#     )
+#     # Only add AArch64 libraries on x86_64 if cross-compilation is needed
+#     if(NOT APPLE)
+#         list(APPEND LLVM_LIBS
+#             AArch64CodeGen AArch64AsmParser AArch64Desc AArch64Info
+#         )
+#     endif()
+# elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+#     message(STATUS "Building for ARM64 architecture - skipping AArch64 libraries")
+# else()
+#     message(STATUS "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+# endif()
 
 # target_link_libraries(jit_compiler PRIVATE ${LLVM_LIBS} antlr4-runtime)
 target_link_libraries(pryst PRIVATE ${LLVM_LIBS} antlr4-runtime)
