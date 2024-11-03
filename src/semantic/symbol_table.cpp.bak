@@ -1,8 +1,6 @@
 #include "symbol_table.hpp"
 #include <algorithm>
 #include <iostream>
-#include <sstream>
-#include <regex>
 
 SymbolTable::SymbolTable() {
     std::cout << "DEBUG: Initializing SymbolTable" << std::endl;
@@ -63,24 +61,7 @@ void SymbolTable::addVariable(const std::string& name, const std::string& type, 
     if (scopes.empty()) {
         throw std::runtime_error("No active scope");
     }
-
-    VariableInfo info;
-    info.type = type;
-    info.isConst = isConst;
-    info.scopeLevel = static_cast<int>(getCurrentScopeLevel());
-    info.isFunctionType = isFunctionType(type);
-
-    if (info.isFunctionType) {
-        auto [returnType, paramTypes] = parseFunctionType(type);
-        info.functionInfo.returnType = returnType;
-        info.functionInfo.paramTypes = paramTypes;
-        info.functionInfo.scopeLevel = static_cast<int>(getCurrentScopeLevel());
-        info.functionInfo.isAnonymous = false;
-        info.functionInfo.hasExplicitReturnType = true;
-        info.functionInfo.deducedReturnTypes = {};
-    }
-
-    scopes.back().variables[name] = info;
+    scopes.back().variables[name] = {type, isConst, static_cast<int>(getCurrentScopeLevel())};
 }
 
 std::string SymbolTable::getVariableType(const std::string& name) const {
@@ -119,7 +100,7 @@ void SymbolTable::addFunction(const std::string& name, const std::string& return
     if (scopes.empty()) {
         throw std::runtime_error("No active scope");
     }
-    FunctionInfo info{returnType, paramTypes, static_cast<int>(getCurrentScopeLevel()), false, true, {}};
+    FunctionInfo info{returnType, paramTypes, static_cast<int>(getCurrentScopeLevel())};
     scopes[0].functions[name].push_back(info);
 }
 
@@ -192,83 +173,5 @@ bool SymbolTable::areTypesCompatible(const std::string& expected, const std::str
     if ((expected == "int" || expected == "float") && (actual == "int" || actual == "float")) {
         return true;
     }
-
-    // Handle function type compatibility
-    if (isFunctionType(expected) && isFunctionType(actual)) {
-        auto [expectedReturn, expectedParams] = parseFunctionType(expected);
-        auto [actualReturn, actualParams] = parseFunctionType(actual);
-
-        if (!areTypesCompatible(expectedReturn, actualReturn)) return false;
-        if (expectedParams.size() != actualParams.size()) return false;
-
-        for (size_t i = 0; i < expectedParams.size(); ++i) {
-            if (!areTypesCompatible(expectedParams[i], actualParams[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     return false;
-}
-
-bool SymbolTable::findMatchingFunction(const std::string& name, const std::vector<std::string>& argTypes, FunctionInfo& outInfo) const {
-    std::cout << "DEBUG: Finding matching function '" << name << "' with " << argTypes.size() << " arguments" << std::endl;
-    if (!functionExists(name)) {
-        std::cout << "DEBUG: Function '" << name << "' does not exist" << std::endl;
-        return false;
-    }
-
-    auto overloads = getAllFunctionOverloads(name);
-    for (const auto& func : overloads) {
-        if (func.paramTypes.size() != argTypes.size()) {
-            std::cout << "DEBUG: Skipping overload due to parameter count mismatch" << std::endl;
-            continue;
-        }
-
-        bool match = true;
-        for (size_t i = 0; i < argTypes.size(); ++i) {
-            if (!areTypesCompatible(func.paramTypes[i], argTypes[i])) {
-                std::cout << "DEBUG: Type mismatch at parameter " << i << ": expected " << func.paramTypes[i] << ", got " << argTypes[i] << std::endl;
-                match = false;
-                break;
-            }
-        }
-
-        if (match) {
-            std::cout << "DEBUG: Found matching function overload" << std::endl;
-            outInfo = func;
-            return true;
-        }
-    }
-
-    std::cout << "DEBUG: No matching function overload found" << std::endl;
-    return false;
-}
-bool SymbolTable::isFunctionType(const std::string& type) const {
-    // Function type format: (param1Type,param2Type,...)->returnType
-    return type.find("->") != std::string::npos;
-}
-
-std::pair<std::string, std::vector<std::string>> SymbolTable::parseFunctionType(const std::string& type) const {
-    if (!isFunctionType(type)) {
-        throw std::runtime_error("Not a function type: " + type);
-    }
-
-    // Split return type and parameter list
-    size_t arrowPos = type.find("->");
-    std::string paramListStr = type.substr(1, arrowPos - 2); // Remove parentheses
-    std::string returnType = type.substr(arrowPos + 2);
-
-    // Parse parameter types
-    std::vector<std::string> paramTypes;
-    if (!paramListStr.empty()) {
-        std::istringstream ss(paramListStr);
-        std::string paramType;
-        while (std::getline(ss, paramType, ',')) {
-            paramTypes.push_back(paramType);
-        }
-    }
-
-    return {returnType, paramTypes};
 }

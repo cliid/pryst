@@ -20,6 +20,43 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 
+# Create lists of source files that need different RTTI settings
+set(LLVM_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/codegen/llvm_utils.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/type_registry.cpp
+    ${CMAKE_SOURCE_DIR}/src/aot/aot_compiler.cpp
+    ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.cpp
+)
+
+set(ANTLR_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.cpp
+    ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.cpp
+    ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.cpp
+    ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/llvm_codegen.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/builtin_functions.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/type_metadata.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/visitor_antlr.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/type_conversion.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/string_utils.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/reflection_api.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/type_utils.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/semantic_analyzer.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/symbol_table.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/type_info.cpp
+)
+
+# Set RTTI flags based on file types
+set_source_files_properties(
+    ${LLVM_SOURCES}
+    PROPERTIES COMPILE_FLAGS "-fno-rtti"
+)
+
+set_source_files_properties(
+    ${ANTLR_SOURCES}
+    PROPERTIES COMPILE_FLAGS "-frtti"
+)
+
 # Use LLVM_DIR from environment if available
 if(DEFINED ENV{LLVM_DIR})
     set(LLVM_DIR "$ENV{LLVM_DIR}" CACHE PATH "Path to LLVM CMake config")
@@ -39,7 +76,14 @@ else()
     endif()
 endif()
 
+# Find LLVM package and check version
 find_package(LLVM REQUIRED CONFIG)
+
+# Verify LLVM version is 20.0.0
+if(NOT LLVM_PACKAGE_VERSION VERSION_EQUAL "20.0.0")
+    message(FATAL_ERROR "LLVM 20.0.0 is required. Found version ${LLVM_PACKAGE_VERSION}")
+endif()
+
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
@@ -119,10 +163,11 @@ file(GLOB GENERATED_SRC
 
 add_custom_target(GenerateParser DEPENDS ${GENERATED_SRC})
 
-# add_library(jit_compiler ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.cpp ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.hpp)
-
 # Add source files
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+set(SOURCES
+    ${LLVM_SOURCES}
+    ${ANTLR_SOURCES}
+)
 
 # Create executable
 add_executable(pryst ${SOURCES})
@@ -143,27 +188,26 @@ target_include_directories(pryst PRIVATE
 # Update LLVM libraries based on architecture
 llvm_map_components_to_libnames(LLVM_LIBS
     Core Support native
-    MC MCParser Object BitWriter Analysis CodeGen BitReader
-    OrcJIT MCJIT ExecutionEngine
-    AsmParser AsmPrinter Target
+    MC MCParser MCDisassembler Object BitWriter Analysis CodeGen BitReader
+    OrcJIT MCJIT ExecutionEngine RuntimeDyld
+    AsmParser AsmPrinter Target TargetParser
+    Passes IPO TransformUtils
+    X86CodeGen X86AsmParser X86Desc X86Info X86TargetMCA
 )
 
-# Remove architecture-specific libraries to avoid linking errors
-# if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-#     list(APPEND LLVM_LIBS
-#         X86CodeGen X86AsmParser X86Desc X86Info
-#     )
-#     # Only add AArch64 libraries on x86_64 if cross-compilation is needed
-#     if(NOT APPLE)
-#         list(APPEND LLVM_LIBS
-#             AArch64CodeGen AArch64AsmParser AArch64Desc AArch64Info
-#         )
-#     endif()
-# elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
-#     message(STATUS "Building for ARM64 architecture - skipping AArch64 libraries")
-# else()
-#     message(STATUS "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-# endif()
+# Add architecture-specific libraries based on target
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    # X86 libraries already included above
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+    list(REMOVE_ITEM LLVM_LIBS
+        X86CodeGen X86AsmParser X86Desc X86Info X86TargetMCA
+    )
+    list(APPEND LLVM_LIBS
+        AArch64CodeGen AArch64AsmParser AArch64Desc AArch64Info AArch64TargetMCA
+    )
+else()
+    message(STATUS "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
 
 # target_link_libraries(jit_compiler PRIVATE ${LLVM_LIBS} antlr4-runtime)
 target_link_libraries(pryst PRIVATE ${LLVM_LIBS} antlr4-runtime)

@@ -1,59 +1,86 @@
 #pragma once
 
 #include "PrystBaseVisitor.h"
-#include <antlr4-runtime/support/Any.h>
+#include "type_metadata.hpp"
+#include "type_registry.hpp"
+#include "class_info.hpp"
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/DerivedTypes.h>
 #include <memory>
 #include <unordered_map>
+#include <any>
+
+// Type system declarations
+using TypeRegistry = pryst::TypeRegistry;
+using TypeInfoPtr = pryst::TypeInfoPtr;
+using TypeKind = pryst::TypeKind;
+using ClassTypeInfo = pryst::ClassTypeInfo;
+using ClassTypeInfoPtr = pryst::ClassTypeInfoPtr;
+using TypeMetadata = pryst::TypeMetadata;
+using FunctionTypeInfoPtr = pryst::FunctionTypeInfoPtr;
 
 class LLVMCodegen : public PrystBaseVisitor {
 public:
     LLVMCodegen();
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* programCtx);
 
+    // Type metadata methods
+    void addTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo);
+    void addFunctionTypeInfo(llvm::Function* function, FunctionTypeInfoPtr typeInfo);
+    void addClassTypeInfo(llvm::StructType* structType, ClassTypeInfoPtr typeInfo);
+    TypeInfoPtr getTypeInfo(llvm::Value* value);
+    FunctionTypeInfoPtr getFunctionTypeInfo(llvm::Function* function);
+    ClassTypeInfoPtr getClassTypeInfo(llvm::StructType* structType);
+
     // Overrides for visiting different AST nodes
-    antlrcpp::Any visitProgram(PrystParser::ProgramContext* ctx) override;
-    antlrcpp::Any visitDeclaration(PrystParser::DeclarationContext* ctx) override;
-    antlrcpp::Any visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) override;
-    antlrcpp::Any visitVariableDecl(PrystParser::VariableDeclContext* ctx) override;
-    antlrcpp::Any visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) override;
-    antlrcpp::Any visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) override;
-    antlrcpp::Any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) override;
-    antlrcpp::Any visitParamList(PrystParser::ParamListContext* ctx) override;
-    antlrcpp::Any visitParam(PrystParser::ParamContext* ctx) override;
-    antlrcpp::Any visitType(PrystParser::TypeContext* ctx) override;
-    antlrcpp::Any visitExprStatement(PrystParser::ExprStatementContext* ctx) override;
-    antlrcpp::Any visitIfStatement(PrystParser::IfStatementContext* ctx) override;
-    antlrcpp::Any visitWhileStatement(PrystParser::WhileStatementContext* ctx) override;
-    antlrcpp::Any visitForStatement(PrystParser::ForStatementContext* ctx) override;
-    antlrcpp::Any visitReturnStatement(PrystParser::ReturnStatementContext* ctx) override;
-    antlrcpp::Any visitBlockStatement(PrystParser::BlockStatementContext* ctx) override;
-    antlrcpp::Any visitAssignment(PrystParser::AssignmentContext* ctx) override;
-    antlrcpp::Any visitLogicOr(PrystParser::LogicOrContext* ctx) override;
-    antlrcpp::Any visitLogicAnd(PrystParser::LogicAndContext* ctx) override;
-    antlrcpp::Any visitEquality(PrystParser::EqualityContext* ctx) override;
-    antlrcpp::Any visitComparison(PrystParser::ComparisonContext* ctx) override;
-    antlrcpp::Any visitAddition(PrystParser::AdditionContext* ctx) override;
-    antlrcpp::Any visitMultiplication(PrystParser::MultiplicationContext* ctx) override;
-    antlrcpp::Any visitUnary(PrystParser::UnaryContext* ctx) override;
-    antlrcpp::Any visitPostfix(PrystParser::PostfixContext* ctx) override;
-    antlrcpp::Any visitCall(PrystParser::CallContext* ctx) override;
-    antlrcpp::Any visitCallSuffix(PrystParser::CallSuffixContext* ctx) override;
-    antlrcpp::Any visitPrimary(PrystParser::PrimaryContext* ctx) override;
-    antlrcpp::Any visitNewExpression(PrystParser::NewExpressionContext* ctx) override;
-    antlrcpp::Any visitArguments(PrystParser::ArgumentsContext* ctx) override;
+    std::any visitProgram(PrystParser::ProgramContext* ctx) override;
+    std::any visitDeclaration(PrystParser::DeclarationContext* ctx) override;
+    std::any visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) override;
+    std::any visitNamedFunction(PrystParser::NamedFunctionContext* ctx) override;
+    std::any visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) override;
+    std::any visitVariableDecl(PrystParser::VariableDeclContext* ctx) override;
+    std::any visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) override;
+    std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) override;
+    std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) override;
+    std::any visitParamList(PrystParser::ParamListContext* ctx) override;
+    std::any visitParam(PrystParser::ParamContext* ctx) override;
+    std::any visitType(PrystParser::TypeContext* ctx) override;
+    std::any visitExprStatement(PrystParser::ExprStatementContext* ctx) override;
+    std::any visitIfStatement(PrystParser::IfStatementContext* ctx) override;
+    std::any visitWhileStatement(PrystParser::WhileStatementContext* ctx) override;
+    std::any visitForStatement(PrystParser::ForStatementContext* ctx) override;
+    std::any visitReturnStatement(PrystParser::ReturnStatementContext* ctx) override;
+    std::any visitBlockStatement(PrystParser::BlockStatementContext* ctx) override;
+    std::any visitAssignment(PrystParser::AssignmentContext* ctx) override;
+    std::any visitLogicOr(PrystParser::LogicOrContext* ctx) override;
+    std::any visitLogicAnd(PrystParser::LogicAndContext* ctx) override;
+    std::any visitEquality(PrystParser::EqualityContext* ctx) override;
+    std::any visitComparison(PrystParser::ComparisonContext* ctx) override;
+    std::any visitAddition(PrystParser::AdditionContext* ctx) override;
+    std::any visitMultiplication(PrystParser::MultiplicationContext* ctx) override;
+    std::any visitUnary(PrystParser::UnaryContext* ctx) override;
+    std::any visitPostfix(PrystParser::PostfixContext* ctx) override;
+    std::any visitCall(PrystParser::CallContext* ctx) override;
+    std::any visitCallSuffix(PrystParser::CallSuffixContext* ctx) override;
+    std::any visitPrimary(PrystParser::PrimaryContext* ctx) override;
+    std::any visitNewExpression(PrystParser::NewExpressionContext* ctx) override;
+    std::any visitArguments(PrystParser::ArgumentsContext* ctx) override;
 
 private:
+    std::shared_ptr<TypeMetadata> typeMetadata;
     std::unordered_map<std::string, llvm::FunctionType*> functionTypes;
+    std::unordered_map<std::string, llvm::Function*> stringFunctions;  // For string utility functions
+    std::unordered_map<std::string, llvm::Function*> functions;        // For general functions
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<llvm::IRBuilder<>> builder;
 
     // Symbol tables for variables and functions
+    std::vector<std::unordered_map<std::string, llvm::AllocaInst*>> scopeStack;
     std::unordered_map<std::string, llvm::AllocaInst*> namedValues;
-    std::unordered_map<std::string, llvm::Function*> functions;
 
     // Class member tracking
     std::unordered_map<std::string, llvm::StructType*> classTypes;
@@ -66,10 +93,52 @@ private:
     size_t getMemberIndex(llvm::StructType* structType, const std::string& memberName);
     void addClassMember(const std::string& className, const std::string& memberName, size_t index);
 
-    llvm::Value* lastValue;
-    llvm::Function* currentFunction;
+    // Type conversion methods
+    llvm::Value* convertToDouble(llvm::Value* value);
+    llvm::Value* convertToInt(llvm::Value* value);
+    llvm::Value* convertToString(llvm::Value* value);
+    llvm::Value* convertFromString(llvm::Value* value, llvm::Type* targetType);
 
+    // Type conversion visitor methods
+    std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) override;
+    std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext* ctx) override;
+
+    // Scope management
+    void pushScope() { scopeStack.push_back({}); }
+    void popScope() { if (!scopeStack.empty()) scopeStack.pop_back(); }
+    bool verifyReturnTypes(llvm::Function* function, llvm::Type* returnType);
+    std::vector<llvm::Type*> collectReturnTypes(llvm::Function* function);
+    llvm::Type* deduceReturnType(const std::vector<llvm::Type*>& returnTypes);
+
+    // Type metadata and reflection methods
+    llvm::Value* generateGetType(llvm::Value* value);
+    llvm::Value* generateIsInstance(llvm::Value* value, const std::string& typeName);
+    llvm::MDNode* getTypeMetadata(llvm::Value* value);
+    void attachTypeMetadata(llvm::Value* value, const std::string& typeName);
+    TypeInfoPtr getLLVMTypeInfo(llvm::Type* type);
+    llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo);
+    bool isClassType(const std::string& typeName);
+    ClassTypeInfo* getClassInfo(const std::string& className);
+    llvm::Value* convertValue(llvm::Value* value, const std::string& targetType);
+    llvm::Value* generateMethodCall(llvm::Value* object, const std::string& methodName, const std::vector<llvm::Value*>& args);
+
+    // Function declarations
     llvm::Function* createMainFunction();
     llvm::Function* declarePrintf();
     llvm::Function* declareBoolToStr();
+    llvm::Function* declareMalloc();
+
+    // String utility functions
+    llvm::Function* declareStrlen();
+    llvm::Function* declareStrcpy();
+    llvm::Function* declareStrcat();
+    llvm::Function* declareMemcpy();
+
+    // Type conversion functions
+    llvm::Function* declareToString();
+    llvm::Function* declareToInt();
+    llvm::Function* declareToFloat();
+
+    llvm::Value* lastValue;
+    llvm::Function* currentFunction;
 };

@@ -1,10 +1,14 @@
 #pragma once
 
 #include "PrystBaseVisitor.h"
+#include "module_loader.hpp"
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <any>
+#include <memory>
+
+using ModuleLoader = pryst::ModuleLoader;
 
 // SymbolTable manages variables, functions, and classes with scope handling
 class SymbolTable {
@@ -39,7 +43,7 @@ public:
     // Variable management
     bool variableExists(const std::string& name) const;
     bool variableExistsInCurrentScope(const std::string& name) const;
-    void addVariable(const std::string& name, const std::string& type);
+    void addVariable(const std::string& name, const std::string& type, bool isConst = false);
     std::string getVariableType(const std::string& name) const;
     std::unordered_map<std::string, VariableInfo> getCurrentScopeVariables() const;
     void clearCurrentScopeVariables();
@@ -72,6 +76,8 @@ public:
     std::any visitProgram(PrystParser::ProgramContext* ctx) override;
     std::any visitDeclaration(PrystParser::DeclarationContext* ctx) override;
     std::any visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) override;
+    std::any visitNamedFunction(PrystParser::NamedFunctionContext* ctx) override;
+    std::any visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) override;
     std::any visitVariableDecl(PrystParser::VariableDeclContext* ctx) override;
     std::any visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) override;
     std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) override;
@@ -100,6 +106,7 @@ public:
 private:
     SymbolTable symbolTable;
     std::string currentFunction;
+    std::shared_ptr<ModuleLoader> moduleLoader;
     std::any currentCallType;  // Stores the type between visitCall and visitCallSuffix calls
 
     // Helper method for type checking

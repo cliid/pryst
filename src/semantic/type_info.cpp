@@ -30,6 +30,11 @@ bool BasicTypeInfo::isConvertibleTo(const TypeInfoPtr& other) const {
             std::string convMethodName = "c!" + classType->getName();
             return classType->hasMethod(convMethodName);
         }
+        // Allow pointer type conversions
+        if (other->getKind() == Kind::Pointer) {
+            // Allow conversion between pointer types
+            return name_ == "pointer" || other->getName() == "pointer";
+        }
         return false;
     }
 
@@ -44,6 +49,11 @@ bool BasicTypeInfo::isConvertibleTo(const TypeInfoPtr& other) const {
 
     // Everything can be converted to string
     if (other->getName() == "str") return true;
+
+    // Allow pointer type conversions
+    if (name_ == "pointer" || other->getName() == "pointer") {
+        return true;
+    }
 
     return false;
 }
@@ -149,6 +159,32 @@ ClassTypeInfoPtr TypeRegistry::createClassType(const std::string& name,
     auto classType = std::make_shared<ClassTypeInfo>(name, parent);
     types_[name] = classType;
     return classType;
+}
+
+// Implementation of BasicTypeInfo::toString
+std::string BasicTypeInfo::toString() const {
+    return name_;  // Basic types just return their name
+}
+
+// Implementation of FunctionTypeInfo::toString
+std::string FunctionTypeInfo::toString() const {
+    std::stringstream ss;
+    ss << "fn<" << returnType_->toString() << ">(";
+    for (size_t i = 0; i < paramTypes_.size(); ++i) {
+        if (i > 0) ss << ", ";
+        ss << paramTypes_[i]->toString();
+    }
+    ss << ")";
+    return ss.str();
+}
+
+// Implementation of ClassTypeInfo::toString
+std::string ClassTypeInfo::toString() const {
+    std::string result = name_;
+    if (parent_) {
+        result += ":" + parent_->getName();
+    }
+    return result;
 }
 
 } // namespace pryst
