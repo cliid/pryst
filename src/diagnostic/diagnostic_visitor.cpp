@@ -80,14 +80,25 @@ std::any DiagnosticVisitor::visitVariableDecl(PrystParser::VariableDeclContext* 
 }
 
 std::any DiagnosticVisitor::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
-    std::string details = ctx->type()->getText() + " " + ctx->IDENTIFIER()->getText() + "()";
-    printNode("FunctionDecl", details);
-    ScopeGuard guard(indentLevel);
-    if (ctx->paramList()) {
-        visit(ctx->paramList());
-    }
-    for (auto decl : ctx->declaration()) {
-        visit(decl);
+    if (auto* namedFunc = dynamic_cast<PrystParser::NamedFunctionContext*>(ctx)) {
+        std::string details = namedFunc->type()->getText() + " " + namedFunc->IDENTIFIER()->getText() + "()";
+        printNode("NamedFunction", details);
+        ScopeGuard guard(indentLevel);
+        if (namedFunc->paramList()) {
+            visit(namedFunc->paramList());
+        }
+        for (auto decl : namedFunc->declaration()) {
+            visit(decl);
+        }
+    } else if (auto* lambdaFunc = dynamic_cast<PrystParser::LambdaFunctionContext*>(ctx)) {
+        printNode("LambdaFunction", "anonymous");
+        ScopeGuard guard(indentLevel);
+        if (lambdaFunc->paramList()) {
+            visit(lambdaFunc->paramList());
+        }
+        for (auto decl : lambdaFunc->declaration()) {
+            visit(decl);
+        }
     }
     return nullptr;
 }
@@ -178,7 +189,7 @@ std::any DiagnosticVisitor::visitExpression(PrystParser::ExpressionContext* ctx)
 
 std::any DiagnosticVisitor::visitAssignment(PrystParser::AssignmentContext* ctx) {
     std::string details;
-    if (ctx->call()) {
+    if (ctx->call() && !ctx->call()->DOT().empty()) {
         // Member assignment (call.IDENTIFIER = expr)
         details = "target: " + ctx->call()->getText() + "." + ctx->IDENTIFIER()->getText();
         printNode("Assignment (Member)", details);
@@ -209,13 +220,13 @@ std::any DiagnosticVisitor::visitCall(PrystParser::CallContext* ctx) {
     printNode("Location", "Line " + std::to_string(ctx->getStart()->getLine()) + ", Column " + std::to_string(ctx->getStart()->getCharPositionInLine()));
 
     ScopeGuard guard(indentLevel);
-
-    // Visit primary expression
     visit(ctx->primary());
 
     // Process member access chain
-    for (auto identifier : ctx->IDENTIFIER()) {
-        printNode("Member Access", "member: " + identifier->getText());
+    auto dots = ctx->DOT();
+    auto identifiers = ctx->IDENTIFIER();
+    for (size_t i = 0; i < dots.size() && i < identifiers.size(); ++i) {
+        printNode("Member Access", "member: " + identifiers[i]->getText());
     }
 
     printNode("Call Chain End");
@@ -223,9 +234,36 @@ std::any DiagnosticVisitor::visitCall(PrystParser::CallContext* ctx) {
 }
 
 std::any DiagnosticVisitor::visitCallSuffix(PrystParser::CallSuffixContext* ctx) {
-    // Member access only
-    if (ctx->IDENTIFIER()) {  // Member access
-        printNode("Member Access", "member: " + ctx->IDENTIFIER()->getText());
+    printNode("Function Call");
+    if (ctx->arguments()) {
+        visit(ctx->arguments());
+    }
+    return nullptr;
+}
+
+std::any DiagnosticVisitor::visitMemberSuffix(PrystParser::MemberSuffixContext* ctx) {
+    printNode("Member Access", "member: " + ctx->IDENTIFIER()->getText());
+    return nullptr;
+}
+
+std::any DiagnosticVisitor::visitSuffix(PrystParser::SuffixContext* ctx) {
+    if (ctx->callSuffix()) {
+        visit(ctx->callSuffix());
+    } else if (ctx->memberSuffix()) {
+        visit(ctx->memberSuffix());
+    }
+    return nullptr;
+}
+
+std::any DiagnosticVisitor::visitPostfix(PrystParser::PostfixContext* ctx) {
+    visit(ctx->primary());
+    for (auto suffix : ctx->suffix()) {
+        visit(suffix);
+    }
+    if (!ctx->INCREMENT().empty()) {
+        printNode("Postfix Increment");
+    } else if (!ctx->DECREMENT().empty()) {
+        printNode("Postfix Decrement");
     }
     return nullptr;
 }

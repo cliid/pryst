@@ -27,6 +27,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitNamedFunction(PrystParser::NamedFunctionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitLambdaFunction(PrystParser::LambdaFunctionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitVariableDecl(PrystParser::VariableDeclContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -123,11 +131,19 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitCall(PrystParser::CallContext *ctx) override {
+  virtual std::any visitSuffix(PrystParser::SuffixContext *ctx) override {
     return visitChildren(ctx);
   }
 
   virtual std::any visitCallSuffix(PrystParser::CallSuffixContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitMemberSuffix(PrystParser::MemberSuffixContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitCall(PrystParser::CallContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -140,6 +156,18 @@ public:
   }
 
   virtual std::any visitArguments(PrystParser::ArgumentsContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitTypeCastExpr(PrystParser::TypeCastExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext *ctx) override {
     return visitChildren(ctx);
   }
 

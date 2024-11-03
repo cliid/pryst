@@ -25,6 +25,10 @@ public:
 
     virtual std::any visitFunctionDecl(PrystParser::FunctionDeclContext *context) = 0;
 
+    virtual std::any visitNamedFunction(PrystParser::NamedFunctionContext *context) = 0;
+
+    virtual std::any visitLambdaFunction(PrystParser::LambdaFunctionContext *context) = 0;
+
     virtual std::any visitVariableDecl(PrystParser::VariableDeclContext *context) = 0;
 
     virtual std::any visitClassDeclaration(PrystParser::ClassDeclarationContext *context) = 0;
@@ -73,15 +77,25 @@ public:
 
     virtual std::any visitPostfix(PrystParser::PostfixContext *context) = 0;
 
-    virtual std::any visitCall(PrystParser::CallContext *context) = 0;
+    virtual std::any visitSuffix(PrystParser::SuffixContext *context) = 0;
 
     virtual std::any visitCallSuffix(PrystParser::CallSuffixContext *context) = 0;
+
+    virtual std::any visitMemberSuffix(PrystParser::MemberSuffixContext *context) = 0;
+
+    virtual std::any visitCall(PrystParser::CallContext *context) = 0;
 
     virtual std::any visitPrimary(PrystParser::PrimaryContext *context) = 0;
 
     virtual std::any visitNewExpression(PrystParser::NewExpressionContext *context) = 0;
 
     virtual std::any visitArguments(PrystParser::ArgumentsContext *context) = 0;
+
+    virtual std::any visitTypeCastExpr(PrystParser::TypeCastExprContext *context) = 0;
+
+    virtual std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext *context) = 0;
+
+    virtual std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext *context) = 0;
 
 
 };
