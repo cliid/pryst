@@ -46,7 +46,7 @@ void JITCompiler::compileAndRun(std::unique_ptr<llvm::Module> module) {
     }
 
     // Cast the symbol address to a function pointer
-    int (*mainFunc)() = reinterpret_cast<int(*)()>(mainSymbol->toPtr());
+    int (*mainFunc)() = mainSymbol->toPtr<int(*)()>();
 
     // Call the JIT'd code
     int result = mainFunc();
