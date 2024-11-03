@@ -13,15 +13,6 @@
 #include <unordered_map>
 #include <any>
 
-// Type system declarations
-using TypeRegistry = pryst::TypeRegistry;
-using TypeInfoPtr = pryst::TypeInfoPtr;
-using TypeKind = pryst::TypeKind;
-using ClassTypeInfo = pryst::ClassTypeInfo;
-using ClassTypeInfoPtr = pryst::ClassTypeInfoPtr;
-using TypeMetadata = pryst::TypeMetadata;
-using FunctionTypeInfoPtr = pryst::FunctionTypeInfoPtr;
-
 class LLVMCodegen : public PrystBaseVisitor {
 public:
     LLVMCodegen();
@@ -70,6 +61,7 @@ public:
     std::any visitArguments(PrystParser::ArgumentsContext* ctx) override;
 
 private:
+    TypeRegistry& typeRegistry;  // Type registry for managing type information
     std::shared_ptr<TypeMetadata> typeMetadata;
     std::unordered_map<std::string, llvm::FunctionType*> functionTypes;
     std::unordered_map<std::string, llvm::Function*> stringFunctions;  // For string utility functions
@@ -113,8 +105,7 @@ private:
     // Type metadata and reflection methods
     llvm::Value* generateGetType(llvm::Value* value);
     llvm::Value* generateIsInstance(llvm::Value* value, const std::string& typeName);
-    llvm::MDNode* getTypeMetadata(llvm::Value* value);
-    void attachTypeMetadata(llvm::Value* value, const std::string& typeName);
+    void attachTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo);
     TypeInfoPtr getLLVMTypeInfo(llvm::Type* type);
     llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo);
     bool isClassType(const std::string& typeName);
@@ -127,6 +118,7 @@ private:
     llvm::Function* declarePrintf();
     llvm::Function* declareBoolToStr();
     llvm::Function* declareMalloc();
+    void declarePrintFunctions();  // Added declaration for print functions
 
     // String utility functions
     llvm::Function* declareStrlen();
@@ -141,4 +133,5 @@ private:
 
     llvm::Value* lastValue;
     llvm::Function* currentFunction;
+    llvm::Function* printFunc;  // For storing print function reference
 };

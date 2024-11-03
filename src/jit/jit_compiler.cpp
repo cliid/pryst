@@ -2,8 +2,10 @@
 #include <llvm/IR/Module.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/Error.h>
+#include <llvm/Support/InitLLVM.h>
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
+#include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <iostream>
 
 JITCompiler::JITCompiler() {
@@ -46,7 +48,7 @@ void JITCompiler::compileAndRun(std::unique_ptr<llvm::Module> module) {
     }
 
     // Cast the symbol address to a function pointer
-    int (*mainFunc)() = reinterpret_cast<int(*)()>(mainSymbol->toPtr());
+    int (*mainFunc)() = mainSymbol->toPtr<int(*)()>();
 
     // Call the JIT'd code
     int result = mainFunc();

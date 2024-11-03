@@ -11,20 +11,33 @@
 class SymbolTable {
 public:
     struct FunctionInfo {
-        std::string returnType;
-        std::vector<std::string> paramTypes;
-        int scopeLevel;
-        bool isAnonymous;
-        bool hasExplicitReturnType;
-        std::vector<std::string> deducedReturnTypes;  // For type deduction
+        std::string returnType{};  // Default initialize empty string
+        std::vector<std::string> paramTypes{};  // Default initialize empty vector
+        int scopeLevel{0};  // Default initialize to 0
+        bool isAnonymous{false};  // Default initialize to false
+        bool hasExplicitReturnType{false};  // Default initialize to false
+        std::vector<std::string> deducedReturnTypes{};  // For type deduction
+
+        // Default constructor to ensure proper initialization
+        FunctionInfo() = default;
+
+        // Copy constructor to ensure proper string copying
+        FunctionInfo(const FunctionInfo& other) = default;
+
+        // Move constructor for efficiency
+        FunctionInfo(FunctionInfo&& other) noexcept = default;
+
+        // Assignment operators
+        FunctionInfo& operator=(const FunctionInfo& other) = default;
+        FunctionInfo& operator=(FunctionInfo&& other) noexcept = default;
     };
 
     struct VariableInfo {
-        std::string type;
-        bool isConst;
-        int scopeLevel;
-        bool isFunctionType;  // True if this is a function type variable
-        FunctionInfo functionInfo;  // Used when isFunctionType is true
+        std::string type{};  // Default initialize empty string
+        bool isConst{false};  // Default initialize to false
+        int scopeLevel{0};  // Default initialize to 0
+        bool isFunctionType{false};  // True if this is a function type variable
+        FunctionInfo functionInfo{};  // Used when isFunctionType is true
     };
 
     struct ClassInfo {
@@ -66,6 +79,7 @@ public:
 
     // Class-related methods
     void addClass(const std::string& name, const std::string& parentClass = "");
+    void addClass(const std::string& name, const ClassInfo& info);
     bool classExists(const std::string& name) const;
     ClassInfo getClassInfo(const std::string& name) const;
 
