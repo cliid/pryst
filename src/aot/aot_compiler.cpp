@@ -93,7 +93,7 @@ void AOTCompiler::compile(Module& module, const std::string& outputFilename) {
     // Create and run code generation pipeline using legacy pass manager
     // Note: LLVM 20.0.0 still requires legacy pass manager for code generation
     legacy::PassManager CodeGenPM;
-    if (targetMachine->addPassesToEmitFile(CodeGenPM, dest, nullptr, CGFT_ObjectFile)) {
+    if (targetMachine->addPassesToEmitFile(CodeGenPM, dest, nullptr, CodeGenFileType::ObjectFile)) {
         errs() << "TargetMachine can't emit a file of this type";
         return;
     }
