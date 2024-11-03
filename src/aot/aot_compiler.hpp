@@ -6,7 +6,7 @@
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/ADT/BitVector.h>
 #include <llvm/ADT/ArrayRef.h>
-#include <llvm/ADT/BitCount.h>
+#include <llvm/Support/MathExtras.h>
 #include <llvm/MC/SubtargetFeature.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/TargetParser/Host.h>
