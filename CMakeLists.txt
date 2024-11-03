@@ -23,7 +23,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 # Create lists of source files that need different RTTI settings
 set(LLVM_SOURCES
     ${CMAKE_SOURCE_DIR}/src/codegen/llvm_utils.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/aot/aot_compiler.cpp
     ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.cpp
 )
@@ -41,6 +40,7 @@ set(ANTLR_SOURCES
     ${CMAKE_SOURCE_DIR}/src/codegen/string_utils.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/reflection_api.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_utils.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/semantic_analyzer.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/symbol_table.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/type_info.cpp
