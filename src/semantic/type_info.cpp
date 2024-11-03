@@ -1,15 +1,13 @@
 #include "type_info.hpp"
 #include <sstream>
 
-namespace pryst {
-
 // Helper function to check if a type is numeric
-bool isNumericType(const TypeInfoPtr& type) {
+bool TypeInfo::isNumericType(const TypeInfoPtr& type) {
     return type->getName() == "int" || type->getName() == "float";
 }
 
 // Helper function to get common numeric type
-TypeInfoPtr getCommonNumericType(const TypeInfoPtr& t1, const TypeInfoPtr& t2) {
+TypeInfoPtr TypeInfo::getCommonNumericType(const TypeInfoPtr& t1, const TypeInfoPtr& t2) {
     if (!isNumericType(t1) || !isNumericType(t2)) return nullptr;
 
     // If either type is float, result is float
@@ -42,8 +40,8 @@ bool BasicTypeInfo::isConvertibleTo(const TypeInfoPtr& other) const {
     if (name_ == other->getName()) return true;
 
     // Numeric conversions
-    if (isNumericType(std::make_shared<BasicTypeInfo>(name_)) &&
-        isNumericType(other)) {
+    if (TypeInfo::isNumericType(std::make_shared<BasicTypeInfo>(name_)) &&
+        TypeInfo::isNumericType(other)) {
         return true;
     }
 
@@ -74,7 +72,7 @@ bool FunctionTypeInfo::isConvertibleTo(const TypeInfoPtr& other) const {
     for (size_t i = 0; i < paramTypes_.size(); ++i) {
         // Parameter types must be exactly the same or have compatible numeric types
         if (!paramTypes_[i]->isConvertibleTo(otherParams[i]) &&
-            !getCommonNumericType(paramTypes_[i], otherParams[i])) {
+            !TypeInfo::getCommonNumericType(paramTypes_[i], otherParams[i])) {
             return false;
         }
     }
@@ -108,24 +106,9 @@ bool ClassTypeInfo::isConvertibleTo(const TypeInfoPtr& other) const {
 }
 
 // Implementation of type registry methods
-TypeRegistry& TypeRegistry::getInstance() {
-    static TypeRegistry instance;
-    return instance;
-}
+// getInstance() is defined in the header file
 
-TypeInfoPtr TypeRegistry::getOrCreateBasicType(const std::string& name) {
-    auto it = types_.find(name);
-    if (it != types_.end()) return it->second;
 
-    auto type = std::make_shared<BasicTypeInfo>(name);
-    types_[name] = type;
-    return type;
-}
-
-TypeInfoPtr TypeRegistry::registerType(TypeInfoPtr type) {
-    types_[type->toString()] = type;
-    return type;
-}
 
 TypeInfoPtr TypeRegistry::getFunctionType(TypeInfoPtr returnType,
                                         const std::vector<TypeInfoPtr>& paramTypes) {
@@ -145,7 +128,6 @@ TypeInfoPtr TypeRegistry::getFunctionType(TypeInfoPtr returnType,
     types_[typeStr] = type;
     return type;
 }
-
 
 ClassTypeInfoPtr TypeRegistry::createClassType(const std::string& name,
                                              ClassTypeInfoPtr parent) {
@@ -186,5 +168,3 @@ std::string ClassTypeInfo::toString() const {
     }
     return result;
 }
-
-} // namespace pryst

@@ -1,10 +1,12 @@
 #pragma once
 
 #include "../generated/PrystBaseVisitor.h"
+#include "../generated/PrystParser.h"
 #include <iostream>
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <any>
 
 class DiagnosticVisitor : public PrystBaseVisitor {
 public:

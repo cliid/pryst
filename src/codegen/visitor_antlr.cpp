@@ -6,10 +6,6 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/Support/Casting.h>
 
-using LLVMUtils = pryst::LLVMUtils;
-
-namespace pryst {
-
 // Implementation of class member tracking methods
 void VisitorANTLR::addClassMember(const std::string& className, const std::string& memberName, size_t index) {
     classMembers[className][memberName] = index;
@@ -65,5 +61,3 @@ std::any VisitorANTLR::visitIfStatement(PrystParser::IfStatementContext* ctx) {
 
 // Note: All other visitor methods follow the same pattern of using accessor methods
 // instead of direct member access. The implementation logic remains the same.
-
-} // namespace pryst

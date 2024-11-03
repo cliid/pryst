@@ -3,8 +3,6 @@
 #include <stdexcept>
 #include <algorithm>
 
-namespace pryst {
-
 ModuleLoader::ModuleLoader() {
     // Add current directory to search paths by default
     searchPaths.push_back(".");
@@ -94,5 +92,3 @@ std::string ModuleLoader::findModuleFile(const std::string& moduleName) const {
 
     throw std::runtime_error("Module not found: " + moduleName);
 }
-
-} // namespace pryst

@@ -8,8 +8,6 @@
 #include <string>
 #include <memory>
 
-namespace pryst {
-
 class VisitorBase {
 protected:
     std::unique_ptr<llvm::LLVMContext> context;
@@ -35,5 +33,3 @@ public:
     llvm::Module& getModule() { return *module; }
     std::map<std::string, llvm::Value*>& getNamedValues() { return namedValues; }
 };
-
-} // namespace pryst

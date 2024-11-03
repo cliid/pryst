@@ -8,7 +8,7 @@
 #include <any>
 #include <memory>
 
-using ModuleLoader = pryst::ModuleLoader;
+using ModuleLoader = ModuleLoader;
 
 // SymbolTable manages variables, functions, and classes with scope handling
 class SymbolTable {

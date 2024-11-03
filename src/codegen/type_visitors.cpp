@@ -220,11 +220,14 @@ std::any LLVMCodegen::visitLambdaFunction(PrystParser::LambdaFunctionContext* ct
     unsigned idx = 0;
     for (auto &arg : tempFunction->args()) {
         arg.setName(paramNames[idx++]);
-        // Use LLVM 20.0.0 compatible pointer type creation
-        llvm::Type* ptrType = llvm::PointerType::getUnqual(arg.getType());
-        llvm::AllocaInst* alloca = builder->CreateAlloca(arg.getType(), nullptr, arg.getName().str());
+        // Use TypeRegistry for parameter type handling
+        auto paramType = typeRegistry.getPointerType();
+        auto llvmType = LLVMTypeRegistry::getInstance().getLLVMType(paramType, *context);
+        llvm::AllocaInst* alloca = builder->CreateAlloca(llvmType, nullptr, arg.getName().str());
         builder->CreateStore(&arg, alloca);
         namedValues[arg.getName().str()] = alloca;
+        // Track type information
+        typeMetadata->addTypeInfo(&arg, paramType);
     }
 
     // Visit function body to collect return types
@@ -264,11 +267,14 @@ std::any LLVMCodegen::visitLambdaFunction(PrystParser::LambdaFunctionContext* ct
     // Add parameters to scope again
     idx = 0;
     for (auto &arg : function->args()) {
-        // Use LLVM 20.0.0 compatible pointer type creation
-        llvm::Type* ptrType = llvm::PointerType::getUnqual(arg.getType());
-        llvm::AllocaInst* alloca = builder->CreateAlloca(arg.getType(), nullptr, arg.getName().str());
+        // Use TypeRegistry for parameter type handling
+        auto paramType = typeRegistry.getPointerType();
+        auto llvmType = LLVMTypeRegistry::getInstance().getLLVMType(paramType, *context);
+        llvm::AllocaInst* alloca = builder->CreateAlloca(llvmType, nullptr, arg.getName().str());
         builder->CreateStore(&arg, alloca);
         namedValues[arg.getName().str()] = alloca;
+        // Track type information
+        typeMetadata->addTypeInfo(&arg, paramType);
     }
 
     // Visit function body again with correct return type
