@@ -12,7 +12,16 @@ declaration
     ;
 
 functionDecl
+    : namedFunction
+    | lambdaFunction
+    ;
+
+namedFunction
     : type IDENTIFIER LPAREN paramList? RPAREN LBRACE declaration* RBRACE
+    ;
+
+lambdaFunction
+    : type? LPAREN paramList? RPAREN ARROW LBRACE declaration* RBRACE
     ;
 
 variableDecl
@@ -63,6 +72,9 @@ statement
 
 expression
     : assignment
+    | typeCastExpr
+    | typeConversionExpr
+    | classConversionExpr
     | logicOr
     ;
 
@@ -100,15 +112,24 @@ unary
     ;
 
 postfix
-    : primary (INCREMENT | DECREMENT)?
+    : primary (suffix | INCREMENT | DECREMENT)*
+    ;
+
+suffix
+    : callSuffix
+    | memberSuffix
+    ;
+
+callSuffix
+    : LPAREN arguments? RPAREN
+    ;
+
+memberSuffix
+    : DOT IDENTIFIER
     ;
 
 call
     : primary (DOT IDENTIFIER)*
-    ;
-
-callSuffix
-    : DOT IDENTIFIER
     ;
 
 primary
@@ -130,6 +151,19 @@ newExpression
 
 arguments
     : expression (COMMA expression)*
+    ;
+
+// Type conversion expressions
+typeCastExpr
+    : LPAREN type RPAREN expression
+    ;
+
+typeConversionExpr
+    : type DOT CONVERT LPAREN expression RPAREN
+    ;
+
+classConversionExpr
+    : IDENTIFIER DOT CONVERT LPAREN expression RPAREN
     ;
 
 // Lexer Rules
@@ -160,6 +194,7 @@ OR          : '||' ;
 INCREMENT   : '++' ;
 DECREMENT   : '--' ;
 PERCENT     : '%' ;
+ARROW       : '=>' ;
 
 CLASS       : 'class' ;
 EXTENDS     : 'extends' ;
@@ -174,6 +209,7 @@ THIS        : 'this' ;
 TRUE        : 'true' ;
 WHILE       : 'while' ;
 NEW         : 'new' ;
+CONVERT     : 'convert' ;
 
 INT         : 'int' ;
 FLOAT       : 'float' ;
