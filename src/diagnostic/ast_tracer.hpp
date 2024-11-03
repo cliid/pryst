@@ -19,6 +19,11 @@ public:
     virtual std::any visitMultiplication(PrystParser::MultiplicationContext* ctx) override;
     virtual std::any visitUnary(PrystParser::UnaryContext* ctx) override;
     virtual std::any visitPrimary(PrystParser::PrimaryContext* ctx) override;
+    virtual std::any visitNamedFunction(PrystParser::NamedFunctionContext* ctx) override;
+    virtual std::any visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) override;
+    virtual std::any visitTypeCastExpr(PrystParser::TypeCastExprContext* ctx) override;
+    virtual std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) override;
+    virtual std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext* ctx) override;
 
 private:
     int indentLevel = 0;

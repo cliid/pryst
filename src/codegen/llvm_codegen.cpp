@@ -5,6 +5,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/Support/Casting.h>
+#include "semantic/type_info.hpp"
 #include <stdexcept>
 #include <iostream>
 
@@ -42,10 +43,7 @@ LLVMCodegen::LLVMCodegen()
       module(std::make_unique<llvm::Module>("pryst", *context)),
       builder(std::make_unique<llvm::IRBuilder<>>(*context)),
       lastValue(nullptr),
-      currentFunction(nullptr) {
-    declareBoolToStr();  // Initialize boolToStr function
-    functions["print"] = declarePrintf();  // Register print as a builtin function
-}
+      currentFunction(nullptr) {}
 
 std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* programCtx) {
     currentFunction = createMainFunction();
@@ -91,64 +89,67 @@ std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext* ctx) {
     return nullptr;
 }
 
-// Function Declaration: Handles function declarations
+// Function Declaration: Dispatches to the appropriate function type
 std::any LLVMCodegen::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
+    if (auto namedFunc = dynamic_cast<PrystParser::NamedFunctionContext*>(ctx)) {
+        return visitNamedFunction(namedFunc);
+    } else if (auto lambdaFunc = dynamic_cast<PrystParser::LambdaFunctionContext*>(ctx)) {
+        return visitLambdaFunction(lambdaFunc);
+    }
+    return nullptr;
+}
+
+// Named Function: Handles regular function declarations
+std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx) {
     std::string funcName = ctx->IDENTIFIER()->getText();
     llvm::Type* returnType = getLLVMType(ctx->type()->getText());
 
     std::vector<llvm::Type*> paramTypes;
+    std::vector<std::string> paramNames;
+
     if (ctx->paramList()) {
         for (auto param : ctx->paramList()->param()) {
             paramTypes.push_back(getLLVMType(param->type()->getText()));
+            paramNames.push_back(param->IDENTIFIER()->getText());
         }
     }
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(returnType, paramTypes, false);
-    llvm::Function* func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, funcName, module.get());
-    functionTypes[funcName] = funcType;
+    llvm::Function* function = llvm::Function::Create(
+        funcType, llvm::Function::ExternalLinkage, funcName, module.get());
 
-    // Set the names for all arguments
-    unsigned idx = 0;
-    if (ctx->paramList()) {
-        for (auto& arg : func->args()) {
-            std::string paramName = ctx->paramList()->param(idx)->IDENTIFIER()->getText();
-            arg.setName(paramName);
-            idx++;
-        }
-    }
+    // Create function type info
+    auto functionTypeInfo = std::make_shared<FunctionTypeInfo>(funcName, funcType);
+    typeMetadata->addFunctionTypeInfo(function, functionTypeInfo);
 
-    // Create a new basic block to start insertion into
-    llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create(*context, "entry", func);
-    builder->SetInsertPoint(entryBlock);
+    // Create a new basic block
+    llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", function);
+    builder->SetInsertPoint(bb);
 
     // Save the current function
     llvm::Function* oldFunction = currentFunction;
-    currentFunction = func;
+    currentFunction = function;
 
-    // Clear the namedValues map for the new function scope
-    namedValues.clear();
+    // Create a new scope for function parameters
+    pushScope();
 
-    // Create allocas for arguments and store them
-    idx = 0;
-    for (auto& arg : func->args()) {
-        llvm::AllocaInst* alloca = createEntryBlockAlloca(func, arg.getName().str(), arg.getType());
-        builder->CreateStore(&arg, alloca);
-        namedValues[arg.getName().str()] = alloca;
-        idx++;
+    // Create allocas for parameters
+    if (ctx->paramList()) {
+        size_t idx = 0;
+        for (auto& arg : function->args()) {
+            std::string paramName = paramNames[idx++];
+            llvm::AllocaInst* alloca = createEntryBlockAlloca(function, paramName, arg.getType());
+            builder->CreateStore(&arg, alloca);
+            scopeStack.back()[paramName] = alloca;
+        }
     }
 
-    // Save the current named values
-    std::unordered_map<std::string, llvm::AllocaInst*> oldNamedValues = namedValues;
-
-    // Visit the function body declarations
+    // Visit function body
     for (auto decl : ctx->declaration()) {
         visit(decl);
     }
 
-    // Restore the named values
-    namedValues = oldNamedValues;
-
-    // Ensure the function has a return statement
+    // Add implicit return if needed
     if (!builder->GetInsertBlock()->getTerminator()) {
         if (returnType->isVoidTy()) {
             builder->CreateRetVoid();
@@ -158,15 +159,13 @@ std::any LLVMCodegen::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
     }
 
     // Verify the function
-    if (llvm::verifyFunction(*func, &llvm::errs())) {
+    if (llvm::verifyFunction(*function, &llvm::errs())) {
         throw std::runtime_error("Function verification failed for function: " + funcName);
     }
 
-    // Restore the old function
+    popScope();
     currentFunction = oldFunction;
-
-    // Add the function to the functions map
-    functions[funcName] = func;
+    functions[funcName] = function;
 
     return nullptr;
 }
@@ -227,8 +226,19 @@ std::any LLVMCodegen::visitClassDeclaration(PrystParser::ClassDeclarationContext
         std::sort(sortedMembers.begin(), sortedMembers.end(),
                  [](const auto& a, const auto& b) { return a.second < b.second; });
 
+        // Get type information from registry
+        auto& registry = TypeRegistry::getInstance();
+        auto baseClassInfo = typeMetadata->getClassTypeInfo(baseType);
+        if (!baseClassInfo) {
+            throw std::runtime_error("Class type info not found for: " + baseClass);
+        }
+
         for (const auto& [memberName, baseIndex] : sortedMembers) {
-            orderedTypes.push_back(baseType->getElementType(baseIndex));
+            auto memberTypeInfo = baseClassInfo->getMemberType(memberName);
+            if (!memberTypeInfo) {
+                throw std::runtime_error("Member type info not found for: " + memberName + " in class " + baseClass);
+            }
+            orderedTypes.push_back(getLLVMTypeFromTypeInfo(memberTypeInfo));
             orderedNames.push_back(memberName);
             memberOffsets[memberName] = currentOffset++;
         }
@@ -478,9 +488,9 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
 
     llvm::Value* varAddress;
 
-    // Handle call.IDENTIFIER = expr case
-    if (ctx->call()) {
-        std::cerr << "DEBUG: Handling call.IDENTIFIER assignment" << std::endl;
+    // Handle call.DOT IDENTIFIER = expr case
+    if (ctx->call() && ctx->DOT()) {
+        std::cerr << "DEBUG: Handling call.DOT IDENTIFIER assignment" << std::endl;
         visit(ctx->call());
         llvm::Value* object = lastValue;
 
@@ -506,75 +516,37 @@ std::any LLVMCodegen::visitAssignment(PrystParser::AssignmentContext* ctx) {
             std::cerr << "DEBUG: After load conversion type: " << typeStr << std::endl;
         }
 
-        // Ensure we have a pointer type
-        if (!object->getType()->isPointerTy()) {
-            throw std::runtime_error("Expected pointer type in member access");
+        // Get type information from registry
+        auto& registry = TypeRegistry::getInstance();
+        auto typeInfo = typeMetadata->getTypeInfo(object);
+        if (!typeInfo || typeInfo->getKind() != pryst::TypeKind::Class) {
+            throw std::runtime_error("Expected class type in member access");
         }
 
-        auto ptrType = llvm::cast<llvm::PointerType>(object->getType());
-        auto elementType = ptrType->getContainedType(0);
-
-        // If element type is a pointer (e.g., from function return), load it
-        if (elementType->isPointerTy()) {
-            object = builder->CreateLoad(elementType, object, "obj.load");
-            ptrType = llvm::cast<llvm::PointerType>(object->getType());
-            elementType = ptrType->getContainedType(0);
+        // Get class type info
+        auto classInfo = std::dynamic_pointer_cast<pryst::ClassTypeInfo>(typeInfo);
+        if (!classInfo) {
+            throw std::runtime_error("Failed to get class type info");
         }
 
-        auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
-        if (!structType) {
-            throw std::runtime_error("Cannot access member of non-object type");
-        }
-
-        // Find member in class hierarchy
-        std::string className = structType->getName().str();
+        // Get the class name and member name
+        std::string className = classInfo->getClassName();
         std::string memberName = ctx->IDENTIFIER()->getText();
         std::cerr << "DEBUG: Looking for member '" << memberName << "' in class '" << className << "'" << std::endl;
 
-        auto classIt = memberIndices.find(className);
-        if (classIt == memberIndices.end()) {
-            throw std::runtime_error("Class not found: " + className);
-        }
-
-        bool memberFound = false;
-        size_t memberOffset = 0;
-        auto memberIt = classIt->second.find(memberName);
-
-        if (memberIt != classIt->second.end()) {
-            memberFound = true;
-            memberOffset = memberIt->second;
-            std::cerr << "DEBUG: Found member directly in class at offset " << memberOffset << std::endl;
-        } else {
-            // Search base classes
-            std::string searchClass = className;
-            while (!memberFound) {
-                auto inheritIt = classInheritance.find(searchClass);
-                if (inheritIt == classInheritance.end()) break;
-                searchClass = inheritIt->second;
-                auto baseClassIt = memberIndices.find(searchClass);
-                if (baseClassIt == memberIndices.end()) {
-                    throw std::runtime_error("Base class not found: " + searchClass);
-                }
-                memberIt = baseClassIt->second.find(memberName);
-                if (memberIt != baseClassIt->second.end()) {
-                    memberFound = true;
-                    memberOffset = memberIt->second;
-                    std::cerr << "DEBUG: Found member in base class at offset " << memberOffset << std::endl;
-                    break;
-                }
-            }
-        }
-
-        if (!memberFound) {
+        // Find member in class hierarchy using TypeMetadata
+        size_t memberOffset = classInfo->getMemberIndex(memberName);
+        if (memberOffset == static_cast<size_t>(-1)) {
             throw std::runtime_error("Member '" + memberName + "' not found in class '" + className + "' or its base classes");
         }
+        std::cerr << "DEBUG: Found member at offset " << memberOffset << std::endl;
 
         // Create GEP instruction to get member address
         std::vector<llvm::Value*> indices = {
             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset)
         };
-        varAddress = builder->CreateGEP(structType, object, indices, "member.ptr");
+        varAddress = builder->CreateGEP(classInfo->getLLVMType(), object, indices, "member.ptr");
     } else {
         // Handle simple IDENTIFIER = expr case
         std::cerr << "DEBUG: Handling simple assignment" << std::endl;
@@ -834,18 +806,66 @@ std::any LLVMCodegen::visitPostfix(PrystParser::PostfixContext* ctx) {
     visit(ctx->primary());
     llvm::Value* operand = lastValue;
 
+    // Handle suffixes (call or member access)
+    for (auto suffix : ctx->suffix()) {
+        if (auto callSuffix = suffix->callSuffix()) {
+            // Handle function call
+            std::vector<llvm::Value*> args;
+            if (callSuffix->arguments()) {
+                for (auto expr : callSuffix->arguments()->expression()) {
+                    visit(expr);
+                    args.push_back(lastValue);
+                }
+            }
+            // Create function call
+            if (auto* func = llvm::dyn_cast<llvm::Function>(operand)) {
+                operand = builder->CreateCall(func, args, "calltmp");
+            } else {
+                throw std::runtime_error("Called value is not a function");
+            }
+        } else if (auto memberSuffix = suffix->memberSuffix()) {
+            // Handle member access
+            std::string memberName = memberSuffix->IDENTIFIER()->getText();
+            auto typeInfo = typeMetadata->getTypeInfo(operand);
+            if (!typeInfo || typeInfo->getKind() != pryst::TypeKind::Class) {
+                throw std::runtime_error("Expected class type in member access");
+            }
+            auto classInfo = std::dynamic_pointer_cast<pryst::ClassTypeInfo>(typeInfo);
+            if (!classInfo) {
+                throw std::runtime_error("Failed to get class type info");
+            }
+            size_t memberOffset = classInfo->getMemberIndex(memberName);
+            if (memberOffset == static_cast<size_t>(-1)) {
+                throw std::runtime_error("Member '" + memberName + "' not found");
+            }
+            std::vector<llvm::Value*> indices = {
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset)
+            };
+            operand = builder->CreateGEP(classInfo->getLLVMType(), operand, indices, "member.ptr");
+            operand = builder->CreateLoad(classInfo->getMemberType(memberName), operand, "member");
+        }
+    }
+
+    // Handle increment/decrement
     if (ctx->INCREMENT()) {
         llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
         llvm::Value* newValue = builder->CreateAdd(operand, one, "postinctmp");
         // Store the incremented value back if possible
-        // This requires access to the variable's address
-        throw std::runtime_error("Postfix increment not fully implemented");
+        if (auto* loadInst = llvm::dyn_cast<llvm::LoadInst>(operand)) {
+            builder->CreateStore(newValue, loadInst->getPointerOperand());
+        }
+        lastValue = operand; // Return original value for postfix increment
     } else if (ctx->DECREMENT()) {
         llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
         llvm::Value* newValue = builder->CreateSub(operand, one, "postdectmp");
         // Store the decremented value back if possible
-        // This requires access to the variable's address
-        throw std::runtime_error("Postfix decrement not fully implemented");
+        if (auto* loadInst = llvm::dyn_cast<llvm::LoadInst>(operand)) {
+            builder->CreateStore(newValue, loadInst->getPointerOperand());
+        }
+        lastValue = operand; // Return original value for postfix decrement
+    } else {
+        lastValue = operand;
     }
 
     return nullptr;
@@ -860,78 +880,59 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
     visit(ctx->primary());
     llvm::Value* callee = lastValue;
 
-    // Process each member access in the chain
-    for (auto identifier : ctx->IDENTIFIER()) {
-        std::cerr << "DEBUG: Handling member access" << std::endl;
-        std::string memberName = identifier->getText();
+    // Handle function calls in sequence
+    for (size_t i = 0; i < ctx->LPAREN().size(); i++) {
+        std::cerr << "DEBUG: Handling function call" << std::endl;
 
-        // Get the struct type from the object
-        if (!callee->getType()->isPointerTy()) {
-            throw std::runtime_error("Cannot access member of non-pointer type");
-        }
-        auto ptrType = llvm::cast<llvm::PointerType>(callee->getType());
-        auto elementType = ptrType->getContainedType(0);
-
-        // If element type is a pointer (e.g., from function return), load it
-        if (elementType->isPointerTy()) {
-            callee = builder->CreateLoad(elementType, callee, "obj.load");
-            ptrType = llvm::cast<llvm::PointerType>(callee->getType());
-            elementType = ptrType->getContainedType(0);
-        }
-
-        auto structType = llvm::dyn_cast<llvm::StructType>(elementType);
-        if (!structType) {
-            throw std::runtime_error("Cannot access member of non-object type");
-        }
-
-        // Find member in class hierarchy
-        std::string currentClass = structType->getName().str();
-        auto classIt = memberIndices.find(currentClass);
-        if (classIt == memberIndices.end()) {
-            throw std::runtime_error("Class not found: " + currentClass);
-        }
-
-        // Get member offset directly from memberIndices
-        auto memberIt = classIt->second.find(memberName);
-        bool memberFound = false;
-        size_t memberOffset = 0;
-
-        if (memberIt != classIt->second.end()) {
-            memberFound = true;
-            memberOffset = memberIt->second;
-        } else {
-            // If not found in current class, check base classes
-            std::string searchClass = currentClass;
-            while (!memberFound) {
-                auto inheritIt = classInheritance.find(searchClass);
-                if (inheritIt == classInheritance.end()) {
-                    break;  // No more base classes to check
-                }
-                searchClass = inheritIt->second;
-                auto baseClassIt = memberIndices.find(searchClass);
-                if (baseClassIt == memberIndices.end()) {
-                    throw std::runtime_error("Base class not found: " + searchClass);
-                }
-                memberIt = baseClassIt->second.find(memberName);
-                if (memberIt != baseClassIt->second.end()) {
-                    memberFound = true;
-                    memberOffset = memberIt->second;
-                    break;
-                }
+        // Process arguments
+        std::vector<llvm::Value*> args;
+        if (ctx->arguments(i)) {
+            for (auto expr : ctx->arguments(i)->expression()) {
+                visit(expr);
+                args.push_back(lastValue);
             }
         }
 
-        if (!memberFound) {
-            throw std::runtime_error("Member '" + memberName + "' not found in class '" + currentClass + "' or any of its base classes");
+        // Handle built-in functions
+        if (llvm::Function* functionCallee = llvm::dyn_cast<llvm::Function>(callee)) {
+            std::string functionName = functionCallee->getName().str();
+
+            if (functionName == "print") {
+                // Handle the print function
+                llvm::Function* printfFunc = declarePrintf();
+                llvm::Value* formatStr = builder->CreateGlobalString("%s\n");
+                args.insert(args.begin(), formatStr);
+                lastValue = builder->CreateCall(printfFunc, args, "calltmp");
+            } else {
+                // Direct function call
+                lastValue = builder->CreateCall(functionCallee, args, "calltmp");
+            }
+        } else {
+            // Check if callee is a function using type metadata
+            auto typeInfo = typeMetadata->getTypeInfo(callee);
+            if (!typeInfo || !typeInfo->isFunction()) {
+                throw std::runtime_error("Called value is not a function");
+            }
+
+            // Get function name from primary if available
+            std::string functionName;
+            if (auto* primary = ctx->primary()) {
+                if (primary->IDENTIFIER()) {
+                    functionName = primary->IDENTIFIER()->getText();
+                }
+            }
+
+            // Create a function type matching the callee's type
+            llvm::FunctionType* funcType = functionTypes[functionName];
+            if (!funcType) {
+                throw std::runtime_error("Unknown function: " + functionName);
+            }
+
+            lastValue = builder->CreateCall(funcType, callee, args, "calltmp");
         }
 
-        // Create GEP instruction to get member address using stored offset
-        std::vector<llvm::Value*> indices = {
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset)
-        };
-        lastValue = builder->CreateGEP(structType, callee, indices, "member.ptr");
-        callee = lastValue;  // Update callee for chained access
+        // Update callee for potential chained function calls
+        callee = lastValue;
     }
 
     return nullptr;
@@ -943,7 +944,7 @@ std::any LLVMCodegen::visitPrimary(PrystParser::PrimaryContext* ctx) {
     } else if (ctx->FALSE()) {
         lastValue = llvm::ConstantInt::getFalse(*context);
     } else if (ctx->NULL_()) {
-        lastValue = llvm::ConstantPointerNull::get(llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0));
+        lastValue = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(llvm::Type::getInt8Ty(*context)));
     } else if (ctx->NUMBER()) {
         std::string numStr = ctx->NUMBER()->getText();
         if (numStr.find('.') != std::string::npos) {
@@ -954,9 +955,7 @@ std::any LLVMCodegen::visitPrimary(PrystParser::PrimaryContext* ctx) {
     } else if (ctx->STRING()) {
         std::string str = ctx->STRING()->getText();
         str = str.substr(1, str.length() - 2); // Remove quotes
-        // Create a constant string array and get a pointer to its first element
-        auto strConst = builder->CreateGlobalStringPtr(str, "str");
-        lastValue = builder->CreateBitCast(strConst, llvm::Type::getInt8PtrTy(*context));
+        lastValue = builder->CreateGlobalString(str, "str");
     } else if (ctx->IDENTIFIER()) {
         std::string name = ctx->IDENTIFIER()->getText();
 
@@ -965,55 +964,9 @@ std::any LLVMCodegen::visitPrimary(PrystParser::PrimaryContext* ctx) {
         if (varIt != namedValues.end()) {
             lastValue = builder->CreateLoad(varIt->second->getAllocatedType(), varIt->second, name.c_str());
         }
-        // Check if it's a function call
+        // Check if it's a function
         else if (functions.find(name) != functions.end()) {
-            llvm::Function* func = functions[name];
-            std::vector<llvm::Value*> args;
-
-            // Process function arguments if present
-            if (ctx->LPAREN()) {
-                auto argsCtx = ctx->arguments();
-                if (argsCtx) {
-                    for (auto expr : argsCtx->expression()) {
-                        visit(expr);
-                        args.push_back(lastValue);
-                    }
-                }
-
-                // Handle print function specially
-                if (name == "print") {
-                    llvm::Function* printfFunc = declarePrintf();
-                    llvm::Value* formatStr;
-                    llvm::Value* arg = args[0];
-
-                    // Select appropriate format string based on argument type
-                    if (arg->getType()->isIntegerTy(32)) {
-                        formatStr = builder->CreateGlobalStringPtr("%d\n", "fmt");
-                    } else if (arg->getType()->isDoubleTy()) {
-                        formatStr = builder->CreateGlobalStringPtr("%f\n", "fmt");
-                    } else if (arg->getType()->isIntegerTy(1)) { // bool
-                        formatStr = builder->CreateGlobalStringPtr("%s\n", "fmt");
-                        llvm::Function* boolToStrFunc = module->getFunction("boolToStr");
-                        if (!boolToStrFunc) {
-                            throw std::runtime_error("boolToStr function not found");
-                        }
-                        args[0] = builder->CreateCall(boolToStrFunc, {arg}, "bool.str");
-                    } else if (arg->getType()->isPointerTy()) { // string or pointer type
-                        formatStr = builder->CreateGlobalStringPtr("%s\n", "fmt");
-                        args[0] = builder->CreateBitCast(arg, llvm::Type::getInt8PtrTy(*context));
-                    } else { // other types
-                        throw std::runtime_error("Unsupported type for print function");
-                    }
-
-                    std::vector<llvm::Value*> printfArgs = {formatStr};
-                    printfArgs.push_back(args[0]);
-                    lastValue = builder->CreateCall(printfFunc, printfArgs, "calltmp");
-                } else {
-                    lastValue = builder->CreateCall(func, args, "calltmp");
-                }
-            } else {
-                lastValue = func; // Just return the function pointer if not called
-            }
+            lastValue = functions[name];
         } else {
             throw std::runtime_error("Unknown identifier: " + name);
         }
@@ -1037,13 +990,14 @@ std::any LLVMCodegen::visitNewExpression(PrystParser::NewExpressionContext* ctx)
         throw std::runtime_error("Unknown class: " + className);
     }
 
-    llvm::Type* classPtrType = classType->getPointerTo();
+    // Use getUnqual for LLVM 20.0.0 compatibility
+    llvm::Type* classPtrType = llvm::PointerType::getUnqual(classType);
 
     // Allocate memory for the object
     llvm::Function* mallocFunc = module->getFunction("malloc");
     if (!mallocFunc) {
         llvm::FunctionType* mallocType = llvm::FunctionType::get(
-            llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+            llvm::PointerType::getUnqual(llvm::Type::getInt8Ty(*context)),
             { llvm::Type::getInt64Ty(*context) },
             false);
         mallocFunc = llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "malloc", module.get());
@@ -1078,10 +1032,20 @@ std::any LLVMCodegen::visitNewExpression(PrystParser::NewExpressionContext* ctx)
         auto classStructType = llvm::StructType::getTypeByName(*context, cls);
         if (!classStructType) continue;
 
+        // Get class type info
+        auto classInfo = typeMetadata->getClassTypeInfo(classStructType);
+        if (!classInfo) {
+            throw std::runtime_error("Class type info not found for: " + cls);
+        }
+
         // Initialize members in order of their offsets
         for (const auto& [memberName, offset] : sortedMembers) {
-            // Use the class's own struct type to get member type
-            llvm::Type* memberType = classStructType->getElementType(offset);
+            // Get member type from class type info
+            auto memberTypeInfo = classInfo->getMemberType(memberName);
+            if (!memberTypeInfo) {
+                throw std::runtime_error("Member type info not found: " + memberName);
+            }
+            llvm::Type* memberType = getLLVMTypeFromTypeInfo(memberTypeInfo);
 
             // Create GEP using the derived class type but with correct offset
             std::vector<llvm::Value*> indices = {
@@ -1113,12 +1077,12 @@ llvm::Type* LLVMCodegen::getLLVMType(const std::string& typeName) {
     } else if (typeName == "bool") {
         return llvm::Type::getInt1Ty(*context);
     } else if (typeName == "str") {
-        return llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0);
+        return llvm::PointerType::getUnqual(llvm::Type::getInt8Ty(*context));
     } else {
         // Assume it's a user-defined class type
         llvm::StructType* structType = llvm::StructType::getTypeByName(*context, typeName);
         if (structType) {
-            return structType->getPointerTo();
+            return llvm::PointerType::getUnqual(structType);  // Use getUnqual for LLVM 20.0.0
         } else {
             throw std::runtime_error("Unknown type: " + typeName);
         }
@@ -1131,37 +1095,79 @@ llvm::AllocaInst* LLVMCodegen::createEntryBlockAlloca(llvm::Function* function, 
     return tmpBuilder.CreateAlloca(type, nullptr, varName);
 }
 
-std::any LLVMCodegen::visitCallSuffix(PrystParser::CallSuffixContext* ctx) {
-    // This method is called by visitCall to process each suffix
-    // The base type is passed through the call chain in visitCall
-    throw std::runtime_error("CallSuffix should be processed within visitCall");
-    return nullptr;
-}
+// Lambda Function: Handles anonymous function declarations
+std::any LLVMCodegen::visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) {
+    static int lambdaCount = 0;
+    std::string funcName = "lambda_" + std::to_string(lambdaCount++);
 
-// Implementation of declarePrintf
-llvm::Function* LLVMCodegen::declarePrintf() {
-    // Check if printf is already declared
-    if (llvm::Function* printfFunc = module->getFunction("printf")) {
-        return printfFunc;
+    // Get return type, default to void if not specified
+    llvm::Type* returnType = ctx->type()
+        ? getLLVMType(ctx->type()->getText())
+        : llvm::Type::getVoidTy(*context);
+
+    std::vector<llvm::Type*> paramTypes;
+    std::vector<std::string> paramNames;
+
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            paramTypes.push_back(getLLVMType(param->type()->getText()));
+            paramNames.push_back(param->IDENTIFIER()->getText());
+        }
     }
 
-    // Create printf function type: int printf(char*, ...)
-    std::vector<llvm::Type*> printfArgsTypes = {
-        llvm::Type::getInt8PtrTy(*context)  // char* format string
-    };
-    llvm::FunctionType* printfType = llvm::FunctionType::get(
-        llvm::Type::getInt32Ty(*context),   // Return type: int
-        printfArgsTypes,                     // Argument types
-        true                                 // isVarArg: true for variadic function
-    );
+    llvm::FunctionType* funcType = llvm::FunctionType::get(returnType, paramTypes, false);
+    llvm::Function* function = llvm::Function::Create(
+        funcType, llvm::Function::ExternalLinkage, funcName, module.get());
 
-    // Create the printf function declaration
-    llvm::Function* printfFunc = llvm::Function::Create(
-        printfType,
-        llvm::Function::ExternalLinkage,
-        "printf",
-        module.get()
-    );
+    // Create function type info
+    auto functionTypeInfo = std::make_shared<FunctionTypeInfo>(funcName, funcType);
+    typeMetadata->addFunctionTypeInfo(function, functionTypeInfo);
 
-    return printfFunc;
+    // Create a new basic block
+    llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", function);
+    builder->SetInsertPoint(bb);
+
+    // Save the current function
+    llvm::Function* oldFunction = currentFunction;
+    currentFunction = function;
+
+    // Create a new scope for function parameters
+    pushScope();
+
+    // Create allocas for parameters
+    if (ctx->paramList()) {
+        size_t idx = 0;
+        for (auto& arg : function->args()) {
+            std::string paramName = paramNames[idx++];
+            llvm::AllocaInst* alloca = createEntryBlockAlloca(function, paramName, arg.getType());
+            builder->CreateStore(&arg, alloca);
+            scopeStack.back()[paramName] = alloca;
+        }
+    }
+
+    // Visit function body
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    // Add implicit return if needed
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        if (returnType->isVoidTy()) {
+            builder->CreateRetVoid();
+        } else {
+            builder->CreateRet(llvm::Constant::getNullValue(returnType));
+        }
+    }
+
+    // Verify the function
+    if (llvm::verifyFunction(*function, &llvm::errs())) {
+        throw std::runtime_error("Function verification failed for lambda function: " + funcName);
+    }
+
+    popScope();
+    currentFunction = oldFunction;
+    functions[funcName] = function;
+
+    lastValue = function;
+    return nullptr;
 }

@@ -1,0 +1,25 @@
+class TestClass {
+    x: int;
+    y: float;
+
+    fn init(x: int, y: float) {
+        this.x = x;
+        this.y = y;
+    }
+
+    fn getX() -> int {
+        return this.x;
+    }
+
+    fn getY() -> float {
+        return this.y;
+    }
+}
+
+fn main() {
+    let obj = new TestClass(42, 3.14);
+    let x = obj.getX();
+    let y = obj.getY();
+    print(x);
+    print(y);
+}

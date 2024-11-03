@@ -1,172 +1,26 @@
 #include "semantic_analyzer.hpp"
+#include "module_loader.hpp"
 #include <stdexcept>
 #include <iostream>
 #include <algorithm>
 
-// *********************** SymbolTable Implementation ***********************
-
-SymbolTable::SymbolTable() : currentScopeLevel(0) {}
-
-// Scope management
-void SymbolTable::pushScope() {
-    ++currentScopeLevel;
-}
-
-void SymbolTable::popScope() {
-    // Remove variables declared in the current scope
-    for (auto it = variables.begin(); it != variables.end();) {
-        if (it->second.scopeLevel == currentScopeLevel) {
-            it = variables.erase(it);
-        } else {
-            ++it;
-        }
-    }
-    // Remove functions declared in the current scope
-    for (auto& [name, funcList] : functions) {
-        funcList.erase(
-            std::remove_if(funcList.begin(), funcList.end(),
-                [this](const FunctionInfo& func) { return func.scopeLevel == currentScopeLevel; }),
-            funcList.end());
-    }
-    --currentScopeLevel;
-}
-
-int SymbolTable::getCurrentScopeLevel() const {
-    return currentScopeLevel;
-}
-
-// Variable management
-bool SymbolTable::variableExists(const std::string& name) const {
-    return variables.find(name) != variables.end();
-}
-
-bool SymbolTable::variableExistsInCurrentScope(const std::string& name) const {
-    auto it = variables.find(name);
-    return it != variables.end() && it->second.scopeLevel == currentScopeLevel;
-}
-
-void SymbolTable::addVariable(const std::string& name, const std::string& type) {
-    if (variableExistsInCurrentScope(name)) {
-        throw std::runtime_error("Variable '" + name + "' already declared in this scope");
-    }
-    variables[name] = VariableInfo{type, currentScopeLevel};
-}
-
-std::string SymbolTable::getVariableType(const std::string& name) const {
-    auto it = variables.find(name);
-    if (it != variables.end()) {
-        return it->second.type;
-    }
-    throw std::runtime_error("Undefined variable: '" + name + "'");
-}
-
-std::unordered_map<std::string, SymbolTable::VariableInfo> SymbolTable::getCurrentScopeVariables() const {
-    std::unordered_map<std::string, VariableInfo> currentScopeVars;
-    for (const auto& [name, info] : variables) {
-        if (info.scopeLevel == currentScopeLevel) {
-            currentScopeVars[name] = info;
-        }
-    }
-    return currentScopeVars;
-}
-
-void SymbolTable::clearCurrentScopeVariables() {
-    for (auto it = variables.begin(); it != variables.end();) {
-        if (it->second.scopeLevel == currentScopeLevel) {
-            it = variables.erase(it);
-        } else {
-            ++it;
-        }
-    }
-}
-
-// Function management
-bool SymbolTable::functionExists(const std::string& name) const {
-    auto it = functions.find(name);
-    if (it == functions.end()) return false;
-    return !it->second.empty();
-}
-
-void SymbolTable::addFunction(const std::string& name, const std::string& returnType, const std::vector<std::string>& paramTypes) {
-    auto& functionList = functions[name];
-    // Check if a function with the same parameter types already exists
-    for (const auto& func : functionList) {
-        if (func.paramTypes == paramTypes) {
-            throw std::runtime_error("Function '" + name + "' already declared with these parameter types");
-        }
-    }
-    functionList.push_back(FunctionInfo{returnType, paramTypes, currentScopeLevel});
-}
-
-SymbolTable::FunctionInfo SymbolTable::getFunctionInfo(const std::string& name) const {
-    auto it = functions.find(name);
-    if (it == functions.end() || it->second.empty()) {
-        throw std::runtime_error("Undefined function: '" + name + "'");
-    }
-    // For print function, find the matching overload based on parameter types
-    if (name == "print" && !it->second.empty()) {
-        for (const auto& func : it->second) {
-            if (func.paramTypes.size() == 1) {
-                return func;
-            }
-        }
-    }
-    return it->second.front();
-}
-
-std::unordered_map<std::string, SymbolTable::FunctionInfo> SymbolTable::getCurrentScopeFunctions() const {
-    std::unordered_map<std::string, FunctionInfo> currentScopeFuncs;
-    for (const auto& [name, funcList] : functions) {
-        for (const auto& func : funcList) {
-            if (func.scopeLevel == currentScopeLevel) {
-                currentScopeFuncs[name] = func;
-                break;  // Only add the first function with this name at current scope
-            }
-        }
-    }
-    return currentScopeFuncs;
-}
-
-void SymbolTable::clearCurrentScopeFunctions() {
-    for (auto& [name, funcList] : functions) {
-        funcList.erase(
-            std::remove_if(funcList.begin(), funcList.end(),
-                [this](const FunctionInfo& func) { return func.scopeLevel == currentScopeLevel; }),
-            funcList.end());
-    }
-}
-
-// Class management
-bool SymbolTable::classExists(const std::string& name) const {
-    return classes.find(name) != classes.end();
-}
-
-void SymbolTable::addClass(const std::string& name, const ClassInfo& classInfo) {
-    if (classExists(name)) {
-        throw std::runtime_error("Class '" + name + "' already declared");
-    }
-    classes[name] = classInfo;
-}
-
-SymbolTable::ClassInfo SymbolTable::getClassInfo(const std::string& name) const {
-    auto it = classes.find(name);
-    if (it != classes.end()) {
-        return it->second;
-    }
-    throw std::runtime_error("Undefined class: '" + name + "'");
-}
-
-// ******************** SemanticAnalyzer Implementation *********************
-
-bool areTypesCompatibleForEquality(const std::string& type1, const std::string& type2);
-bool areTypesCompatibleForComparison(const std::string& type1, const std::string& type2);
-
-SemanticAnalyzer::SemanticAnalyzer() : currentFunction("") {
+SemanticAnalyzer::SemanticAnalyzer() : currentFunction(""), symbolTable(), moduleLoader(std::make_shared<ModuleLoader>()) {
+    // Initialize semantic analyzer
+    std::cout << "DEBUG: Initializing SemanticAnalyzer" << std::endl;
     symbolTable.addFunction("print", "void", {"int"});
     symbolTable.addFunction("print", "void", {"float"});
     symbolTable.addFunction("print", "void", {"bool"});
     symbolTable.addFunction("print", "void", {"str"});
 }
+
+// Add semantic analyzer methods here...
+
+
+
+// ******************** SemanticAnalyzer Implementation *********************
+
+bool areTypesCompatibleForEquality(const std::string& type1, const std::string& type2);
+bool areTypesCompatibleForComparison(const std::string& type1, const std::string& type2);
 
 std::any SemanticAnalyzer::visitProgram(PrystParser::ProgramContext* ctx) {
     for (auto decl : ctx->declaration()) {
@@ -189,6 +43,15 @@ std::any SemanticAnalyzer::visitDeclaration(PrystParser::DeclarationContext* ctx
 }
 
 std::any SemanticAnalyzer::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
+    if (ctx->namedFunction()) {
+        return visit(ctx->namedFunction());
+    } else if (ctx->lambdaFunction()) {
+        return visit(ctx->lambdaFunction());
+    }
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitNamedFunction(PrystParser::NamedFunctionContext* ctx) {
     std::string functionName = ctx->IDENTIFIER()->getText();
     if (functionName == "print") {
         throw std::runtime_error("Cannot redeclare built-in function 'print'");
@@ -217,7 +80,7 @@ std::any SemanticAnalyzer::visitFunctionDecl(PrystParser::FunctionDeclContext* c
         for (auto param : ctx->paramList()->param()) {
             std::string paramName = param->IDENTIFIER()->getText();
             std::string paramType = paramTypes[idx];
-            symbolTable.addVariable(paramName, paramType);
+            symbolTable.addVariable(paramName, paramType, false);  // Parameters are not const by default
             ++idx;
         }
     }
@@ -234,6 +97,38 @@ std::any SemanticAnalyzer::visitFunctionDecl(PrystParser::FunctionDeclContext* c
     return std::any();
 }
 
+std::any SemanticAnalyzer::visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) {
+    std::string returnType = ctx->type()->getText();
+    std::vector<std::string> paramTypes;
+
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            paramTypes.push_back(param->type()->getText());
+        }
+    }
+
+    symbolTable.pushScope();
+
+    if (ctx->paramList()) {
+        size_t idx = 0;
+        for (auto param : ctx->paramList()->param()) {
+            std::string paramName = param->IDENTIFIER()->getText();
+            std::string paramType = paramTypes[idx];
+            symbolTable.addVariable(paramName, paramType, false);  // Lambda parameters are not const by default
+            ++idx;
+        }
+    }
+
+    // Process function body declarations
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    symbolTable.popScope();
+
+    return std::any();
+}
+
 std::any SemanticAnalyzer::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
     std::string varName = ctx->IDENTIFIER()->getText();
     std::string varType = ctx->type()->getText();
@@ -244,7 +139,7 @@ std::any SemanticAnalyzer::visitVariableDecl(PrystParser::VariableDeclContext* c
         throw std::runtime_error("Variable '" + varName + "' already declared in this scope");
     }
 
-    symbolTable.addVariable(varName, varType);
+    symbolTable.addVariable(varName, varType, false);  // Variables are not const by default
 
     if (ctx->expression()) {
         auto exprResult = visit(ctx->expression());
@@ -306,7 +201,7 @@ std::any SemanticAnalyzer::visitClassVariableDecl(PrystParser::ClassVariableDecl
         throw std::runtime_error("Variable '" + varName + "' already declared in this scope");
     }
 
-    symbolTable.addVariable(varName, varType);
+    symbolTable.addVariable(varName, varType, false);  // Class member variables are not const by default
 
     if (ctx->expression()) {
         auto exprResult = visit(ctx->expression());
@@ -558,7 +453,7 @@ std::any SemanticAnalyzer::visitPostfix(PrystParser::PostfixContext* ctx) {
     }
     std::string type = std::any_cast<std::string>(typeResult);
 
-    if (ctx->INCREMENT() || ctx->DECREMENT()) {
+    if (!ctx->INCREMENT().empty() || !ctx->DECREMENT().empty()) {
         if (type != "int") {
             throw std::runtime_error("Increment/decrement requires integer operand");
         }
@@ -819,7 +714,7 @@ std::any SemanticAnalyzer::visitClassFunctionDecl(PrystParser::ClassFunctionDecl
         for (auto param : ctx->paramList()->param()) {
             std::string paramName = param->IDENTIFIER()->getText();
             std::string paramType = paramTypes[idx];
-            symbolTable.addVariable(paramName, paramType);
+            symbolTable.addVariable(paramName, paramType, false);  // Class method parameters are not const by default
             ++idx;
         }
     }

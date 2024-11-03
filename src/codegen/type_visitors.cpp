@@ -1,73 +1,78 @@
 #include "llvm_codegen.hpp"
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Verifier.h>
 #include <stdexcept>
 
-// Type cast expression visitor: (type) expr
-std::any LLVMCodegen::visitTypeCastExpr(PrystParser::TypeCastExprContext* ctx) {
+// Type conversion helper functions
+llvm::Value* LLVMCodegen::convertToString(llvm::Value* value) {
+    if (value->getType()->isIntegerTy()) {
+        // Call toString for int
+        llvm::Function* toStrFunc = declareToString();
+        llvm::FunctionCallee toStrCallee(toStrFunc->getFunctionType(), toStrFunc);
+        return builder->CreateCall(toStrCallee, {value}, "tostr");
+    } else if (value->getType()->isFloatingPointTy()) {
+        // Call toString for float
+        llvm::Function* toStrFunc = declareToString();
+        llvm::FunctionCallee toStrCallee(toStrFunc->getFunctionType(), toStrFunc);
+        return builder->CreateCall(toStrCallee, {value}, "tostr");
+    }
+    return value;
+}
+
+llvm::Value* LLVMCodegen::convertFromString(llvm::Value* value, llvm::Type* targetType) {
+    if (targetType->isIntegerTy()) {
+        // Call toInt for string
+        llvm::Function* toIntFunc = declareToInt();
+        llvm::FunctionCallee toIntCallee(toIntFunc->getFunctionType(), toIntFunc);
+        return builder->CreateCall(toIntCallee, {value}, "toint");
+    } else if (targetType->isFloatingPointTy()) {
+        // Call toFloat for string
+        llvm::Function* toFloatFunc = declareToFloat();
+        llvm::FunctionCallee toFloatCallee(toFloatFunc->getFunctionType(), toFloatFunc);
+        return builder->CreateCall(toFloatCallee, {value}, "tofloat");
+    }
+    return value;
+}
+
+// Type conversion expression visitor: type(expr)
+std::any LLVMCodegen::visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) {
     // Visit the expression to get the value to convert
     visit(ctx->expression());
     llvm::Value* value = lastValue;
 
     // Get the target type
-    std::string typeStr = ctx->type()->getText();
-    llvm::Type* targetType = getLLVMType(typeStr);
+    std::string targetTypeName = ctx->type()->getText();
+    llvm::Type* targetType = getLLVMType(targetTypeName);
 
-    // Convert the value
-    if (value->getType() == targetType) {
-        // No conversion needed
-        lastValue = value;
+    // Get type information from registry using our type tracking system
+    auto& registry = TypeRegistry::getInstance();
+    TypeInfoPtr valueTypeInfo = getTypeInfo(value);
+    TypeInfoPtr targetTypeInfo = registry.lookupType(targetTypeName);
+
+    // Handle string conversions
+    if (valueTypeInfo && valueTypeInfo->getKind() == TypeKind::String) {
+        // Converting from string
+        lastValue = convertFromString(value, targetType);
+    } else if (targetTypeInfo && targetTypeInfo->getKind() == TypeKind::String) {
+        // Converting to string
+        lastValue = convertToString(value);
     } else if (value->getType()->isIntegerTy() && targetType->isFloatingPointTy()) {
         // Int to float conversion
-        lastValue = builder->CreateSIToFP(value, targetType, "inttofp");
+        lastValue = builder->CreateSIToFP(value, targetType, "int2float");
     } else if (value->getType()->isFloatingPointTy() && targetType->isIntegerTy()) {
         // Float to int conversion
-        lastValue = builder->CreateFPToSI(value, targetType, "fptoint");
-    } else if (value->getType()->isIntegerTy() && targetType->isIntegerTy()) {
-        // Int to int conversion
-        unsigned srcBits = value->getType()->getIntegerBitWidth();
-        unsigned dstBits = targetType->getIntegerBitWidth();
-        if (dstBits > srcBits) {
-            lastValue = builder->CreateSExt(value, targetType, "intext");
-        } else {
-            lastValue = builder->CreateTrunc(value, targetType, "inttrunc");
-        }
-    } else if (targetType->isPointerTy() && targetType->getPointerElementType()->isIntegerTy(8)) {
-        // Convert to string
-        if (value->getType()->isIntegerTy()) {
-            // Call toString for int
-            llvm::Function* toStrFunc = declareToString();
-            lastValue = builder->CreateCall(toStrFunc, {value}, "tostr");
-        } else if (value->getType()->isFloatingPointTy()) {
-            // Call toString for float
-            llvm::Function* toStrFunc = declareToString();
-            lastValue = builder->CreateCall(toStrFunc, {value}, "tostr");
-        }
-    } else if (value->getType()->isPointerTy() && value->getType()->getPointerElementType()->isIntegerTy(8)) {
-        // Convert from string
-        if (targetType->isIntegerTy()) {
-            // Call toInt for string
-            llvm::Function* toIntFunc = declareToInt();
-            lastValue = builder->CreateCall(toIntFunc, {value}, "toint");
-        } else if (targetType->isFloatingPointTy()) {
-            // Call toFloat for string
-            llvm::Function* toFloatFunc = declareToFloat();
-            lastValue = builder->CreateCall(toFloatFunc, {value}, "tofloat");
-        }
+        lastValue = builder->CreateFPToSI(value, targetType, "float2int");
+    } else if (value->getType() == targetType) {
+        // No conversion needed
+        lastValue = value;
     } else {
         throw std::runtime_error("Unsupported type conversion from " +
-            std::string(value->getType()->isIntegerTy() ? "int" :
-                       value->getType()->isFloatingPointTy() ? "float" : "unknown") +
-            " to " + typeStr);
+                               (valueTypeInfo ? valueTypeInfo->getTypeName() : "unknown") +
+                               " to " + targetTypeName);
     }
 
     return nullptr;
-}
-
-// Type conversion expression visitor: type(expr)
-std::any LLVMCodegen::visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) {
-    // This should behave exactly the same as visitTypeCastExpr
-    return visitTypeCastExpr(reinterpret_cast<PrystParser::TypeCastExprContext*>(ctx));
 }
 
 // Class conversion expression visitor: c!ClassName(expr)
@@ -108,8 +113,8 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     // Get parameter types and names
     std::vector<llvm::Type*> paramTypes;
     std::vector<std::string> paramNames;
-    if (ctx->parameters()) {
-        for (auto param : ctx->parameters()->parameter()) {
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
             paramTypes.push_back(getLLVMType(param->type()->getText()));
             paramNames.push_back(param->IDENTIFIER()->getText());
         }
@@ -142,13 +147,15 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     // Add parameters to scope
     idx = 0;
     for (auto &arg : function->args()) {
-        llvm::AllocaInst* alloca = CreateEntryBlockAlloca(function, arg.getName().str(), arg.getType());
+        llvm::AllocaInst* alloca = createEntryBlockAlloca(function, arg.getName().str(), arg.getType());
         builder->CreateStore(&arg, alloca);
         namedValues[arg.getName().str()] = alloca;
     }
 
     // Visit function body
-    visit(ctx->blockStatement());
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
 
     // Verify all return statements match declared type
     if (!verifyReturnTypes(function, returnType)) {
@@ -178,15 +185,15 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
 }
 
 // Anonymous function visitor: handles functions with type deduction
-std::any LLVMCodegen::visitAnonymousFunction(PrystParser::AnonymousFunctionContext* ctx) {
+std::any LLVMCodegen::visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) {
     static int anonFuncCount = 0;
     std::string funcName = "__anon_" + std::to_string(anonFuncCount++);
 
     // Get parameter types and names
     std::vector<llvm::Type*> paramTypes;
     std::vector<std::string> paramNames;
-    if (ctx->parameters()) {
-        for (auto param : ctx->parameters()->parameter()) {
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
             paramTypes.push_back(getLLVMType(param->type()->getText()));
             paramNames.push_back(param->IDENTIFIER()->getText());
         }
@@ -213,13 +220,17 @@ std::any LLVMCodegen::visitAnonymousFunction(PrystParser::AnonymousFunctionConte
     unsigned idx = 0;
     for (auto &arg : tempFunction->args()) {
         arg.setName(paramNames[idx++]);
-        llvm::AllocaInst* alloca = CreateEntryBlockAlloca(tempFunction, arg.getName().str(), arg.getType());
+        // Use LLVM 20.0.0 compatible pointer type creation
+        llvm::Type* ptrType = llvm::PointerType::getUnqual(arg.getType());
+        llvm::AllocaInst* alloca = builder->CreateAlloca(arg.getType(), nullptr, arg.getName().str());
         builder->CreateStore(&arg, alloca);
         namedValues[arg.getName().str()] = alloca;
     }
 
     // Visit function body to collect return types
-    visit(ctx->blockStatement());
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
     std::vector<llvm::Type*> returnTypes = collectReturnTypes(tempFunction);
 
     // Deduce return type
@@ -253,13 +264,17 @@ std::any LLVMCodegen::visitAnonymousFunction(PrystParser::AnonymousFunctionConte
     // Add parameters to scope again
     idx = 0;
     for (auto &arg : function->args()) {
-        llvm::AllocaInst* alloca = CreateEntryBlockAlloca(function, arg.getName().str(), arg.getType());
+        // Use LLVM 20.0.0 compatible pointer type creation
+        llvm::Type* ptrType = llvm::PointerType::getUnqual(arg.getType());
+        llvm::AllocaInst* alloca = builder->CreateAlloca(arg.getType(), nullptr, arg.getName().str());
         builder->CreateStore(&arg, alloca);
         namedValues[arg.getName().str()] = alloca;
     }
 
     // Visit function body again with correct return type
-    visit(ctx->blockStatement());
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
 
     // Add return void if no terminator and return type is void
     if (!builder->GetInsertBlock()->getTerminator()) {
@@ -280,6 +295,7 @@ std::any LLVMCodegen::visitAnonymousFunction(PrystParser::AnonymousFunctionConte
         throw std::runtime_error("Anonymous function verification failed: " + error);
     }
 
+    lastValue = function;
     return nullptr;
 }
 
@@ -322,7 +338,7 @@ llvm::Type* LLVMCodegen::deduceReturnType(const std::vector<llvm::Type*>& types)
 
     llvm::Type* deducedType = types[0];
     for (size_t i = 1; i < types.size(); ++i) {
-        if (types[i] != deducedType) {
+        if (types[i]->getTypeID() != deducedType->getTypeID()) {
             if (deducedType->isIntegerTy() && types[i]->isFloatingPointTy()) {
                 deducedType = types[i];
             } else if (deducedType->isFloatingPointTy() && types[i]->isIntegerTy()) {

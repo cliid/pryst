@@ -24,7 +24,8 @@ public:
         Basic,
         Function,
         Class,
-        Array
+        Array,
+        Pointer
     };
 
     TypeInfo(Kind kind, const std::string& name) : kind_(kind), name_(name) {}
@@ -53,24 +54,10 @@ class BasicTypeInfo : public TypeInfo {
 public:
     BasicTypeInfo(const std::string& name) : TypeInfo(Kind::Basic, name) {}
 
-    bool isConvertibleTo(const TypeInfoPtr& other) const override {
-        if (other->getKind() != Kind::Basic) return false;
+    bool isConvertibleTo(const TypeInfoPtr& other) const override;
 
-        // Allow numeric conversions
-        if ((name_ == "int" || name_ == "float") &&
-            (other->getName() == "int" || other->getName() == "float")) {
-            return true;
-        }
 
-        // Allow conversion to string
-        if (other->getName() == "str") return true;
-
-        return name_ == other->getName();
-    }
-
-    std::string toString() const override {
-        return name_;
-    }
+    std::string toString() const override;
 };
 
 // Function type information
@@ -85,32 +72,9 @@ public:
     const TypeInfoPtr& getReturnType() const { return returnType_; }
     const std::vector<TypeInfoPtr>& getParamTypes() const { return paramTypes_; }
 
-    bool isConvertibleTo(const TypeInfoPtr& other) const override {
-        if (other->getKind() != Kind::Function) return false;
-        auto otherFn = std::static_pointer_cast<FunctionTypeInfo>(other);
+    bool isConvertibleTo(const TypeInfoPtr& other) const override;
 
-        // Check return type compatibility
-        if (!returnType_->isConvertibleTo(otherFn->returnType_)) return false;
-
-        // Check parameter types compatibility
-        if (paramTypes_.size() != otherFn->paramTypes_.size()) return false;
-        for (size_t i = 0; i < paramTypes_.size(); ++i) {
-            if (!paramTypes_[i]->isConvertibleTo(otherFn->paramTypes_[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    std::string toString() const override {
-        std::string result = "fn<" + returnType_->toString() + ">(";
-        for (size_t i = 0; i < paramTypes_.size(); ++i) {
-            if (i > 0) result += ", ";
-            result += paramTypes_[i]->toString();
-        }
-        result += ")";
-        return result;
-    }
+    std::string toString() const override;
 
 private:
     TypeInfoPtr returnType_;
@@ -124,6 +88,8 @@ public:
                  ClassTypeInfoPtr parent = nullptr)
         : TypeInfo(Kind::Class, name),
           parent_(parent) {}
+
+    const ClassTypeInfoPtr& getParent() const { return parent_; }
 
     void addMethod(const std::string& name, FunctionTypeInfoPtr type) {
         methods_[name] = type;
@@ -155,22 +121,9 @@ public:
         return parent_ ? parent_->getFieldType(name) : nullptr;
     }
 
-    bool isConvertibleTo(const TypeInfoPtr& other) const override {
-        if (other->getKind() != Kind::Class) return false;
-        auto otherClass = std::static_pointer_cast<ClassTypeInfo>(other);
+    bool isConvertibleTo(const TypeInfoPtr& other) const override;
 
-        // Check if this class is the same as or inherits from the other class
-        const ClassTypeInfo* current = this;
-        while (current) {
-            if (current->getName() == otherClass->getName()) return true;
-            current = current->parent_.get();
-        }
-        return false;
-    }
-
-    std::string toString() const override {
-        return name_;
-    }
+    std::string toString() const override;
 
 private:
     ClassTypeInfoPtr parent_;
@@ -181,31 +134,22 @@ private:
 // Type registry for managing type information
 class TypeRegistry {
 public:
-    static TypeRegistry& getInstance() {
-        static TypeRegistry instance;
-        return instance;
-    }
+    static TypeRegistry& getInstance();
 
     // Basic types
     TypeInfoPtr getIntType() { return getOrCreateBasicType("int"); }
     TypeInfoPtr getFloatType() { return getOrCreateBasicType("float"); }
     TypeInfoPtr getBoolType() { return getOrCreateBasicType("bool"); }
     TypeInfoPtr getStrType() { return getOrCreateBasicType("str"); }
+    TypeInfoPtr getPointerType() { return getOrCreateBasicType("pointer"); }
 
     // Function types
     TypeInfoPtr getFunctionType(TypeInfoPtr returnType,
-                              const std::vector<TypeInfoPtr>& paramTypes) {
-        auto fnType = std::make_shared<FunctionTypeInfo>(returnType, paramTypes);
-        return registerType(fnType);
-    }
+                              const std::vector<TypeInfoPtr>& paramTypes);
 
     // Class types
     ClassTypeInfoPtr createClassType(const std::string& name,
-                                   ClassTypeInfoPtr parent = nullptr) {
-        auto classType = std::make_shared<ClassTypeInfo>(name, parent);
-        types_[name] = classType;
-        return classType;
-    }
+                                   ClassTypeInfoPtr parent = nullptr);
 
     TypeInfoPtr lookupType(const std::string& name) {
         auto it = types_.find(name);
@@ -221,19 +165,9 @@ private:
         getStrType();
     }
 
-    TypeInfoPtr getOrCreateBasicType(const std::string& name) {
-        auto it = types_.find(name);
-        if (it != types_.end()) return it->second;
+    TypeInfoPtr getOrCreateBasicType(const std::string& name);
 
-        auto type = std::make_shared<BasicTypeInfo>(name);
-        types_[name] = type;
-        return type;
-    }
-
-    TypeInfoPtr registerType(TypeInfoPtr type) {
-        types_[type->toString()] = type;
-        return type;
-    }
+    TypeInfoPtr registerType(TypeInfoPtr type);
 
     std::unordered_map<std::string, TypeInfoPtr> types_;
 };
