@@ -106,11 +106,25 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
 
     std::vector<llvm::Type*> paramTypes;
     std::vector<std::string> paramNames;
+    std::vector<TypeInfoPtr> paramTypeInfos;
+
+    // Get return type info from registry
+    auto& registry = TypeRegistry::getInstance();
+    auto returnTypeInfo = registry.lookupType(ctx->type()->getText());
+    if (!returnTypeInfo) {
+        throw std::runtime_error("Unknown return type: " + ctx->type()->getText());
+    }
 
     if (ctx->paramList()) {
         for (auto param : ctx->paramList()->param()) {
-            paramTypes.push_back(getLLVMType(param->type()->getText()));
+            auto paramType = getLLVMType(param->type()->getText());
+            auto paramTypeInfo = registry.lookupType(param->type()->getText());
+            if (!paramTypeInfo) {
+                throw std::runtime_error("Unknown parameter type: " + param->type()->getText());
+            }
+            paramTypes.push_back(paramType);
             paramNames.push_back(param->IDENTIFIER()->getText());
+            paramTypeInfos.push_back(paramTypeInfo);
         }
     }
 
@@ -118,8 +132,9 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     llvm::Function* function = llvm::Function::Create(
         funcType, llvm::Function::ExternalLinkage, funcName, module.get());
 
-    // Create function type info
-    auto functionTypeInfo = std::make_shared<FunctionTypeInfo>(funcName, funcType);
+    // Create LLVM-specific function type info
+    auto functionTypeInfo = std::make_shared<LLVMFunctionTypeInfo>(
+        funcName, returnTypeInfo, paramTypeInfos, funcType);
     typeMetadata->addFunctionTypeInfo(function, functionTypeInfo);
 
     // Create a new basic block
@@ -827,12 +842,12 @@ std::any LLVMCodegen::visitPostfix(PrystParser::PostfixContext* ctx) {
             // Handle member access
             std::string memberName = memberSuffix->IDENTIFIER()->getText();
             auto typeInfo = typeMetadata->getTypeInfo(operand);
-            if (!typeInfo || typeInfo->getKind() != pryst::TypeKind::Class) {
+            if (!typeInfo || typeInfo->getKind() != TypeInfo::Kind::Class) {
                 throw std::runtime_error("Expected class type in member access");
             }
-            auto classInfo = std::dynamic_pointer_cast<pryst::ClassTypeInfo>(typeInfo);
+            auto classInfo = std::dynamic_pointer_cast<LLVMClassTypeInfo>(typeInfo);
             if (!classInfo) {
-                throw std::runtime_error("Failed to get class type info");
+                throw std::runtime_error("Failed to get LLVM class type info");
             }
             size_t memberOffset = classInfo->getMemberIndex(memberName);
             if (memberOffset == static_cast<size_t>(-1)) {
@@ -842,8 +857,12 @@ std::any LLVMCodegen::visitPostfix(PrystParser::PostfixContext* ctx) {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0),
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), memberOffset)
             };
-            operand = builder->CreateGEP(classInfo->getLLVMType(), operand, indices, "member.ptr");
-            operand = builder->CreateLoad(classInfo->getMemberType(memberName), operand, "member");
+            operand = builder->CreateGEP(classInfo->getStructType(), operand, indices, "member.ptr");
+            auto memberType = classInfo->getFieldType(memberName);
+            if (!memberType) {
+                throw std::runtime_error("Failed to get member type for: " + memberName);
+            }
+            operand = builder->CreateLoad(classInfo->getStructType(), operand, "member");
         }
     }
 
