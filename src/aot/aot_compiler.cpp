@@ -21,6 +21,8 @@
 #include <llvm/Analysis/GlobalsModRef.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Support/CodeGen.h>
+#include <llvm/ADT/BitVector.h>
+#include <llvm/Support/MathExtras.h>
 #include <optional>
 
 using namespace llvm;
