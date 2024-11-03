@@ -6,6 +6,8 @@
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/ADT/BitVector.h>
 #include <llvm/ADT/ArrayRef.h>
+#include <llvm/ADT/STLExtras.h>
+#include <llvm/ADT/BitOperations.h>
 #include <llvm/Support/MathExtras.h>
 #include <llvm/MC/SubtargetFeature.h>
 #include <llvm/Support/TargetSelect.h>
