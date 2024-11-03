@@ -7,8 +7,8 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <string>
 #include <memory>
-
-namespace pryst {
+#include "../semantic/type_info.hpp"
+#include "type_registry.hpp"
 
 class LLVMUtils {
 public:
@@ -22,11 +22,12 @@ public:
                                          llvm::Value* ptr,
                                          const std::vector<llvm::Value*>& indices);
 
-    static llvm::PointerType* getPointerType(llvm::Type* elementType);
+    // Removed getPointerType as LLVM no longer handles pointer types
 
     static llvm::Value* createLoad(llvm::IRBuilder<>& builder,
                                  llvm::Type* type,
-                                 llvm::Value* ptr);
+                                 llvm::Value* ptr,
+                                 const std::string& name = "");
 
     static llvm::Value* createStore(llvm::IRBuilder<>& builder,
                                   llvm::Value* value,
@@ -34,7 +35,8 @@ public:
 
     static llvm::Value* createBitCast(llvm::IRBuilder<>& builder,
                                     llvm::Value* value,
-                                    llvm::Type* destType);
+                                    llvm::Type* destType,
+                                    const std::string& name = "");
 
     static llvm::Value* createCall(llvm::IRBuilder<>& builder,
                                  llvm::FunctionCallee callee,
@@ -107,5 +109,3 @@ public:
                                  llvm::Value* rhs,
                                  const std::string& name = "");
 };
-
-} // namespace pryst

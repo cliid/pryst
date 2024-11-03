@@ -22,28 +22,31 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 
 # Create lists of source files that need different RTTI settings
 set(LLVM_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/codegen/llvm_utils.cpp
-    ${CMAKE_SOURCE_DIR}/src/aot/aot_compiler.cpp
-    ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.cpp
+    # Empty - all files need RTTI for our type system
 )
 
 set(ANTLR_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/main.cpp
+    ${CMAKE_SOURCE_DIR}/src/aot/aot_compiler.cpp
+    ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.cpp
     ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.cpp
     ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.cpp
     ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.cpp
     ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/llvm_codegen.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/builtin_functions.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/type_metadata.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/visitor_antlr.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/type_conversion.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/string_utils.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/reflection_api.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_utils.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_registry.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/type_metadata.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/llvm_utils.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/semantic_analyzer.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/symbol_table.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/type_info.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/module_loader.cpp
+    ${CMAKE_SOURCE_DIR}/src/diagnostic/diagnostic_visitor.cpp
 )
 
 # Set RTTI flags based on file types

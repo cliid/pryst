@@ -6,11 +6,11 @@
 
 llvm::Function* LLVMCodegen::declareStrlen() {
     // strlen(char* str) -> size_t
-    auto int8Ty = llvm::Type::getInt8Ty(*context);
-    auto int8PtrTy = llvm::PointerType::getUnqual(int8Ty);
+    auto strType = typeRegistry.getStrType();
+    auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, *context);
     llvm::FunctionType* strlenType = llvm::FunctionType::get(
-        llvm::Type::getInt64Ty(*context),
-        int8PtrTy,
+        llvm::Type::getInt64Ty(*context),  // Return type: size_t
+        llvmStrType,                       // Parameter: string
         false
     );
     llvm::Function* strlenFunc = llvm::Function::Create(
@@ -25,14 +25,14 @@ llvm::Function* LLVMCodegen::declareStrlen() {
 
 llvm::Function* LLVMCodegen::declareStrcpy() {
     // strcpy(char* dest, const char* src) -> char*
-    auto int8Ty = llvm::Type::getInt8Ty(*context);
-    auto int8PtrTy = llvm::PointerType::getUnqual(int8Ty);
+    auto strType = typeRegistry.getStrType();
+    auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, *context);
     std::vector<llvm::Type*> strcpyParams = {
-        int8PtrTy,
-        int8PtrTy
+        llvmStrType,  // dest
+        llvmStrType   // src
     };
     llvm::FunctionType* strcpyType = llvm::FunctionType::get(
-        int8PtrTy,
+        llvmStrType,  // Return type: string
         strcpyParams,
         false
     );
@@ -48,14 +48,14 @@ llvm::Function* LLVMCodegen::declareStrcpy() {
 
 llvm::Function* LLVMCodegen::declareStrcat() {
     // strcat(char* dest, const char* src) -> char*
-    auto int8Ty = llvm::Type::getInt8Ty(*context);
-    auto int8PtrTy = llvm::PointerType::getUnqual(int8Ty);
+    auto strType = typeRegistry.getStrType();
+    auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, *context);
     std::vector<llvm::Type*> strcatParams = {
-        int8PtrTy,
-        int8PtrTy
+        llvmStrType,  // dest
+        llvmStrType   // src
     };
     llvm::FunctionType* strcatType = llvm::FunctionType::get(
-        int8PtrTy,
+        llvmStrType,  // Return type: string
         strcatParams,
         false
     );
@@ -71,15 +71,15 @@ llvm::Function* LLVMCodegen::declareStrcat() {
 
 llvm::Function* LLVMCodegen::declareMemcpy() {
     // memcpy(void* dest, const void* src, size_t n) -> void*
-    auto int8Ty = llvm::Type::getInt8Ty(*context);
-    auto int8PtrTy = llvm::PointerType::getUnqual(int8Ty);
+    auto strType = typeRegistry.getStrType();
+    auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, *context);
     std::vector<llvm::Type*> memcpyParams = {
-        int8PtrTy,
-        int8PtrTy,
-        llvm::Type::getInt64Ty(*context)
+        llvmStrType,                       // dest
+        llvmStrType,                       // src
+        llvm::Type::getInt64Ty(*context)  // size
     };
     llvm::FunctionType* memcpyType = llvm::FunctionType::get(
-        int8PtrTy,
+        llvmStrType,  // Return type: string
         memcpyParams,
         false
     );

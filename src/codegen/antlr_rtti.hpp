@@ -6,8 +6,6 @@
 #include <typeinfo>
 #include <memory>
 
-namespace pryst {
-
 class AntlrRTTI {
 public:
     // Get type name for a parser context
@@ -35,7 +33,5 @@ public:
         return dynamic_cast<T*>(ctx);
     }
 };
-
-} // namespace pryst
 
 #endif // PRYST_ANTLR_RTTI_HPP

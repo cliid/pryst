@@ -10,7 +10,8 @@
 #include <string>
 #include "../semantic/type_info.hpp"
 
-namespace pryst {
+// Forward declaration of type conversion function
+llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& context);
 
 // LLVM-specific type information that extends semantic types
 class LLVMTypeInfo {
@@ -31,8 +32,22 @@ public:
 
     llvm::Type* getLLVMType() const override { return llvmType; }
     llvm::FunctionType* getFunctionType() const { return llvmType; }
+    llvm::FunctionType* getFunctionType(llvm::LLVMContext& context) const {
+        return llvmType ? llvmType : createFunctionType(context);
+    }
 
 private:
+    llvm::FunctionType* createFunctionType(llvm::LLVMContext& context) const {
+        std::vector<llvm::Type*> paramLLVMTypes;
+        for (const auto& paramType : getParamTypes()) {
+            paramLLVMTypes.push_back(::getLLVMTypeFromTypeInfo(paramType, context));
+        }
+        return llvm::FunctionType::get(
+            ::getLLVMTypeFromTypeInfo(getReturnType(), context),
+            paramLLVMTypes,
+            false
+        );
+    }
     llvm::FunctionType* llvmType;
 };
 
@@ -63,6 +78,22 @@ public:
             return llvmParent->getMemberIndex(memberName);
         }
         throw std::runtime_error("Member not found: " + memberName);
+    }
+
+    TypeInfoPtr getMemberTypeInfo(const std::string& memberName) const {
+        auto fieldType = getFieldType(memberName);
+        if (fieldType) {
+            return fieldType;
+        }
+        auto parent = getParent();
+        if (auto llvmParent = std::dynamic_pointer_cast<LLVMClassTypeInfo>(parent)) {
+            return llvmParent->getMemberTypeInfo(memberName);
+        }
+        throw std::runtime_error("Member type not found: " + memberName);
+    }
+
+    std::string getClassName() const {
+        return getName();
     }
 
 private:
@@ -121,5 +152,3 @@ private:
     std::unordered_map<llvm::Function*, LLVMFunctionTypeInfoPtr> functionTypes;
     std::unordered_map<llvm::StructType*, LLVMClassTypeInfoPtr> classTypes;
 };
-
-} // namespace pryst

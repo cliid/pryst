@@ -1,16 +1,51 @@
 #include "semantic_analyzer.hpp"
 #include "module_loader.hpp"
+#include "../codegen/type_registry.hpp"
 #include <stdexcept>
 #include <iostream>
 #include <algorithm>
 
 SemanticAnalyzer::SemanticAnalyzer() : currentFunction(""), symbolTable(), moduleLoader(std::make_shared<ModuleLoader>()) {
-    // Initialize semantic analyzer
-    std::cout << "DEBUG: Initializing SemanticAnalyzer" << std::endl;
-    symbolTable.addFunction("print", "void", {"int"});
-    symbolTable.addFunction("print", "void", {"float"});
-    symbolTable.addFunction("print", "void", {"bool"});
-    symbolTable.addFunction("print", "void", {"str"});
+    try {
+        std::cerr << "DEBUG: Starting SemanticAnalyzer initialization" << std::endl;
+
+        // Get TypeRegistry instance and verify basic types
+        auto& registry = TypeRegistry::getInstance();
+        std::cerr << "DEBUG: Got TypeRegistry instance" << std::endl;
+
+        // Verify each basic type exists
+        if (!registry.getIntType()) {
+            throw std::runtime_error("Int type not initialized in TypeRegistry");
+        }
+        std::cerr << "DEBUG: Verified int type" << std::endl;
+
+        if (!registry.getFloatType()) {
+            throw std::runtime_error("Float type not initialized in TypeRegistry");
+        }
+        std::cerr << "DEBUG: Verified float type" << std::endl;
+
+        if (!registry.getBoolType()) {
+            throw std::runtime_error("Bool type not initialized in TypeRegistry");
+        }
+        std::cerr << "DEBUG: Verified bool type" << std::endl;
+
+        if (!registry.getStrType()) {
+            throw std::runtime_error("String type not initialized in TypeRegistry");
+        }
+        std::cerr << "DEBUG: Verified string type" << std::endl;
+
+        // Register print functions with both SymbolTable and TypeRegistry
+        std::cerr << "DEBUG: Registering print functions" << std::endl;
+        symbolTable.addFunction("print", "void", {"int"});
+        symbolTable.addFunction("print", "void", {"float"});
+        symbolTable.addFunction("print", "void", {"bool"});
+        symbolTable.addFunction("print", "void", {"str"});
+
+        std::cerr << "DEBUG: SemanticAnalyzer initialization completed successfully" << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: SemanticAnalyzer initialization failed: " << e.what() << std::endl;
+        throw;
+    }
 }
 
 // Add semantic analyzer methods here...

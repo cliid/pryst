@@ -7,8 +7,6 @@
 #include <unordered_map>
 #include <string>
 
-namespace pryst {
-
 class VisitorANTLR : public PrystBaseVisitor, public VisitorBase {
 public:
     VisitorANTLR() = default;
@@ -39,5 +37,3 @@ public:
     virtual std::any visitPostfix(PrystParser::PostfixContext* ctx) override;
     virtual std::any visitCall(PrystParser::CallContext* ctx) override;
 };
-
-} // namespace pryst

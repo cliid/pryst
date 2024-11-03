@@ -1,7 +1,5 @@
 #include "llvm_utils.hpp"
 
-namespace pryst {
-
 llvm::Value* LLVMUtils::createGlobalString(llvm::IRBuilder<>& builder,
                                          llvm::Module* module,
                                          const std::string& str,
@@ -18,16 +16,14 @@ llvm::Value* LLVMUtils::createInBoundsGEP(llvm::IRBuilder<>& builder,
     return builder.CreateInBoundsGEP(type, ptr, indices);
 }
 
-llvm::PointerType* LLVMUtils::getPointerType(llvm::Type* elementType) {
-    // Use LLVM 20.0.0's new pointer type creation API
-    return llvm::PointerType::getUnqual(elementType);
-}
+// getPointerType removed as LLVM no longer handles pointer types
 
 llvm::Value* LLVMUtils::createLoad(llvm::IRBuilder<>& builder,
                                  llvm::Type* type,
-                                 llvm::Value* ptr) {
+                                 llvm::Value* ptr,
+                                 const std::string& name) {
     // Use LLVM 20.0.0's load instruction creation that requires the loaded type
-    return builder.CreateLoad(type, ptr);
+    return builder.CreateLoad(type, ptr, name);
 }
 
 llvm::Value* LLVMUtils::createStore(llvm::IRBuilder<>& builder,
@@ -39,9 +35,10 @@ llvm::Value* LLVMUtils::createStore(llvm::IRBuilder<>& builder,
 
 llvm::Value* LLVMUtils::createBitCast(llvm::IRBuilder<>& builder,
                                     llvm::Value* value,
-                                    llvm::Type* destType) {
+                                    llvm::Type* destType,
+                                    const std::string& name) {
     // Create bitcast instruction (API unchanged in LLVM 20.0.0)
-    return builder.CreateBitCast(value, destType);
+    return builder.CreateBitCast(value, destType, name);
 }
 
 llvm::Value* LLVMUtils::createCall(llvm::IRBuilder<>& builder,
@@ -139,5 +136,3 @@ llvm::Value* LLVMUtils::createSRem(llvm::IRBuilder<>& builder,
                                  const std::string& name) {
     return builder.CreateSRem(lhs, rhs, name.empty() ? "modtmp" : name);
 }
-
-} // namespace pryst
