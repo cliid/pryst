@@ -10,9 +10,10 @@ llvm::Function* LLVMCodegen::declareBoolToStr() {
     std::vector<llvm::Type*> paramTypes = {
         llvm::Type::getInt1Ty(*context)
     };
-    auto int8PtrTy = llvm::PointerType::getUnqual(llvm::Type::getInt8Ty(*context));
+    auto strType = typeRegistry.getStrType();
+    auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, *context);
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        int8PtrTy,
+        llvmStrType,
         paramTypes,
         false
     );

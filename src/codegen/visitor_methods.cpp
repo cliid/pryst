@@ -6,8 +6,6 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Constants.h>
 
-namespace pryst {
-
 std::any LLVMCodegen::visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) {
     // Create a unique name for the lambda function
     static int lambdaCounter = 0;
@@ -176,5 +174,3 @@ llvm::Value* LLVMCodegen::generateMethodCall(llvm::Value* object, const std::str
     llvm::FunctionType* funcType = method->getFunctionType();
     return builder->CreateCall(funcType, method, callArgs, "method_call");
 }
-
-} // namespace pryst

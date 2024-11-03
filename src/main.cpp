@@ -1,6 +1,8 @@
 #include "antlr4-runtime.h"
 #include "generated/PrystLexer.h"
 #include "generated/PrystParser.h"
+#include "generated/PrystBaseVisitor.h"
+#include "generated/PrystVisitor.h"
 #include "semantic/semantic_analyzer.hpp"
 #include "codegen/llvm_codegen.hpp"
 #include "jit/jit_compiler.hpp"
@@ -58,8 +60,12 @@ int main(int argc, char* argv[]) {
 
         // Code Generation Phase
         std::cout << "\n=== LLVM Code Generation ===\n";
+        std::cerr << "DEBUG: About to create LLVMCodegen instance" << std::endl;
         LLVMCodegen codegen;
+        std::cerr << "DEBUG: LLVMCodegen instance created successfully" << std::endl;
+        std::cerr << "DEBUG: About to call generateModule" << std::endl;
         std::unique_ptr<llvm::Module> module = codegen.generateModule(programContext);
+        std::cerr << "DEBUG: generateModule completed successfully" << std::endl;
         std::cout << "Code generation completed successfully.\n";
 
         // Compilation/Execution Phase

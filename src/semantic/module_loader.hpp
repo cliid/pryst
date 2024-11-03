@@ -6,8 +6,6 @@
 #include <memory>
 #include <filesystem>
 
-namespace pryst {
-
 class ModuleLoader {
 public:
     ModuleLoader();
@@ -40,5 +38,3 @@ private:
     // Find module file in search paths
     std::string findModuleFile(const std::string& moduleName) const;
 };
-
-} // namespace pryst

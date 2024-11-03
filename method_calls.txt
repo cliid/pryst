@@ -1,0 +1,298 @@
+    std::string className = structType->getName().str();
+    builder->SetInsertPoint(entryBlock);
+    builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
+    for (auto decl : ctx->declaration()) {
+    if (ctx->functionDecl()) {
+        visit(ctx->functionDecl());
+    } else if (ctx->variableDecl()) {
+        visit(ctx->variableDecl());
+    } else if (ctx->classDeclaration()) {
+        visit(ctx->classDeclaration());
+        visit(ctx->statement());
+    std::string funcName = ctx->IDENTIFIER()->getText();
+    llvm::Type* returnType = getLLVMType(ctx->type()->getText());
+    auto returnTypeInfo = registry.lookupType(ctx->type()->getText());
+        throw std::runtime_error("Unknown return type: " + ctx->type()->getText());
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            auto paramType = getLLVMType(param->type()->getText());
+            auto paramTypeInfo = registry.lookupType(param->type()->getText());
+                throw std::runtime_error("Unknown parameter type: " + param->type()->getText());
+            paramNames.push_back(param->IDENTIFIER()->getText());
+    typeMetadata->addFunctionTypeInfo(function, functionTypeInfo);
+    builder->SetInsertPoint(bb);
+    if (ctx->paramList()) {
+        for (auto& arg : function->args()) {
+            builder->CreateStore(&arg, alloca);
+    for (auto decl : ctx->declaration()) {
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        if (returnType->isVoidTy()) {
+            builder->CreateRetVoid();
+            builder->CreateRet(llvm::Constant::getNullValue(returnType));
+    std::string varName = ctx->IDENTIFIER()->getText();
+    llvm::Type* varType = getLLVMType(ctx->type()->getText());
+    if (ctx->expression()) {
+        visit(ctx->expression());
+        builder->CreateStore(lastValue, alloca);
+        builder->CreateStore(llvm::Constant::getNullValue(varType), alloca);
+    std::string className = ctx->IDENTIFIER(0)->getText();
+    if (ctx->IDENTIFIER().size() > 1) {
+        immediateBase = ctx->IDENTIFIER(1)->getText();
+        auto baseClassInfo = typeMetadata->getClassTypeInfo(baseType);
+            size_t memberIndex = baseClassInfo->getMemberIndex(memberName);
+            auto memberTypeInfo = baseClassInfo->getMemberTypeInfo(memberName);
+    auto bodyCtx = ctx->classBody();
+        for (auto memberCtx : bodyCtx->classMember()) {
+                std::string memberName = varDecl->IDENTIFIER()->getText();
+                llvm::Type* memberType = getLLVMType(varDecl->type()->getText());
+    std::string memberName = ctx->IDENTIFIER()->getText();
+    llvm::Type* memberType = getLLVMType(ctx->type()->getText());
+    if (ctx->expression()) {
+        visit(ctx->expression());
+    std::string funcName = ctx->IDENTIFIER()->getText();
+    llvm::Type* returnType = getLLVMType(ctx->type()->getText());
+    for (auto decl : ctx->declaration()) {
+    return getLLVMType(ctx->getText());
+    visit(ctx->expression());
+    visit(ctx->expression());
+    condValue = builder->CreateICmpNE(condValue, llvm::ConstantInt::get(condValue->getType(), 0), "ifcond");
+    llvm::Function* function = builder->GetInsertBlock()->getParent();
+    if (ctx->ELSE()) {
+        builder->CreateCondBr(condValue, thenBlock, elseBlock);
+        builder->CreateCondBr(condValue, thenBlock, mergeBlock);
+    builder->SetInsertPoint(thenBlock);
+    visit(ctx->statement(0));
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        builder->CreateBr(mergeBlock);
+    if (ctx->ELSE()) {
+        elseBlock->insertInto(function);
+        builder->SetInsertPoint(elseBlock);
+        visit(ctx->statement(1));
+        if (!builder->GetInsertBlock()->getTerminator()) {
+            builder->CreateBr(mergeBlock);
+    mergeBlock->insertInto(function);
+    builder->SetInsertPoint(mergeBlock);
+    llvm::Function* function = builder->GetInsertBlock()->getParent();
+    builder->CreateBr(condBlock);
+    builder->SetInsertPoint(condBlock);
+    visit(ctx->expression());
+    condValue = builder->CreateICmpNE(condValue, llvm::ConstantInt::get(condValue->getType(), 0), "whilecond");
+    builder->CreateCondBr(condValue, loopBlock, afterBlock);
+    builder->SetInsertPoint(loopBlock);
+    visit(ctx->statement());
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        builder->CreateBr(condBlock);
+    builder->SetInsertPoint(afterBlock);
+    llvm::Function* function = builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock* preHeaderBlock = builder->GetInsertBlock();
+    if (ctx->variableDecl()) {
+        visit(ctx->variableDecl());
+    } else if (ctx->expression().size() > 0) {
+        visit(ctx->expression(0));
+    builder->CreateBr(loopBlock);
+    builder->SetInsertPoint(loopBlock);
+    if (ctx->expression().size() > 1) {
+        visit(ctx->expression(1));
+        condValue = builder->CreateICmpNE(condValue, llvm::ConstantInt::get(condValue->getType(), 0), "forcond");
+        builder->CreateCondBr(condValue, bodyBlock, afterBlock);
+        builder->SetInsertPoint(bodyBlock);
+        visit(ctx->statement());
+        if (ctx->expression().size() > 2) {
+            visit(ctx->expression(2));
+        builder->CreateBr(loopBlock);
+        visit(ctx->statement());
+        if (ctx->expression().size() > 2) {
+            visit(ctx->expression(2));
+        builder->CreateBr(loopBlock);
+    builder->SetInsertPoint(afterBlock);
+    if (ctx->expression()) {
+        visit(ctx->expression());
+        builder->CreateRet(lastValue);
+        builder->CreateRetVoid();
+    for (auto decl : ctx->declaration()) {
+    std::cerr << "DEBUG: Assignment context text: " << ctx->getText() << std::endl;
+    if (ctx->call() && ctx->DOT()) {
+        visit(ctx->call());
+        object->getType()->print(rso);
+            object = loadInst->getPointerOperand();
+            object->getType()->print(rso);
+        auto typeInfo = typeMetadata->getTypeInfo(object);
+        if (!typeInfo || typeInfo->getKind() != pryst::TypeInfo::Kind::Class) {
+        std::string className = classInfo->getClassName();
+        std::string memberName = ctx->IDENTIFIER()->getText();
+        size_t memberOffset = classInfo->getMemberIndex(memberName);
+        varAddress = builder->CreateGEP(classInfo->getLLVMType(), object, indices, "member.ptr");
+        auto it = namedValues.find(ctx->IDENTIFIER()->getText());
+            throw std::runtime_error("Undefined variable: " + ctx->IDENTIFIER()->getText());
+    visit(ctx->expression());
+    builder->CreateStore(exprValue, varAddress);
+    if (ctx->logicAnd().size() == 1) {
+        visit(ctx->logicAnd(0));
+    llvm::Function* function = builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock* lhsBlock = builder->GetInsertBlock();
+    visit(ctx->logicAnd(0));
+    lhsValue = builder->CreateICmpNE(lhsValue, llvm::ConstantInt::get(lhsValue->getType(), 0), "lor.lhs");
+    builder->CreateCondBr(lhsValue, mergeBlock, rhsBlock);
+    builder->SetInsertPoint(rhsBlock);
+    visit(ctx->logicAnd(1));
+    rhsValue = builder->CreateICmpNE(rhsValue, llvm::ConstantInt::get(rhsValue->getType(), 0), "lor.rhs");
+    builder->CreateBr(mergeBlock);
+    builder->SetInsertPoint(mergeBlock);
+    llvm::PHINode* phiNode = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2, "lor.result");
+    phiNode->addIncoming(llvm::ConstantInt::getTrue(*context), lhsBlock);
+    phiNode->addIncoming(rhsValue, rhsBlock);
+    if (ctx->equality().size() == 1) {
+        visit(ctx->equality(0));
+    llvm::Function* function = builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock* lhsBlock = builder->GetInsertBlock();
+    visit(ctx->equality(0));
+    lhsValue = builder->CreateICmpNE(lhsValue, llvm::ConstantInt::get(lhsValue->getType(), 0), "land.lhs");
+    builder->CreateCondBr(lhsValue, rhsBlock, mergeBlock);
+    builder->SetInsertPoint(rhsBlock);
+    visit(ctx->equality(1));
+    rhsValue = builder->CreateICmpNE(rhsValue, llvm::ConstantInt::get(rhsValue->getType(), 0), "land.rhs");
+    builder->CreateBr(mergeBlock);
+    builder->SetInsertPoint(mergeBlock);
+    llvm::PHINode* phiNode = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2, "land.result");
+    phiNode->addIncoming(llvm::ConstantInt::getFalse(*context), lhsBlock);
+    phiNode->addIncoming(rhsValue, rhsBlock);
+    visit(ctx->comparison(0));
+    for (size_t i = 1; i < ctx->comparison().size(); ++i) {
+        visit(ctx->comparison(i));
+            if (left->getType()->isFloatingPointTy()) {
+                lastValue = builder->CreateFCmpOEQ(left, right, "eqtmp");
+                lastValue = builder->CreateICmpEQ(left, right, "eqtmp");
+            if (left->getType()->isFloatingPointTy()) {
+                lastValue = builder->CreateFCmpONE(left, right, "neqtmp");
+                lastValue = builder->CreateICmpNE(left, right, "neqtmp");
+    visit(ctx->addition(0));
+    for (size_t i = 1; i < ctx->addition().size(); ++i) {
+        visit(ctx->addition(i));
+        if (ctx->LESS(i - 1)) {
+            lastValue = builder->CreateICmpSLT(left, right, "lttmp");
+            lastValue = builder->CreateICmpSLE(left, right, "letmp");
+        } else if (ctx->GREATER(i - 1)) {
+            lastValue = builder->CreateICmpSGT(left, right, "gttmp");
+            lastValue = builder->CreateICmpSGE(left, right, "getmp");
+    visit(ctx->multiplication(0));
+    for (size_t i = 1; i < ctx->multiplication().size(); ++i) {
+        visit(ctx->multiplication(i));
+        if (ctx->PLUS(i - 1)) {
+            if (left->getType()->isFloatingPointTy()) {
+                lastValue = builder->CreateFAdd(left, right, "addtmp");
+                lastValue = builder->CreateAdd(left, right, "addtmp");
+        } else if (ctx->MINUS(i - 1)) {
+            if (left->getType()->isFloatingPointTy()) {
+                lastValue = builder->CreateFSub(left, right, "subtmp");
+                lastValue = builder->CreateSub(left, right, "subtmp");
+    visit(ctx->unary(0));
+    for (size_t i = 1; i < ctx->unary().size(); ++i) {
+        visit(ctx->unary(i));
+        if (ctx->STAR(i - 1)) {
+            if (left->getType()->isFloatingPointTy()) {
+                lastValue = builder->CreateFMul(left, right, "multmp");
+                lastValue = builder->CreateMul(left, right, "multmp");
+        } else if (ctx->SLASH(i - 1)) {
+            if (left->getType()->isFloatingPointTy()) {
+                lastValue = builder->CreateFDiv(left, right, "divtmp");
+                lastValue = builder->CreateSDiv(left, right, "divtmp");
+        } else if (ctx->PERCENT(i - 1)) {
+            if (left->getType()->isFloatingPointTy()) {
+                lastValue = builder->CreateFRem(left, right, "modtmp");
+                lastValue = builder->CreateSRem(left, right, "modtmp");
+    if (ctx->postfix()) {
+        visit(ctx->postfix());
+    } else if (ctx->unary()) {
+        visit(ctx->unary());
+        if (ctx->MINUS()) {
+            if (operand->getType()->isFloatingPointTy()) {
+                lastValue = builder->CreateFNeg(operand, "negtmp");
+                lastValue = builder->CreateNeg(operand, "negtmp");
+        } else if (ctx->BANG()) {
+            lastValue = builder->CreateNot(operand, "nottmp");
+        } else if (ctx->INCREMENT()) {
+            llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
+            lastValue = builder->CreateAdd(operand, one, "inctmp");
+        } else if (ctx->DECREMENT()) {
+            llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
+            lastValue = builder->CreateSub(operand, one, "dectmp");
+    visit(ctx->primary());
+    for (auto suffix : ctx->suffix()) {
+        if (auto callSuffix = suffix->callSuffix()) {
+            if (callSuffix->arguments()) {
+                for (auto expr : callSuffix->arguments()->expression()) {
+                operand = builder->CreateCall(func, args, "calltmp");
+        } else if (auto memberSuffix = suffix->memberSuffix()) {
+            std::string memberName = memberSuffix->IDENTIFIER()->getText();
+            auto typeInfo = typeMetadata->getTypeInfo(operand);
+            if (!typeInfo || typeInfo->getKind() != pryst::TypeInfo::Kind::Class) {
+            size_t memberOffset = classInfo->getMemberIndex(memberName);
+            operand = builder->CreateGEP(classInfo->getStructType(), operand, indices, "member.ptr");
+            auto memberType = classInfo->getFieldType(memberName);
+            operand = builder->CreateLoad(classInfo->getStructType(), operand, "member");
+    if (!ctx->INCREMENT().empty()) {
+        llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
+        llvm::Value* newValue = builder->CreateAdd(operand, one, "postinctmp");
+            builder->CreateStore(newValue, loadInst->getPointerOperand());
+    } else if (!ctx->DECREMENT().empty()) {
+        llvm::Value* one = llvm::ConstantInt::get(operand->getType(), 1);
+        llvm::Value* newValue = builder->CreateSub(operand, one, "postdectmp");
+            builder->CreateStore(newValue, loadInst->getPointerOperand());
+    visit(ctx->primary());
+    for (auto suffix : ctx->suffix()) {
+        if (auto callSuffix = suffix->callSuffix()) {
+            if (auto args_ctx = callSuffix->arguments()) {
+                for (auto expr : args_ctx->expression()) {
+                std::string functionName = functionCallee->getName().str();
+                    llvm::Value* formatStr = builder->CreateGlobalString("%s\n");
+                    lastValue = builder->CreateCall(printfFunc, args, "calltmp");
+                    lastValue = builder->CreateCall(functionCallee, args, "calltmp");
+                auto typeInfo = typeMetadata->getTypeInfo(callee);
+                if (!typeInfo || typeInfo->getKind() != pryst::TypeInfo::Kind::Function) {
+                if (auto* primary = ctx->primary()) {
+                    if (primary->IDENTIFIER()) {
+                        functionName = primary->IDENTIFIER()->getText();
+                lastValue = builder->CreateCall(funcType, callee, args, "calltmp");
+    if (ctx->TRUE()) {
+    } else if (ctx->FALSE()) {
+    } else if (ctx->NUMBER()) {
+        std::string numStr = ctx->NUMBER()->getText();
+    } else if (ctx->STRING()) {
+        std::string str = ctx->STRING()->getText();
+        lastValue = builder->CreateGlobalString(str, "str");
+    } else if (ctx->IDENTIFIER()) {
+        std::string name = ctx->IDENTIFIER()->getText();
+            lastValue = builder->CreateLoad(varIt->second->getAllocatedType(), varIt->second, name.c_str());
+    } else if (ctx->LPAREN()) {
+        visit(ctx->expression());
+    } else if (ctx->SUPER()) {
+    } else if (ctx->newExpression()) {
+        visit(ctx->newExpression());
+    std::string className = ctx->IDENTIFIER()->getText();
+    llvm::Function* mallocFunc = module->getFunction("malloc");
+                                               module->getDataLayout().getTypeAllocSize(classType));
+    llvm::Value* mem = builder->CreateCall(mallocFunc, {size}, "objmem");
+    llvm::Value* obj = builder->CreateBitCast(mem, classPtrType, "obj");
+        auto classInfo = typeMetadata->getClassTypeInfo(classStructType);
+            auto memberTypeInfo = classInfo->getMemberTypeInfo(memberName);
+            llvm::Value* memberPtr = builder->CreateGEP(classType, obj, indices, "member.ptr");
+            builder->CreateStore(llvm::Constant::getNullValue(memberType), memberPtr);
+    llvm::IRBuilder<> tmpBuilder(&function->getEntryBlock(), function->getEntryBlock().begin());
+    llvm::Type* returnType = ctx->type()
+        ? getLLVMType(ctx->type()->getText())
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            paramTypes.push_back(getLLVMType(param->type()->getText()));
+            paramNames.push_back(param->IDENTIFIER()->getText());
+    auto returnTypeInfo = typeMetadata->getTypeInfo(returnType);
+        paramTypeInfos.push_back(typeMetadata->getTypeInfo(paramType));
+    typeMetadata->addFunctionTypeInfo(function, functionTypeInfo);
+    builder->SetInsertPoint(bb);
+    if (ctx->paramList()) {
+        for (auto& arg : function->args()) {
+            builder->CreateStore(&arg, alloca);
+    for (auto decl : ctx->declaration()) {
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        if (returnType->isVoidTy()) {
+            builder->CreateRetVoid();
+            builder->CreateRet(llvm::Constant::getNullValue(returnType));

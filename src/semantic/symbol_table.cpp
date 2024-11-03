@@ -70,14 +70,19 @@ void SymbolTable::addVariable(const std::string& name, const std::string& type, 
     info.scopeLevel = static_cast<int>(getCurrentScopeLevel());
     info.isFunctionType = isFunctionType(type);
 
+    // Initialize functionInfo with empty vector instead of null
+    info.functionInfo.paramTypes = std::vector<std::string>();
+    info.functionInfo.returnType = "";
+    info.functionInfo.scopeLevel = static_cast<int>(getCurrentScopeLevel());
+    info.functionInfo.isAnonymous = false;
+    info.functionInfo.hasExplicitReturnType = false;
+    info.functionInfo.deducedReturnTypes.clear();
+
     if (info.isFunctionType) {
         auto [returnType, paramTypes] = parseFunctionType(type);
         info.functionInfo.returnType = returnType;
-        info.functionInfo.paramTypes = paramTypes;
-        info.functionInfo.scopeLevel = static_cast<int>(getCurrentScopeLevel());
-        info.functionInfo.isAnonymous = false;
+        info.functionInfo.paramTypes = std::move(paramTypes);
         info.functionInfo.hasExplicitReturnType = true;
-        info.functionInfo.deducedReturnTypes = {};
     }
 
     scopes.back().variables[name] = info;
@@ -271,4 +276,17 @@ std::pair<std::string, std::vector<std::string>> SymbolTable::parseFunctionType(
     }
 
     return {returnType, paramTypes};
+}
+
+// Add class with full class info
+void SymbolTable::addClass(const std::string& name, const ClassInfo& info) {
+    std::cout << "DEBUG: Adding class '" << name << "' with full class info" << std::endl;
+    if (classExists(name)) {
+        throw std::runtime_error("Class '" + name + "' already declared");
+    }
+    if (!scopes.empty()) {
+        scopes[0].classes[name] = info;
+    } else {
+        throw std::runtime_error("No active scope when adding class: " + name);
+    }
 }
