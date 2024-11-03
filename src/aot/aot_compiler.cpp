@@ -48,8 +48,8 @@ void AOTCompiler::compile(Module& module, const std::string& outputFilename) {
     TargetOptions opt;
 
     // Create target machine with correct optimization level
-    llvm::Optional<llvm::Reloc::Model> RM = llvm::Reloc::PIC_;
-    llvm::Optional<llvm::CodeModel::Model> CM = llvm::CodeModel::Small;
+    std::optional<llvm::Reloc::Model> RM = llvm::Reloc::PIC_;
+    std::optional<llvm::CodeModel::Model> CM = llvm::CodeModel::Small;
     targetMachine = std::unique_ptr<TargetMachine>(
         target->createTargetMachine(targetTriple, CPU, features, opt, RM, CM));
 
