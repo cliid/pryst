@@ -1,76 +1,103 @@
 #include "aot_compiler.hpp"
-#include <optional>
-#include <system_error>
-#include <llvm/Support/CodeGen.h>
+#include <llvm/ADT/STLExtras.h>
+#include <llvm/Analysis/TargetLibraryInfo.h>
+#include <llvm/Analysis/TargetTransformInfo.h>
+#include <llvm/CodeGen/CommandFlags.h>
+#include <llvm/CodeGen/LinkAllAsmWriterComponents.h>
+#include <llvm/CodeGen/LinkAllCodegenComponents.h>
 #include <llvm/IR/LegacyPassManager.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/Support/TargetSelect.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/FileSystem.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/Host.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
-#include <llvm/MC/TargetRegistry.h>
-#include <llvm/MC/MCContext.h>
-#include <llvm/MC/MCTargetOptions.h>
-#include <llvm/MC/MCAsmBackend.h>
-#include <llvm/MC/MCCodeEmitter.h>
-#include <llvm/MC/MCObjectStreamer.h>
-#include <llvm/MC/MCObjectWriter.h>
-#include <llvm/MC/MCSymbol.h>
-#include <llvm/MC/MCExpr.h>
-#include <llvm/MC/MCStreamer.h>
-#include <llvm/MC/MCELFObjectWriter.h>
-#include <llvm/MC/MCELFStreamer.h>
-#include <llvm/MC/MCAsmInfo.h>
+#include <llvm/Transforms/IPO.h>
+#include <llvm/Transforms/Utils.h>
+#include <llvm/Analysis/AliasAnalysis.h>
+#include <llvm/Analysis/BasicAliasAnalysis.h>
+#include <llvm/Analysis/GlobalsModRef.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Support/CodeGen.h>
+#include <optional>
+
+using namespace llvm;
+using namespace llvm::sys;
 
 AOTCompiler::AOTCompiler() {
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    llvm::InitializeNativeTargetAsmParser();
+    InitializeNativeTarget();
+    InitializeNativeTargetAsmPrinter();
+    InitializeNativeTargetAsmParser();
 }
 
-void AOTCompiler::compile(llvm::Module& module, const std::string& outputFilename) {
-    auto targetTriple = llvm::Triple::normalize(llvm::sys::getProcessTriple());
+void AOTCompiler::compile(Module& module, const std::string& outputFilename) {
+    auto targetTriple = Triple::normalize(getProcessTriple());
     module.setTargetTriple(targetTriple);
 
     std::string error;
-    auto target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
+    auto target = TargetRegistry::lookupTarget(targetTriple, error);
 
     if (!target) {
-        llvm::errs() << error;
-        return;
+        throw std::runtime_error("Failed to lookup target: " + error);
     }
 
-    auto CPU = "generic";
-    auto features = "";
+    std::string CPU = "generic";
+    std::string features = "";
+    TargetOptions opt;
 
-    llvm::MCTargetOptions MCOpt;
-    llvm::TargetOptions opt;
-    llvm::Optional<llvm::Reloc::Model> RM;
-    targetMachine = std::unique_ptr<llvm::TargetMachine>(
-        target->createTargetMachine(targetTriple, CPU, features, opt, RM));
+    // Create target machine with correct optimization level
+    llvm::Optional<llvm::Reloc::Model> RM = llvm::Reloc::PIC_;
+    llvm::Optional<llvm::CodeModel::Model> CM = llvm::CodeModel::Small;
+    targetMachine = std::unique_ptr<TargetMachine>(
+        target->createTargetMachine(targetTriple, CPU, features, opt, RM, CM));
+
+    if (!targetMachine) {
+        throw std::runtime_error("Failed to create target machine");
+    }
 
     module.setDataLayout(targetMachine->createDataLayout());
+    module.setTargetTriple(targetTriple);
 
+    // Create output file
     std::error_code EC;
-    llvm::raw_fd_ostream dest(outputFilename, EC, llvm::sys::fs::OF_None);
+    raw_fd_ostream dest(outputFilename, EC, sys::fs::OF_None);
     if (EC) {
-        llvm::errs() << "Could not open file: " << EC.message();
+        errs() << "Could not open file: " << EC.message();
         return;
     }
 
-    // Create the legacy pass manager
-    llvm::legacy::PassManager pass;
+    // Initialize PassBuilder and analysis managers
+    LoopAnalysisManager LAM;
+    FunctionAnalysisManager FAM;
+    CGSCCAnalysisManager CGAM;
+    ModuleAnalysisManager MAM;
 
-    // Add passes to emit object file
-    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile)) {
-        llvm::errs() << "TargetMachine can't emit a file of this type\n";
+    // Create PassBuilder with target machine info
+    PassBuilder PB(targetMachine.get());
+
+    // Register target-specific analysis passes
+    PB.registerModuleAnalyses(MAM);
+    PB.registerCGSCCAnalyses(CGAM);
+    PB.registerFunctionAnalyses(FAM);
+    PB.registerLoopAnalyses(LAM);
+    PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+    // Create optimization pipeline
+    ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(OptimizationLevel::O2);
+
+    // Run optimization passes
+    MPM.run(module, MAM);
+
+    // Create and run code generation pipeline using legacy pass manager
+    // Note: LLVM 20.0.0 still requires legacy pass manager for code generation
+    legacy::PassManager CodeGenPM;
+    if (targetMachine->addPassesToEmitFile(CodeGenPM, dest, nullptr, CGFT_ObjectFile)) {
+        errs() << "TargetMachine can't emit a file of this type";
         return;
     }
 
-    // Run the passes
-    pass.run(module);
+    CodeGenPM.run(module);
     dest.flush();
 }
