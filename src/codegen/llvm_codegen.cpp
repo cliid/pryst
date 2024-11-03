@@ -5,6 +5,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/Support/Casting.h>
+#include "semantic/type_info.hpp"
 #include <stdexcept>
 #include <iostream>
 
