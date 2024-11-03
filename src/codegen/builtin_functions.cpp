@@ -3,14 +3,16 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/GlobalVariable.h>
 
 llvm::Function* LLVMCodegen::declareBoolToStr() {
     // Create function type: bool -> char*
     std::vector<llvm::Type*> paramTypes = {
         llvm::Type::getInt1Ty(*context)
     };
+    auto int8PtrTy = llvm::PointerType::getUnqual(llvm::Type::getInt8Ty(*context));
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+        int8PtrTy,
         paramTypes,
         false
     );
@@ -27,18 +29,18 @@ llvm::Function* LLVMCodegen::declareBoolToStr() {
     llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create(*context, "entry", func);
     builder->SetInsertPoint(entryBlock);
 
-    // Create global string constants for "true" and "false"
-    llvm::Value* trueStr = builder->CreateGlobalStringPtr("true", "true_str");
-    llvm::Value* falseStr = builder->CreateGlobalStringPtr("false", "false_str");
+    // Create global string constants for "true" and "false" using LLVM 20.0.0 API
+    auto trueStr = builder->CreateGlobalString("true", "true_str");
+    auto falseStr = builder->CreateGlobalString("false", "false_str");
 
     // Get the function parameter
     llvm::Value* boolValue = &*func->arg_begin();
 
-    // Create conditional branch
+    // Create conditional branch using opaque pointers
     llvm::Value* result = builder->CreateSelect(
         boolValue,
-        builder->CreateBitCast(trueStr, llvm::Type::getInt8PtrTy(*context)),
-        builder->CreateBitCast(falseStr, llvm::Type::getInt8PtrTy(*context)),
+        trueStr,
+        falseStr,
         "bool_str"
     );
 

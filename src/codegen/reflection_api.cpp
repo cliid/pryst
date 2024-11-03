@@ -16,7 +16,7 @@ llvm::Value* LLVMCodegen::generateGetType(llvm::Value* value) {
     llvm::MDString* typeNameMD = llvm::cast<llvm::MDString>(typeMD->getOperand(0));
     std::string typeName = typeNameMD->getString().str();
 
-    return builder.CreateGlobalStringPtr(typeName);
+    return builder->CreateGlobalStringPtr(typeName);
 }
 
 llvm::Value* LLVMCodegen::generateIsInstance(llvm::Value* value, const std::string& typeName) {
@@ -26,7 +26,7 @@ llvm::Value* LLVMCodegen::generateIsInstance(llvm::Value* value, const std::stri
     llvm::MDNode* typeMD = getTypeMetadata(value);
     if (!typeMD) {
         std::cerr << "ERROR: No type metadata found for value" << std::endl;
-        return builder.getInt1(false);
+        return builder->getInt1(false);
     }
 
     // Get the actual type name from metadata
@@ -35,7 +35,7 @@ llvm::Value* LLVMCodegen::generateIsInstance(llvm::Value* value, const std::stri
 
     // Check if types match exactly
     if (actualTypeName == typeName) {
-        return builder.getInt1(true);
+        return builder->getInt1(true);
     }
 
     // Check inheritance chain if it's a class type
@@ -43,13 +43,13 @@ llvm::Value* LLVMCodegen::generateIsInstance(llvm::Value* value, const std::stri
         ClassInfo classInfo = getClassInfo(actualTypeName);
         while (!classInfo.baseClassName.empty()) {
             if (classInfo.baseClassName == typeName) {
-                return builder.getInt1(true);
+                return builder->getInt1(true);
             }
             classInfo = getClassInfo(classInfo.baseClassName);
         }
     }
 
-    return builder.getInt1(false);
+    return builder->getInt1(false);
 }
 
 llvm::MDNode* LLVMCodegen::getTypeMetadata(llvm::Value* value) {
