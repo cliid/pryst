@@ -99,28 +99,87 @@ void LLVMCodegen::declarePrintFunctions() {
     auto intType = llvm::Type::getInt32Ty(*context);
     std::vector<llvm::Type*> intPrintArgs = {intType};
     auto intPrintType = llvm::FunctionType::get(llvm::Type::getVoidTy(*context), intPrintArgs, false);
-    functions["print.int"] = llvm::Function::Create(intPrintType, llvm::Function::ExternalLinkage, "print.int", module.get());
+    auto printIntFunc = llvm::Function::Create(intPrintType, llvm::Function::ExternalLinkage, "print.int", module.get());
+    functions["print.int"] = printIntFunc;
+
+    // Create print.int implementation
+    auto printIntBlock = llvm::BasicBlock::Create(*context, "entry", printIntFunc);
+    auto savedInsertPoint = builder->GetInsertBlock();
+    builder->SetInsertPoint(printIntBlock);
+    auto formatStr = builder->CreateGlobalString("%d\n", "int_format");
+    auto formatPtr = builder->CreateBitCast(formatStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    std::vector<llvm::Value*> printfArgs;
+    printfArgs.push_back(formatPtr);
+    printfArgs.push_back(&*printIntFunc->arg_begin());
+    builder->CreateCall(functions["printf"], printfArgs);
+    builder->CreateRetVoid();
+    builder->SetInsertPoint(savedInsertPoint);
 
     // Print float function
     auto floatType = llvm::Type::getDoubleTy(*context);
     std::vector<llvm::Type*> floatPrintArgs = {floatType};
     auto floatPrintType = llvm::FunctionType::get(llvm::Type::getVoidTy(*context), floatPrintArgs, false);
-    functions["print.float"] = llvm::Function::Create(floatPrintType, llvm::Function::ExternalLinkage, "print.float", module.get());
+    auto printFloatFunc = llvm::Function::Create(floatPrintType, llvm::Function::ExternalLinkage, "print.float", module.get());
+    functions["print.float"] = printFloatFunc;
+
+    // Create print.float implementation
+    auto printFloatBlock = llvm::BasicBlock::Create(*context, "entry", printFloatFunc);
+    savedInsertPoint = builder->GetInsertBlock();
+    builder->SetInsertPoint(printFloatBlock);
+    formatStr = builder->CreateGlobalString("%f\n", "float_format");
+    formatPtr = builder->CreateBitCast(formatStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    printfArgs.clear();
+    printfArgs.push_back(formatPtr);
+    printfArgs.push_back(&*printFloatFunc->arg_begin());
+    builder->CreateCall(functions["printf"], printfArgs);
+    builder->CreateRetVoid();
+    builder->SetInsertPoint(savedInsertPoint);
 
     // Print bool function
     auto boolType = llvm::Type::getInt1Ty(*context);
     std::vector<llvm::Type*> boolPrintArgs = {boolType};
     auto boolPrintType = llvm::FunctionType::get(llvm::Type::getVoidTy(*context), boolPrintArgs, false);
-    functions["print.bool"] = llvm::Function::Create(boolPrintType, llvm::Function::ExternalLinkage, "print.bool", module.get());
+    auto printBoolFunc = llvm::Function::Create(boolPrintType, llvm::Function::ExternalLinkage, "print.bool", module.get());
+    functions["print.bool"] = printBoolFunc;
+
+    // Create print.bool implementation
+    auto printBoolBlock = llvm::BasicBlock::Create(*context, "entry", printBoolFunc);
+    savedInsertPoint = builder->GetInsertBlock();
+    builder->SetInsertPoint(printBoolBlock);
+    auto trueStr = builder->CreateGlobalString("true\n", "true_str");
+    auto falseStr = builder->CreateGlobalString("false\n", "false_str");
+    auto truePtrCast = builder->CreateBitCast(trueStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    auto falsePtrCast = builder->CreateBitCast(falseStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    auto condition = &*printBoolFunc->arg_begin();
+    auto selectedStr = builder->CreateSelect(condition, truePtrCast, falsePtrCast);
+    printfArgs.clear();
+    printfArgs.push_back(selectedStr);
+    builder->CreateCall(functions["printf"], printfArgs);
+    builder->CreateRetVoid();
+    builder->SetInsertPoint(savedInsertPoint);
 
     // Print string function
     auto strType = typeRegistry.getStrType();
     auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, module->getContext());
     std::vector<llvm::Type*> strPrintArgs = {llvmStrType};
     auto strPrintType = llvm::FunctionType::get(llvm::Type::getVoidTy(*context), strPrintArgs, false);
-    functions["print.str"] = llvm::Function::Create(strPrintType, llvm::Function::ExternalLinkage, "print.str", module.get());
+    auto printStrFunc = llvm::Function::Create(strPrintType, llvm::Function::ExternalLinkage, "print.str", module.get());
+    functions["print.str"] = printStrFunc;
 
-    std::cerr << "DEBUG: Print functions declared successfully" << std::endl;
+    // Create print.str implementation
+    auto printStrBlock = llvm::BasicBlock::Create(*context, "entry", printStrFunc);
+    savedInsertPoint = builder->GetInsertBlock();
+    builder->SetInsertPoint(printStrBlock);
+    formatStr = builder->CreateGlobalString("%s\n", "str_format");
+    formatPtr = builder->CreateBitCast(formatStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    printfArgs.clear();
+    printfArgs.push_back(formatPtr);
+    printfArgs.push_back(&*printStrFunc->arg_begin());
+    builder->CreateCall(functions["printf"], printfArgs);
+    builder->CreateRetVoid();
+    builder->SetInsertPoint(savedInsertPoint);
+
+    std::cerr << "DEBUG: Print functions declared and implemented successfully" << std::endl;
 }
 
 std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* programCtx) {
@@ -163,10 +222,47 @@ std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramCo
         std::cerr << "DEBUG: Visiting program" << std::endl;
         visitProgram(programCtx);
 
-        std::cerr << "DEBUG: Verifying module" << std::endl;
-        if (llvm::verifyModule(*module, &llvm::errs())) {
-            throw std::runtime_error("Generated LLVM IR is invalid");
+        // Verify each function's basic blocks
+        std::cerr << "DEBUG: Verifying function basic blocks" << std::endl;
+        for (auto& func : module->functions()) {
+            std::cerr << "DEBUG: Checking function: " << func.getName().str() << std::endl;
+
+            if (func.empty()) {
+                std::cerr << "DEBUG: Function " << func.getName().str() << " has no basic blocks" << std::endl;
+                continue;
+            }
+
+            for (auto& block : func) {
+                std::cerr << "DEBUG: Checking basic block in function " << func.getName().str() << std::endl;
+                std::cerr << "DEBUG: Basic block has terminator: " << (block.getTerminator() != nullptr) << std::endl;
+                if (!block.getTerminator()) {
+                    std::cerr << "DEBUG: ERROR - Basic block in function '" << func.getName().str()
+                             << "' missing terminator" << std::endl;
+                }
+            }
         }
+
+        // Dump IR before verification
+        std::cerr << "\n=== Pre-verification LLVM IR ===\n" << std::endl;
+        std::string preVerifyIR;
+        llvm::raw_string_ostream preVerifyStream(preVerifyIR);
+        module->print(preVerifyStream, nullptr);
+        std::cerr << preVerifyStream.str() << "\n=== End Pre-verification IR ===\n" << std::endl;
+
+        std::cerr << "DEBUG: Verifying module" << std::endl;
+        std::string verifyError;
+        llvm::raw_string_ostream errorStream(verifyError);
+        if (llvm::verifyModule(*module, &errorStream)) {
+            std::cerr << "DEBUG: Module verification failed with errors:" << std::endl;
+            std::cerr << verifyError << std::endl;
+            throw std::runtime_error("Generated LLVM IR is invalid: " + verifyError);
+        }
+
+        std::cerr << "\n=== Final Generated LLVM IR ===\n" << std::endl;
+        std::string ir;
+        llvm::raw_string_ostream irStream(ir);
+        module->print(irStream, nullptr);
+        std::cerr << irStream.str() << "\n=== End LLVM IR ===\n" << std::endl;
 
         std::cerr << "DEBUG: Module generation complete" << std::endl;
         return std::move(module);
@@ -177,7 +273,13 @@ std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramCo
 }
 
 llvm::Function* LLVMCodegen::createMainFunction() {
-    std::cerr << "DEBUG: Creating main function" << std::endl;
+    std::cerr << "DEBUG: Checking for existing main function" << std::endl;
+    if (auto existingMain = module->getFunction("main")) {
+        std::cerr << "DEBUG: Found existing main function" << std::endl;
+        return existingMain;
+    }
+
+    std::cerr << "DEBUG: Creating new main function" << std::endl;
     llvm::FunctionType* mainFuncType = llvm::FunctionType::get(llvm::Type::getInt32Ty(*context), false);
     llvm::Function* mainFunc = llvm::Function::Create(mainFuncType, llvm::Function::ExternalLinkage, "main", module.get());
 
@@ -191,6 +293,7 @@ llvm::Function* LLVMCodegen::createMainFunction() {
 // Program: Handles the entire program
 std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
     std::cerr << "DEBUG: Starting program visit" << std::endl;
+    std::cerr << "DEBUG: Current module state - number of functions: " << module->size() << std::endl;
 
     // Create a new scope for the program
     pushScope();
@@ -199,13 +302,52 @@ std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
     try {
         // Visit all declarations in the program
         for (auto decl : ctx->declaration()) {
-            std::cerr << "DEBUG: Visiting declaration" << std::endl;
-            visit(decl);
-        }
+            std::cerr << "DEBUG: Visiting declaration: " << decl->getText() << std::endl;
+            std::cerr << "DEBUG: Declaration type: " << typeid(*decl).name() << std::endl;
 
-        // Create return 0
-        builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
-        std::cerr << "DEBUG: Created return statement" << std::endl;
+            if (auto funcDecl = decl->functionDecl()) {
+                std::cerr << "DEBUG: Found function declaration" << std::endl;
+                std::cerr << "DEBUG: Function declaration text: " << funcDecl->getText() << std::endl;
+
+                // Handle named functions directly
+                if (auto namedFunc = dynamic_cast<PrystParser::NamedFunctionContext*>(funcDecl)) {
+                    std::string funcName = namedFunc->IDENTIFIER()->getText();
+                    std::cerr << "DEBUG: Processing named function '" << funcName << "'" << std::endl;
+                    std::cerr << "DEBUG: Function body present: " << (namedFunc->declaration().size() > 0 ? "yes" : "no") << std::endl;
+                    std::cerr << "DEBUG: Function return type: " << namedFunc->type()->getText() << std::endl;
+
+                    visitNamedFunction(namedFunc);
+
+                    // Verify function body was properly generated
+                    auto func = module->getFunction(funcName);
+                    if (func) {
+                        std::cerr << "DEBUG: Verifying function '" << funcName << "' IR:" << std::endl;
+                        for (auto& block : *func) {
+                            std::cerr << "DEBUG: Block '" << block.getName().str() << "':" << std::endl;
+                            std::cerr << "DEBUG: Has terminator: " << (block.getTerminator() != nullptr) << std::endl;
+                            if (!block.getTerminator()) {
+                                std::cerr << "DEBUG: Adding implicit return for unterminated block" << std::endl;
+                                builder->SetInsertPoint(&block);
+                                if (func->getReturnType()->isVoidTy()) {
+                                    builder->CreateRetVoid();
+                                } else {
+                                    builder->CreateRet(llvm::ConstantInt::get(func->getReturnType(), 0));
+                                }
+                                std::cerr << "DEBUG: Added terminator to block" << std::endl;
+                            }
+                        }
+                    }
+                    std::cerr << "DEBUG: Named function processing complete" << std::endl;
+                }
+            } else {
+                std::cerr << "DEBUG: Processing non-function declaration" << std::endl;
+                visit(decl);
+                std::cerr << "DEBUG: Non-function declaration processed" << std::endl;
+            }
+
+            std::cerr << "DEBUG: Declaration processed successfully" << std::endl;
+            std::cerr << "DEBUG: Current module state - number of functions: " << module->size() << std::endl;
+        }
 
         // Pop the program scope
         popScope();
@@ -223,12 +365,43 @@ std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
 std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext* ctx) {
     std::cerr << "DEBUG: Visiting declaration" << std::endl;
     if (ctx->functionDecl()) {
-        visit(ctx->functionDecl());
+        std::cerr << "DEBUG: Found function declaration in declaration context" << std::endl;
+        std::cerr << "DEBUG: Function declaration text: " << ctx->functionDecl()->getText() << std::endl;
+
+        // Handle function declarations
+        if (auto namedFunc = dynamic_cast<PrystParser::NamedFunctionContext*>(ctx->functionDecl())) {
+            std::cerr << "DEBUG: Found named function in declaration" << std::endl;
+            std::cerr << "DEBUG: Function name: " << namedFunc->IDENTIFIER()->getText() << std::endl;
+            std::cerr << "DEBUG: Function has body: " << (namedFunc->declaration().size() > 0 ? "yes" : "no") << std::endl;
+
+            // Process function body
+            auto result = visitNamedFunction(namedFunc);
+
+            // Verify function body was generated
+            auto funcName = namedFunc->IDENTIFIER()->getText();
+            auto func = module->getFunction(funcName);
+            if (func) {
+                std::cerr << "DEBUG: Verifying function body for: " << funcName << std::endl;
+                for (auto& block : *func) {
+                    std::cerr << "DEBUG: Block '" << block.getName().str() << "' has terminator: "
+                             << (block.getTerminator() != nullptr) << std::endl;
+                }
+            }
+
+            std::cerr << "DEBUG: Named function processing complete" << std::endl;
+            return result;
+        }
+        auto result = visitFunctionDecl(ctx->functionDecl());
+        std::cerr << "DEBUG: Function declaration processing complete" << std::endl;
+        return result;
     } else if (ctx->variableDecl()) {
+        std::cerr << "DEBUG: Processing variable declaration" << std::endl;
         visit(ctx->variableDecl());
     } else if (ctx->classDeclaration()) {
+        std::cerr << "DEBUG: Processing class declaration" << std::endl;
         visit(ctx->classDeclaration());
     } else {
+        std::cerr << "DEBUG: Processing statement" << std::endl;
         visit(ctx->statement());
     }
     return nullptr;
@@ -237,11 +410,51 @@ std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext* ctx) {
 // Function Declaration: Dispatches to the appropriate function type
 std::any LLVMCodegen::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
     std::cerr << "DEBUG: Visiting function declaration" << std::endl;
+    std::cerr << "DEBUG: Function declaration text: " << ctx->getText() << std::endl;
+    std::cerr << "DEBUG: Function context type: " << typeid(*ctx).name() << std::endl;
+
+    // First try to handle as a named function
     if (auto namedFunc = dynamic_cast<PrystParser::NamedFunctionContext*>(ctx)) {
-        return visitNamedFunction(namedFunc);
-    } else if (auto lambdaFunc = dynamic_cast<PrystParser::LambdaFunctionContext*>(ctx)) {
+        std::cerr << "DEBUG: Found named function, processing body" << std::endl;
+        std::cerr << "DEBUG: Function name: " << namedFunc->IDENTIFIER()->getText() << std::endl;
+        std::cerr << "DEBUG: Number of declarations: " << namedFunc->declaration().size() << std::endl;
+
+        // Process function body
+        auto result = visitNamedFunction(namedFunc);
+
+        // Verify function body was generated
+        auto funcName = namedFunc->IDENTIFIER()->getText();
+        auto func = module->getFunction(funcName);
+        if (func) {
+            std::cerr << "DEBUG: Verifying function '" << funcName << "' body generation" << std::endl;
+            for (auto& block : *func) {
+                std::cerr << "DEBUG: Processing block '" << block.getName().str() << "'" << std::endl;
+                std::cerr << "DEBUG: Block has terminator: " << (block.getTerminator() != nullptr) << std::endl;
+
+                // Ensure basic block has terminator
+                if (!block.getTerminator()) {
+                    std::cerr << "DEBUG: Adding implicit return for unterminated block" << std::endl;
+                    builder->SetInsertPoint(&block);
+                    if (func->getReturnType()->isVoidTy()) {
+                        builder->CreateRetVoid();
+                    } else {
+                        builder->CreateRet(llvm::ConstantInt::get(func->getReturnType(), 0));
+                    }
+                    std::cerr << "DEBUG: Added terminator to block" << std::endl;
+                }
+            }
+        }
+
+        std::cerr << "DEBUG: Named function processing complete" << std::endl;
+        return result;
+    }
+    // Then try to handle as a lambda function
+    else if (auto lambdaFunc = dynamic_cast<PrystParser::LambdaFunctionContext*>(ctx)) {
+        std::cerr << "DEBUG: Found lambda function" << std::endl;
         return visitLambdaFunction(lambdaFunc);
     }
+
+    std::cerr << "DEBUG: Unrecognized function type, skipping" << std::endl;
     return nullptr;
 }
 
@@ -251,6 +464,7 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     std::cerr << "DEBUG: Visiting named function: " << funcName << std::endl;
 
     llvm::Type* returnType = getLLVMType(ctx->type()->getText());
+    std::cerr << "DEBUG: Return type obtained: " << returnType->getTypeID() << std::endl;
 
     std::vector<llvm::Type*> paramTypes;
     std::vector<std::string> paramNames;
@@ -262,6 +476,7 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     if (!returnTypeInfo) {
         throw std::runtime_error("Unknown return type: " + ctx->type()->getText());
     }
+    std::cerr << "DEBUG: Return type info verified in registry" << std::endl;
 
     if (ctx->paramList()) {
         for (auto param : ctx->paramList()->param()) {
@@ -270,6 +485,7 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
             if (!paramTypeInfo) {
                 throw std::runtime_error("Unknown parameter type: " + param->type()->getText());
             }
+            std::cerr << "DEBUG: Parameter type verified: " << param->type()->getText() << std::endl;
             paramTypes.push_back(paramType);
             paramNames.push_back(param->IDENTIFIER()->getText());
             paramTypeInfos.push_back(paramTypeInfo);
@@ -277,55 +493,194 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     }
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(returnType, paramTypes, false);
-    llvm::Function* function = llvm::Function::Create(
+    std::cerr << "DEBUG: Function type created with " << paramTypes.size() << " parameters" << std::endl;
+
+    // Check if function already exists
+    llvm::Function* function = module->getFunction(funcName);
+    if (function) {
+        std::cerr << "DEBUG: Found existing function: " << funcName << std::endl;
+        functions[funcName] = function; // Store the existing function
+        return nullptr;
+    }
+
+    function = llvm::Function::Create(
         funcType, llvm::Function::ExternalLinkage, funcName, module.get());
+    std::cerr << "DEBUG: Created new function: " << funcName << std::endl;
+    std::cerr << "DEBUG: Function created with type ID: " << function->getType()->getTypeID() << std::endl;
 
     // Create LLVM-specific function type info
     auto functionTypeInfo = std::make_shared<LLVMFunctionTypeInfo>(
         funcName, returnTypeInfo, paramTypeInfos, funcType);
     typeMetadata->addFunctionTypeInfo(function, functionTypeInfo);
+    std::cerr << "DEBUG: Function type info added to metadata" << std::endl;
 
-    // Create a new basic block
-    llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", function);
-    builder->SetInsertPoint(bb);
-
-    // Save the current function
+    // Save the current function and update currentFunction before creating entry block
     llvm::Function* oldFunction = currentFunction;
     currentFunction = function;
+    if (!currentFunction) {
+        throw std::runtime_error("Failed to set current function for: " + funcName);
+    }
+    std::cerr << "DEBUG: Set current function to: " << funcName << std::endl;
 
+    std::cerr << "DEBUG: Creating entry block for function: " << funcName << std::endl;
+    // Create a new basic block
+    llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", function);
+    if (!bb) {
+        throw std::runtime_error("Failed to create entry block for function: " + funcName);
+    }
+    builder->SetInsertPoint(bb);
+    std::cerr << "DEBUG: Entry block created and builder insert point set" << std::endl;
+    std::cerr << "DEBUG: Basic block has terminator: " << (bb->getTerminator() != nullptr) << std::endl;
+
+    std::cerr << "DEBUG: Creating new scope for function: " << funcName << std::endl;
     // Create a new scope for function parameters
     pushScope();
 
     // Create allocas for parameters
     if (ctx->paramList()) {
+        std::cerr << "DEBUG: Processing function parameters" << std::endl;
         size_t idx = 0;
         for (auto& arg : function->args()) {
             std::string paramName = paramNames[idx++];
+            std::cerr << "DEBUG: Creating alloca for parameter: " << paramName << std::endl;
+            std::cerr << "DEBUG: Parameter type ID: " << arg.getType()->getTypeID() << std::endl;
             llvm::AllocaInst* alloca = createEntryBlockAlloca(function, paramName, arg.getType());
             builder->CreateStore(&arg, alloca);
-            scopeStack.back()[paramName] = alloca;
+            namedValues[paramName] = alloca;
+            std::cerr << "DEBUG: Parameter alloca created and stored" << std::endl;
         }
     }
 
-    // Visit function body
-    for (auto decl : ctx->declaration()) {
-        visit(decl);
+    std::cerr << "DEBUG: Starting function body processing for: " << funcName << std::endl;
+    std::cerr << "DEBUG: Function body text: " << ctx->getText() << std::endl;
+    bool hasExplicitReturn = false;
+
+    // Verify print functions are initialized
+    std::cerr << "DEBUG: Verifying print functions initialization" << std::endl;
+    for (const auto& [name, func] : functions) {
+        if (name.find("print.") == 0) {
+            std::cerr << "DEBUG: Found initialized print function: " << name << " at " << func << std::endl;
+        }
     }
 
-    // Add implicit return if needed
-    if (!builder->GetInsertBlock()->getTerminator()) {
-        if (returnType->isVoidTy()) {
+    // Process all declarations in the function body
+    auto functionBody = ctx->LBRACE()->getSymbol()->getTokenIndex();
+    auto functionEnd = ctx->RBRACE()->getSymbol()->getTokenIndex();
+    std::cerr << "DEBUG: Function body spans tokens " << functionBody << " to " << functionEnd << std::endl;
+
+    for (auto decl : ctx->declaration()) {
+        if (!decl) {
+            std::cerr << "DEBUG: Error - Null declaration in function body" << std::endl;
+            continue;
+        }
+
+        auto declStart = decl->getStart()->getTokenIndex();
+        auto declEnd = decl->getStop()->getTokenIndex();
+        if (declStart < functionBody || declEnd > functionEnd) {
+            std::cerr << "DEBUG: Warning - Declaration outside function body bounds, skipping" << std::endl;
+            continue;
+        }
+
+        std::cerr << "DEBUG: Processing function body declaration: " << decl->getText() << std::endl;
+        std::cerr << "DEBUG: Declaration type: " << typeid(*decl).name() << std::endl;
+        std::cerr << "DEBUG: Current basic block has terminator: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
+
+        if (auto varDecl = dynamic_cast<PrystParser::VariableDeclContext*>(decl)) {
+            std::cerr << "DEBUG: Found variable declaration in function body: " << varDecl->IDENTIFIER()->getText() << std::endl;
+            std::cerr << "DEBUG: Variable type: " << varDecl->type()->getText() << std::endl;
+            std::cerr << "DEBUG: Variable has initializer: " << (varDecl->expression() != nullptr) << std::endl;
+
+            // Process variable declaration
+            visitVariableDecl(varDecl);
+            std::cerr << "DEBUG: Variable declaration processed successfully" << std::endl;
+            std::cerr << "DEBUG: Basic block state after var decl - has terminator: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
+            std::cerr << "DEBUG: Variable is in named values map: " << (namedValues.find(varDecl->IDENTIFIER()->getText()) != namedValues.end()) << std::endl;
+            if (namedValues.find(varDecl->IDENTIFIER()->getText()) != namedValues.end()) {
+                std::cerr << "DEBUG: Variable alloca: " << namedValues[varDecl->IDENTIFIER()->getText()] << std::endl;
+            }
+        }
+        else if (auto stmt = dynamic_cast<PrystParser::StatementContext*>(decl)) {
+            std::cerr << "DEBUG: Found statement in function body: " << stmt->getText() << std::endl;
+            std::cerr << "DEBUG: Statement type: " << typeid(*stmt).name() << std::endl;
+            std::cerr << "DEBUG: Current basic block before statement: " << builder->GetInsertBlock()->getName().str() << std::endl;
+
+            if (auto returnStmt = dynamic_cast<PrystParser::ReturnStatementContext*>(stmt)) {
+                std::cerr << "DEBUG: Processing return statement: " << returnStmt->getText() << std::endl;
+                visit(returnStmt);
+                hasExplicitReturn = true;
+                std::cerr << "DEBUG: Return statement processed successfully" << std::endl;
+                std::cerr << "DEBUG: Basic block has terminator after return: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
+            }
+            else if (auto exprStmt = dynamic_cast<PrystParser::ExprStatementContext*>(stmt)) {
+                std::cerr << "DEBUG: Processing expression statement: " << exprStmt->getText() << std::endl;
+                std::cerr << "DEBUG: Expression type: " << typeid(*exprStmt->expression()).name() << std::endl;
+                std::cerr << "DEBUG: Current basic block before expression: " << builder->GetInsertBlock()->getName().str() << std::endl;
+
+                // Verify print function availability before processing expression
+                std::cerr << "DEBUG: Verifying print functions before expression" << std::endl;
+                for (const auto& [name, func] : functions) {
+                    if (name.find("print.") == 0) {
+                        std::cerr << "DEBUG: Found print function: " << name << " at " << func << std::endl;
+                    }
+                }
+
+                std::cerr << "DEBUG: About to visit expression" << std::endl;
+                visit(exprStmt->expression());
+                std::cerr << "DEBUG: Expression visited" << std::endl;
+
+                if (lastValue) {
+                    std::cerr << "DEBUG: Expression evaluated successfully, type ID: " << lastValue->getType()->getTypeID() << std::endl;
+                    auto typeInfo = typeMetadata->getTypeInfo(lastValue);
+                    if (typeInfo) {
+                        std::cerr << "DEBUG: Expression type info: " << typeInfo->getName() << std::endl;
+                    }
+                    std::cerr << "DEBUG: Last value is valid" << std::endl;
+                } else {
+                    std::cerr << "DEBUG: Warning - expression produced null value" << std::endl;
+                }
+                std::cerr << "DEBUG: Expression statement processed successfully" << std::endl;
+                std::cerr << "DEBUG: Basic block state after expr - has terminator: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
+            }
+            else {
+                std::cerr << "DEBUG: Processing other statement type: " << stmt->getText() << std::endl;
+                visit(stmt);
+                std::cerr << "DEBUG: Statement processed successfully" << std::endl;
+                std::cerr << "DEBUG: Basic block state after stmt - has terminator: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
+            }
+        }
+
+        std::cerr << "DEBUG: Function body declaration processing complete" << std::endl;
+        std::cerr << "DEBUG: Current basic block state after declaration: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
+    }
+
+    // Add implicit return if no explicit return was found and block isn't terminated
+    if (!hasExplicitReturn && !builder->GetInsertBlock()->getTerminator()) {
+        std::cerr << "DEBUG: Adding implicit return for function: " << funcName << std::endl;
+        std::cerr << "DEBUG: Return type is void: " << returnType->isVoidTy() << std::endl;
+        std::cerr << "DEBUG: Current basic block: " << builder->GetInsertBlock()->getName().str() << std::endl;
+
+        // Special handling for main function
+        if (funcName == "main") {
+            builder->CreateRet(llvm::ConstantInt::get(returnType, 0));
+            std::cerr << "DEBUG: Added return 0 to main function" << std::endl;
+        } else if (returnType->isVoidTy()) {
             builder->CreateRetVoid();
         } else {
-            builder->CreateRet(llvm::Constant::getNullValue(returnType));
+            builder->CreateRet(llvm::ConstantInt::get(returnType, 0));
         }
+        std::cerr << "DEBUG: Implicit return added" << std::endl;
+        std::cerr << "DEBUG: Basic block now has terminator: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
     }
 
     // Verify the function
+    std::cerr << "DEBUG: Verifying function: " << funcName << std::endl;
+    std::cerr << "DEBUG: Function has " << function->size() << " basic blocks" << std::endl;
+    for (auto& block : *function) {
+        std::cerr << "DEBUG: Block '" << block.getName().str() << "' has terminator: " << (block.getTerminator() != nullptr) << std::endl;
+    }
     if (llvm::verifyFunction(*function, &llvm::errs())) {
         throw std::runtime_error("Function verification failed for function: " + funcName);
     }
-
     popScope();
     currentFunction = oldFunction;
     functions[funcName] = function;
@@ -338,40 +693,91 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
 std::any LLVMCodegen::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
     std::string varName = ctx->IDENTIFIER()->getText();
     std::string typeName = ctx->type()->getText();
-    std::cerr << "DEBUG: Creating variable " << varName << " of type " << typeName << std::endl;
+    std::cerr << "DEBUG: Creating variable '" << varName << "' of type '" << typeName << "'" << std::endl;
 
     // Get type information from registry
+    std::cerr << "DEBUG: Looking up type in TypeRegistry: " << typeName << std::endl;
     auto typeInfo = typeRegistry.lookupType(typeName);
     if (!typeInfo) {
         throw std::runtime_error("Unknown type: " + typeName);
     }
+    std::cerr << "DEBUG: Found type info - Kind: " << static_cast<int>(typeInfo->getKind())
+              << ", Name: " << typeInfo->getName() << std::endl;
 
     // Get LLVM type through LLVMTypeRegistry
+    std::cerr << "DEBUG: Getting LLVM type from LLVMTypeRegistry" << std::endl;
     auto& llvmTypeRegistry = LLVMTypeRegistry::getInstance();
     llvm::Type* varType = llvmTypeRegistry.getLLVMType(typeInfo, *context);
     if (!varType) {
         throw std::runtime_error("Failed to get LLVM type for: " + typeName);
     }
 
-    std::cerr << "DEBUG: Creating alloca for variable" << std::endl;
+    std::string typeStr;
+    llvm::raw_string_ostream rso(typeStr);
+    varType->print(rso);
+    std::cerr << "DEBUG: LLVM type: " << typeStr << std::endl;
+
+    // Verify current function and basic block state
+    if (!currentFunction) {
+        throw std::runtime_error("No current function while declaring variable: " + varName);
+    }
+    std::cerr << "DEBUG: Current function: " << currentFunction->getName().str() << std::endl;
+
+    auto* currentBlock = builder->GetInsertBlock();
+    if (!currentBlock) {
+        throw std::runtime_error("No current basic block while declaring variable: " + varName);
+    }
+    std::cerr << "DEBUG: Current basic block: " << currentBlock->getName().str() << std::endl;
+
+    // Create alloca instruction
+    std::cerr << "DEBUG: Creating alloca instruction for variable" << std::endl;
     llvm::AllocaInst* alloca = createEntryBlockAlloca(currentFunction, varName, varType);
+    if (!alloca) {
+        throw std::runtime_error("Failed to create alloca for variable: " + varName);
+    }
+
+    typeStr.clear();
+    alloca->print(rso);
+    std::cerr << "DEBUG: Created alloca instruction: " << typeStr << std::endl;
 
     // Register variable type information
+    std::cerr << "DEBUG: Registering type info in TypeMetadata" << std::endl;
     typeMetadata->addTypeInfo(alloca, typeInfo);
 
+    // Handle initialization
     if (ctx->expression()) {
         std::cerr << "DEBUG: Initializing variable with expression" << std::endl;
         visit(ctx->expression());
         if (!lastValue) {
             throw std::runtime_error("Expression evaluation failed for variable: " + varName);
         }
-        builder->CreateStore(lastValue, alloca);
+
+        typeStr.clear();
+        lastValue->print(rso);
+        std::cerr << "DEBUG: Initializer value: " << typeStr << std::endl;
+
+        auto* storeInst = builder->CreateStore(lastValue, alloca);
+        typeStr.clear();
+        storeInst->print(rso);
+        std::cerr << "DEBUG: Created store instruction: " << typeStr << std::endl;
     } else {
         std::cerr << "DEBUG: Initializing variable with null value" << std::endl;
-        builder->CreateStore(llvm::Constant::getNullValue(varType), alloca);
+        auto* nullValue = llvm::Constant::getNullValue(varType);
+        auto* storeInst = builder->CreateStore(nullValue, alloca);
+        typeStr.clear();
+        storeInst->print(rso);
+        std::cerr << "DEBUG: Created store instruction: " << typeStr << std::endl;
     }
 
+    // Add to named values map
     namedValues[varName] = alloca;
+    std::cerr << "DEBUG: Added variable to named values map" << std::endl;
+
+    // Verify basic block termination state
+    currentBlock = builder->GetInsertBlock();
+    std::cerr << "DEBUG: Basic block termination state after variable declaration - "
+              << "has terminator: " << (currentBlock->getTerminator() != nullptr) << std::endl;
+
     std::cerr << "DEBUG: Variable declaration complete: " << varName << std::endl;
     return nullptr;
 }
@@ -510,7 +916,10 @@ std::any LLVMCodegen::visitType(PrystParser::TypeContext* ctx) {
 
 // Expression Statement: Evaluates an expression
 std::any LLVMCodegen::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
+    std::cerr << "DEBUG: Starting expression statement visit" << std::endl;
+    std::cerr << "DEBUG: Expression text: " << ctx->expression()->getText() << std::endl;
     visit(ctx->expression());
+    std::cerr << "DEBUG: Expression statement visit complete" << std::endl;
     return nullptr;
 }
 
@@ -992,23 +1401,40 @@ std::any LLVMCodegen::visitUnary(PrystParser::UnaryContext* ctx) {
 
 // Postfix: Handles postfix operations
 std::any LLVMCodegen::visitPostfix(PrystParser::PostfixContext* ctx) {
+    std::cerr << "DEBUG: Starting visitPostfix" << std::endl;
     visit(ctx->primary());
     llvm::Value* operand = lastValue;
+    std::cerr << "DEBUG: Primary expression evaluated" << std::endl;
 
     // Handle suffixes (call or member access)
     for (auto suffix : ctx->suffix()) {
         if (auto callSuffix = suffix->callSuffix()) {
+            std::cerr << "DEBUG: Processing function call" << std::endl;
             // Handle function call
             std::vector<llvm::Value*> args;
             if (callSuffix->arguments()) {
+                std::cerr << "DEBUG: Processing function arguments" << std::endl;
                 for (auto expr : callSuffix->arguments()->expression()) {
                     visit(expr);
+                    if (!lastValue) {
+                        throw std::runtime_error("Null argument in function call");
+                    }
+                    std::cerr << "DEBUG: Argument type ID: " << lastValue->getType()->getTypeID() << std::endl;
+                    auto argTypeInfo = typeMetadata->getTypeInfo(lastValue);
+                    if (argTypeInfo) {
+                        std::cerr << "DEBUG: Argument type: " << argTypeInfo->getName() << std::endl;
+                    }
                     args.push_back(lastValue);
                 }
             }
             // Create function call
             if (auto* func = llvm::dyn_cast<llvm::Function>(operand)) {
+                std::cerr << "DEBUG: Creating function call for: " << func->getName().str() << std::endl;
+                std::cerr << "DEBUG: Function type: " << func->getFunctionType()->getReturnType()->getTypeID() << std::endl;
+                std::cerr << "DEBUG: Number of arguments: " << args.size() << std::endl;
+                std::cerr << "DEBUG: Current basic block: " << builder->GetInsertBlock()->getName().str() << std::endl;
                 operand = builder->CreateCall(func, args, "calltmp");
+                std::cerr << "DEBUG: Function call created successfully" << std::endl;
             } else {
                 throw std::runtime_error("Called value is not a function");
             }
@@ -1061,6 +1487,7 @@ std::any LLVMCodegen::visitPostfix(PrystParser::PostfixContext* ctx) {
         lastValue = operand;
     }
 
+    std::cerr << "DEBUG: visitPostfix complete" << std::endl;
     return nullptr;
 }
 
@@ -1078,71 +1505,76 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
     if (primary->IDENTIFIER() && primary->LPAREN()) {
         std::vector<llvm::Value*> args;
         if (primary->arguments()) {
+            std::cerr << "DEBUG: Processing function arguments" << std::endl;
             for (auto expr : primary->arguments()->expression()) {
                 visit(expr);
+                if (!lastValue) {
+                    throw std::runtime_error("Null argument in function call");
+                }
                 args.push_back(lastValue);
+                std::cerr << "DEBUG: Added argument to function call" << std::endl;
             }
         }
 
-        // Handle built-in functions
-        if (llvm::Function* functionCallee = llvm::dyn_cast<llvm::Function>(callee)) {
-            std::string functionName = functionCallee->getName().str();
+        std::string functionName = primary->IDENTIFIER()->getText();
+        std::cerr << "DEBUG: Function name: " << functionName << std::endl;
 
-            if (functionName == "print") {
-                std::cerr << "DEBUG: Handling print function call" << std::endl;
-                // Get the type of the first argument
-                if (!args.empty()) {
-                    llvm::Value* arg = args[0];
-                    if (!arg) {
-                        throw std::runtime_error("Null argument passed to print function");
-                    }
-
-                    std::cerr << "DEBUG: Getting type info for print argument" << std::endl;
-                    // Get type information from registry
-                    auto typeInfo = typeMetadata->getTypeInfo(arg);
-                    if (!typeInfo) {
-                        throw std::runtime_error("Failed to get type info for print argument");
-                    }
-
-                    std::cerr << "DEBUG: Determining print function type" << std::endl;
-                    // Determine print function based on type info
-                    std::string printFuncName;
-                    if (typeInfo == typeRegistry.getIntType()) {
-                        printFuncName = "print.int";
-                    } else if (typeInfo == typeRegistry.getFloatType()) {
-                        printFuncName = "print.float";
-                    } else if (typeInfo == typeRegistry.getBoolType()) {
-                        printFuncName = "print.bool";
-                    } else if (typeInfo == typeRegistry.getStrType()) {
-                        printFuncName = "print.str";
-                    }
-
-                    if (printFuncName.empty()) {
-                        throw std::runtime_error("Unsupported type for print function");
-                    }
-
-                    std::cerr << "DEBUG: Looking up print function: " << printFuncName << std::endl;
-                    // Get or declare the print function
-                    auto it = functions.find(printFuncName);
-                    if (it != functions.end()) {
-                        printFunc = it->second;
-                    }
-                    if (!printFunc) {
-                        throw std::runtime_error("Print function not found: " + printFuncName);
-                    }
-
-                    std::cerr << "DEBUG: Creating function call" << std::endl;
-                    std::vector<llvm::Value*> printArgs = {arg};
-                    lastValue = builder->CreateCall(printFunc, printArgs, "printtmp");
-                    std::cerr << "DEBUG: Print function call created successfully" << std::endl;
-                } else {
-                    throw std::runtime_error("Print function requires an argument");
+        if (functionName == "print") {
+            std::cerr << "DEBUG: Handling print function call" << std::endl;
+            if (!args.empty()) {
+                llvm::Value* arg = args[0];
+                if (!arg) {
+                    throw std::runtime_error("Null argument passed to print function");
                 }
+
+                std::cerr << "DEBUG: Getting type info for print argument" << std::endl;
+                auto typeInfo = typeMetadata->getTypeInfo(arg);
+                if (!typeInfo) {
+                    throw std::runtime_error("Failed to get type info for print argument");
+                }
+
+                std::cerr << "DEBUG: Type info kind: " << static_cast<int>(typeInfo->getKind()) << std::endl;
+                std::cerr << "DEBUG: Type info name: " << typeInfo->getName() << std::endl;
+
+                // Directly determine print function name based on type
+                std::string printFuncName;
+                if (typeInfo == typeRegistry.getIntType()) {
+                    printFuncName = "print.int";
+                    std::cerr << "DEBUG: Using print.int function" << std::endl;
+                } else if (typeInfo == typeRegistry.getFloatType()) {
+                    printFuncName = "print.float";
+                    std::cerr << "DEBUG: Using print.float function" << std::endl;
+                } else if (typeInfo == typeRegistry.getBoolType()) {
+                    printFuncName = "print.bool";
+                    std::cerr << "DEBUG: Using print.bool function" << std::endl;
+                } else if (typeInfo == typeRegistry.getStrType()) {
+                    printFuncName = "print.str";
+                    std::cerr << "DEBUG: Using print.str function" << std::endl;
+                } else {
+                    throw std::runtime_error("Unsupported type for print function: " + typeInfo->getName());
+                }
+
+                std::cerr << "DEBUG: Looking up print function: " << printFuncName << std::endl;
+                auto it = functions.find(printFuncName);
+                if (it == functions.end()) {
+                    throw std::runtime_error("Print function not found: " + printFuncName);
+                }
+
+                std::cerr << "DEBUG: Creating print function call" << std::endl;
+                lastValue = builder->CreateCall(it->second, {arg}, "printtmp");
+                std::cerr << "DEBUG: Print function call created successfully" << std::endl;
             } else {
-                // Direct function call
-                lastValue = builder->CreateCall(functionCallee, args, "calltmp");
+                throw std::runtime_error("Print function requires an argument");
             }
-            callee = lastValue;
+        } else {
+            // Handle regular function calls
+            auto it = functions.find(functionName);
+            if (it == functions.end()) {
+                throw std::runtime_error("Function not found: " + functionName);
+            }
+            std::cerr << "DEBUG: Creating function call for: " << functionName << std::endl;
+            lastValue = builder->CreateCall(it->second, args, "calltmp");
+            std::cerr << "DEBUG: Function call created successfully" << std::endl;
         }
     }
 
@@ -1179,56 +1611,78 @@ std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
 }
 // Primary: Handles primary expressions
 std::any LLVMCodegen::visitPrimary(PrystParser::PrimaryContext* ctx) {
+    std::cerr << "DEBUG: Starting visitPrimary" << std::endl;
     if (ctx->TRUE()) {
         lastValue = llvm::ConstantInt::getTrue(*context);
+        std::cerr << "DEBUG: Created true constant" << std::endl;
     } else if (ctx->FALSE()) {
         lastValue = llvm::ConstantInt::getFalse(*context);
+        std::cerr << "DEBUG: Created false constant" << std::endl;
     } else if (ctx->NULL_()) {
         auto nullType = typeRegistry.getPointerType();
+        std::cerr << "DEBUG: Creating null value for pointer type" << std::endl;
         lastValue = llvm::Constant::getNullValue(LLVMTypeRegistry::getInstance().getLLVMType(nullType, *context));
     } else if (ctx->NUMBER()) {
         std::string numStr = ctx->NUMBER()->getText();
+        std::cerr << "DEBUG: Processing number: " << numStr << std::endl;
         if (numStr.find('.') != std::string::npos) {
             lastValue = llvm::ConstantFP::get(*context, llvm::APFloat(std::stod(numStr)));
+            std::cerr << "DEBUG: Created float constant" << std::endl;
         } else {
             lastValue = llvm::ConstantInt::get(*context, llvm::APInt(32, std::stoll(numStr), true));
+            std::cerr << "DEBUG: Created integer constant" << std::endl;
         }
     } else if (ctx->STRING()) {
         std::string str = ctx->STRING()->getText();
         str = str.substr(1, str.length() - 2); // Remove quotes
+        std::cerr << "DEBUG: Creating global string: " << str << std::endl;
         lastValue = builder->CreateGlobalString(str, "str");
     } else if (ctx->IDENTIFIER()) {
         std::string name = ctx->IDENTIFIER()->getText();
+        std::cerr << "DEBUG: Processing identifier: " << name << std::endl;
 
         // Check if it's a variable
         auto varIt = namedValues.find(name);
         if (varIt != namedValues.end()) {
+            std::cerr << "DEBUG: Found variable in named values" << std::endl;
             llvm::AllocaInst* alloca = varIt->second;
             if (!alloca) {
                 throw std::runtime_error("Variable " + name + " has null allocation");
             }
+            std::cerr << "DEBUG: Getting type info for variable" << std::endl;
             auto typeInfo = typeMetadata->getTypeInfo(alloca);
             if (!typeInfo) {
                 throw std::runtime_error("Variable " + name + " has null type info");
             }
+            std::cerr << "DEBUG: Variable type: " << typeInfo->getName() << std::endl;
             auto llvmType = LLVMTypeRegistry::getInstance().getLLVMType(typeInfo, *context);
+            std::cerr << "DEBUG: Creating load instruction for variable" << std::endl;
             lastValue = builder->CreateLoad(llvmType, alloca, name.c_str());
+            std::cerr << "DEBUG: Variable loaded successfully" << std::endl;
         }
         // Check if it's a function
         else if (functions.find(name) != functions.end()) {
+            std::cerr << "DEBUG: Found function: " << name << std::endl;
             lastValue = functions[name];
         } else {
             throw std::runtime_error("Unknown identifier: " + name);
         }
     } else if (ctx->LPAREN()) {
+        std::cerr << "DEBUG: Processing parenthesized expression" << std::endl;
         visit(ctx->expression());
     } else if (ctx->SUPER()) {
         // Handle 'super' keyword (not implemented)
         throw std::runtime_error("'super' keyword not implemented");
     } else if (ctx->newExpression()) {
+        std::cerr << "DEBUG: Processing new expression" << std::endl;
         visit(ctx->newExpression());
     }
 
+    if (lastValue) {
+        std::cerr << "DEBUG: Primary expression produced value of type: " << lastValue->getType()->getTypeID() << std::endl;
+    } else {
+        std::cerr << "DEBUG: Warning - Primary expression produced null value" << std::endl;
+    }
     return nullptr;
 }
 
@@ -1429,9 +1883,8 @@ llvm::Function* LLVMCodegen::declarePrintf() {
     }
 
     // Create printf function type using our type system
-    auto strType = typeRegistry.getStrType();
-    auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, *context);
-    std::vector<llvm::Type*> paramTypes = {llvmStrType};  // Format string
+    std::vector<llvm::Type*> paramTypes;
+    paramTypes.push_back(llvm::Type::getInt8Ty(*context)->getPointerTo());  // Format string (i8*)
     llvm::FunctionType* printfType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(*context),  // Return type: int
         paramTypes,
@@ -1461,13 +1914,12 @@ llvm::Function* LLVMCodegen::declareMalloc() {
     // Create malloc function type
     // malloc takes a size_t (i64) parameter and returns an opaque pointer
     std::vector<llvm::Type*> paramTypes = {llvm::Type::getInt64Ty(*context)};  // size_t parameter
-    auto pointerType = typeRegistry.getPointerType();
-    auto llvmPointerType = LLVMTypeRegistry::getInstance().getLLVMType(pointerType, *context);
 
+    // Use opaque pointer type directly since LLVM 20.0.0 treats all pointers as opaque
     llvm::FunctionType* mallocType = llvm::FunctionType::get(
-        llvmPointerType,  // Return type: opaque pointer
-        paramTypes,       // Parameter types: size_t
-        false            // Not varargs
+        llvm::Type::getInt8Ty(*context),  // Return type: opaque pointer (i8)
+        paramTypes,                        // Parameter types: size_t
+        false                             // Not varargs
     );
 
     // Create the function
@@ -1667,4 +2119,32 @@ llvm::Function* LLVMCodegen::declareToString() {
     );
 
     return func;
+}
+
+// Expression Statement: Handles expression statements in function bodies
+std::any LLVMCodegen::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
+    std::cerr << "DEBUG: Starting visitExprStatement" << std::endl;
+    std::cerr << "DEBUG: Expression statement text: " << ctx->getText() << std::endl;
+
+    if (!ctx->expression()) {
+        std::cerr << "DEBUG: Warning - Empty expression statement" << std::endl;
+        return nullptr;
+    }
+
+    std::cerr << "DEBUG: About to visit expression" << std::endl;
+    visit(ctx->expression());
+    std::cerr << "DEBUG: Expression visited" << std::endl;
+
+    if (lastValue) {
+        std::cerr << "DEBUG: Expression evaluated successfully" << std::endl;
+        auto typeInfo = typeMetadata->getTypeInfo(lastValue);
+        if (typeInfo) {
+            std::cerr << "DEBUG: Expression type: " << typeInfo->getName() << std::endl;
+        }
+    } else {
+        std::cerr << "DEBUG: Warning - Expression produced null value" << std::endl;
+    }
+
+    std::cerr << "DEBUG: Expression statement processed successfully" << std::endl;
+    return nullptr;
 }

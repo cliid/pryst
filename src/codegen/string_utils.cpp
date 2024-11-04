@@ -71,24 +71,42 @@ llvm::Function* LLVMCodegen::declareStrcat() {
 
 llvm::Function* LLVMCodegen::declareMemcpy() {
     // memcpy(void* dest, const void* src, size_t n) -> void*
-    auto strType = typeRegistry.getStrType();
-    auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, *context);
     std::vector<llvm::Type*> memcpyParams = {
-        llvmStrType,                       // dest
-        llvmStrType,                       // src
-        llvm::Type::getInt64Ty(*context)  // size
+        llvm::Type::getInt8Ty(*context),      // dest (opaque pointer)
+        llvm::Type::getInt8Ty(*context),      // src (opaque pointer)
+        llvm::Type::getInt64Ty(*context),     // size
+        llvm::Type::getInt1Ty(*context)       // isVolatile
     };
     llvm::FunctionType* memcpyType = llvm::FunctionType::get(
-        llvmStrType,  // Return type: string
+        llvm::Type::getVoidTy(*context),  // Return type: void
         memcpyParams,
         false
     );
+
+    // Create the function with explicit attributes
     llvm::Function* memcpyFunc = llvm::Function::Create(
         memcpyType,
         llvm::Function::ExternalLinkage,
-        "llvm.memcpy.p0i8.p0i8.i64",
+        "llvm.memcpy.p0.p0.i64",
         module.get()
     );
+
+    // Only set essential function attributes
+    memcpyFunc->addFnAttr(llvm::Attribute::WillReturn);
+    memcpyFunc->addFnAttr(llvm::Attribute::NoUnwind);
+
+    // Clear all parameter attributes
+    for (auto& arg : memcpyFunc->args()) {
+        arg.removeAttr(llvm::Attribute::NoAlias);
+        arg.removeAttr(llvm::Attribute::NoCapture);
+        arg.removeAttr(llvm::Attribute::ReadOnly);
+        arg.removeAttr(llvm::Attribute::WriteOnly);
+    }
+
+    // Set parameter attributes explicitly to none
+    llvm::AttributeList emptyAttrs;
+    memcpyFunc->setAttributes(emptyAttrs);
+
     stringFunctions["memcpy"] = memcpyFunc;
     return memcpyFunc;
 }
