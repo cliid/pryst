@@ -222,13 +222,23 @@ std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramCo
         std::cerr << "DEBUG: Visiting program" << std::endl;
         visitProgram(programCtx);
 
+        // Dump IR before verification
+        std::cerr << "\n=== Pre-verification LLVM IR ===\n" << std::endl;
+        std::string preVerifyIR;
+        llvm::raw_string_ostream preVerifyStream(preVerifyIR);
+        module->print(preVerifyStream, nullptr);
+        std::cerr << preVerifyStream.str() << "\n=== End Pre-verification IR ===\n" << std::endl;
+
         std::cerr << "DEBUG: Verifying module" << std::endl;
         if (llvm::verifyModule(*module, &llvm::errs())) {
             throw std::runtime_error("Generated LLVM IR is invalid");
         }
 
-        std::cerr << "DEBUG: Dumping generated LLVM IR:" << std::endl;
-        module->print(llvm::errs(), nullptr);
+        std::cerr << "\n=== Final Generated LLVM IR ===\n" << std::endl;
+        std::string ir;
+        llvm::raw_string_ostream irStream(ir);
+        module->print(irStream, nullptr);
+        std::cerr << irStream.str() << "\n=== End LLVM IR ===\n" << std::endl;
 
         std::cerr << "DEBUG: Module generation complete" << std::endl;
         return std::move(module);
@@ -266,25 +276,32 @@ std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
             if (auto varDecl = dynamic_cast<PrystParser::VariableDeclContext*>(decl)) {
                 std::cerr << "DEBUG: Processing variable declaration" << std::endl;
                 visitVariableDecl(varDecl);  // Call visitVariableDecl directly
+                std::cerr << "DEBUG: Variable declaration processed" << std::endl;
             } else if (auto stmt = dynamic_cast<PrystParser::StatementContext*>(decl)) {
                 std::cerr << "DEBUG: Processing statement" << std::endl;
                 if (auto exprStmt = dynamic_cast<PrystParser::ExprStatementContext*>(stmt)) {
                     std::cerr << "DEBUG: Processing expression statement" << std::endl;
                     visitExprStatement(exprStmt);
+                    std::cerr << "DEBUG: Expression statement processed" << std::endl;
                 } else {
+                    std::cerr << "DEBUG: Processing other statement type" << std::endl;
                     visit(stmt);  // Handle other statement types
+                    std::cerr << "DEBUG: Statement processed" << std::endl;
                 }
             } else if (auto funcDecl = dynamic_cast<PrystParser::FunctionDeclContext*>(decl)) {
                 std::cerr << "DEBUG: Processing function declaration" << std::endl;
                 visit(funcDecl);
+                std::cerr << "DEBUG: Function declaration processed" << std::endl;
             }
 
             std::cerr << "DEBUG: Declaration processed successfully" << std::endl;
         }
 
-        // Create return 0
-        builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
-        std::cerr << "DEBUG: Created return statement" << std::endl;
+        // Create return 0 only if we're in the main function
+        if (currentFunction && currentFunction->getName() == "main") {
+            builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
+            std::cerr << "DEBUG: Created return statement for main" << std::endl;
+        }
 
         // Pop the program scope
         popScope();
