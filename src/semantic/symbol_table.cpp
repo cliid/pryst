@@ -52,6 +52,19 @@ void SymbolTable::popScope() {
     for (auto it = scopes.back().functions.begin(); it != scopes.back().functions.end();) {
         std::cout << "DEBUG: Removing function '" << it->first << "' with "
                   << it->second.size() << " overloads from scope " << getCurrentScopeLevel() << std::endl;
+
+        // Clear each function overload's contents before erasing
+        for (auto& funcInfo : it->second) {
+            std::cout << "DEBUG: Cleaning up function overload" << std::endl;
+            if (funcInfo) {
+                funcInfo->paramTypes.clear();
+                funcInfo->deducedReturnTypes.clear();
+                funcInfo->returnType.clear();
+            }
+        }
+
+        // Clear the vector of function overloads
+        it->second.clear();
         it = scopes.back().functions.erase(it);
     }
 

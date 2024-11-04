@@ -70,6 +70,9 @@ if(DEFINED ENV{LLVM_DIR})
         "$ENV{LLVM_DIR}/lib/cmake/llvm"
         "$ENV{LLVM_DIR}/lib/cmake"
         "$ENV{LLVM_DIR}/share/llvm/cmake"
+        "/usr/lib/llvm-20/lib/cmake/llvm"
+        "/usr/local/llvm-20/lib/cmake/llvm"
+        "/opt/llvm-20/lib/cmake/llvm"
     )
 else()
     if(APPLE)
