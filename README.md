@@ -26,7 +26,7 @@ a compiler for pryst, a statically-typed, object-oriented language inspired by T
 
 ## build instructions
 
-prerequisites: `cmake`, `antlr4`, `llvm`
+prerequisites: `cmake`, `antlr4`, `llvm`, `antlr4-cpp-runtime`
 
 ```bash
 mkdir build && cd build
