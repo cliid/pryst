@@ -99,28 +99,87 @@ void LLVMCodegen::declarePrintFunctions() {
     auto intType = llvm::Type::getInt32Ty(*context);
     std::vector<llvm::Type*> intPrintArgs = {intType};
     auto intPrintType = llvm::FunctionType::get(llvm::Type::getVoidTy(*context), intPrintArgs, false);
-    functions["print.int"] = llvm::Function::Create(intPrintType, llvm::Function::ExternalLinkage, "print.int", module.get());
+    auto printIntFunc = llvm::Function::Create(intPrintType, llvm::Function::ExternalLinkage, "print.int", module.get());
+    functions["print.int"] = printIntFunc;
+
+    // Create print.int implementation
+    auto printIntBlock = llvm::BasicBlock::Create(*context, "entry", printIntFunc);
+    auto savedInsertPoint = builder->GetInsertBlock();
+    builder->SetInsertPoint(printIntBlock);
+    auto formatStr = builder->CreateGlobalString("%d\n", "int_format");
+    auto formatPtr = builder->CreateBitCast(formatStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    std::vector<llvm::Value*> printfArgs;
+    printfArgs.push_back(formatPtr);
+    printfArgs.push_back(&*printIntFunc->arg_begin());
+    builder->CreateCall(functions["printf"], printfArgs);
+    builder->CreateRetVoid();
+    builder->SetInsertPoint(savedInsertPoint);
 
     // Print float function
     auto floatType = llvm::Type::getDoubleTy(*context);
     std::vector<llvm::Type*> floatPrintArgs = {floatType};
     auto floatPrintType = llvm::FunctionType::get(llvm::Type::getVoidTy(*context), floatPrintArgs, false);
-    functions["print.float"] = llvm::Function::Create(floatPrintType, llvm::Function::ExternalLinkage, "print.float", module.get());
+    auto printFloatFunc = llvm::Function::Create(floatPrintType, llvm::Function::ExternalLinkage, "print.float", module.get());
+    functions["print.float"] = printFloatFunc;
+
+    // Create print.float implementation
+    auto printFloatBlock = llvm::BasicBlock::Create(*context, "entry", printFloatFunc);
+    savedInsertPoint = builder->GetInsertBlock();
+    builder->SetInsertPoint(printFloatBlock);
+    formatStr = builder->CreateGlobalString("%f\n", "float_format");
+    formatPtr = builder->CreateBitCast(formatStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    printfArgs.clear();
+    printfArgs.push_back(formatPtr);
+    printfArgs.push_back(&*printFloatFunc->arg_begin());
+    builder->CreateCall(functions["printf"], printfArgs);
+    builder->CreateRetVoid();
+    builder->SetInsertPoint(savedInsertPoint);
 
     // Print bool function
     auto boolType = llvm::Type::getInt1Ty(*context);
     std::vector<llvm::Type*> boolPrintArgs = {boolType};
     auto boolPrintType = llvm::FunctionType::get(llvm::Type::getVoidTy(*context), boolPrintArgs, false);
-    functions["print.bool"] = llvm::Function::Create(boolPrintType, llvm::Function::ExternalLinkage, "print.bool", module.get());
+    auto printBoolFunc = llvm::Function::Create(boolPrintType, llvm::Function::ExternalLinkage, "print.bool", module.get());
+    functions["print.bool"] = printBoolFunc;
+
+    // Create print.bool implementation
+    auto printBoolBlock = llvm::BasicBlock::Create(*context, "entry", printBoolFunc);
+    savedInsertPoint = builder->GetInsertBlock();
+    builder->SetInsertPoint(printBoolBlock);
+    auto trueStr = builder->CreateGlobalString("true\n", "true_str");
+    auto falseStr = builder->CreateGlobalString("false\n", "false_str");
+    auto truePtrCast = builder->CreateBitCast(trueStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    auto falsePtrCast = builder->CreateBitCast(falseStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    auto condition = &*printBoolFunc->arg_begin();
+    auto selectedStr = builder->CreateSelect(condition, truePtrCast, falsePtrCast);
+    printfArgs.clear();
+    printfArgs.push_back(selectedStr);
+    builder->CreateCall(functions["printf"], printfArgs);
+    builder->CreateRetVoid();
+    builder->SetInsertPoint(savedInsertPoint);
 
     // Print string function
     auto strType = typeRegistry.getStrType();
     auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, module->getContext());
     std::vector<llvm::Type*> strPrintArgs = {llvmStrType};
     auto strPrintType = llvm::FunctionType::get(llvm::Type::getVoidTy(*context), strPrintArgs, false);
-    functions["print.str"] = llvm::Function::Create(strPrintType, llvm::Function::ExternalLinkage, "print.str", module.get());
+    auto printStrFunc = llvm::Function::Create(strPrintType, llvm::Function::ExternalLinkage, "print.str", module.get());
+    functions["print.str"] = printStrFunc;
 
-    std::cerr << "DEBUG: Print functions declared successfully" << std::endl;
+    // Create print.str implementation
+    auto printStrBlock = llvm::BasicBlock::Create(*context, "entry", printStrFunc);
+    savedInsertPoint = builder->GetInsertBlock();
+    builder->SetInsertPoint(printStrBlock);
+    formatStr = builder->CreateGlobalString("%s\n", "str_format");
+    formatPtr = builder->CreateBitCast(formatStr, llvm::Type::getInt8Ty(*context)->getPointerTo());
+    printfArgs.clear();
+    printfArgs.push_back(formatPtr);
+    printfArgs.push_back(&*printStrFunc->arg_begin());
+    builder->CreateCall(functions["printf"], printfArgs);
+    builder->CreateRetVoid();
+    builder->SetInsertPoint(savedInsertPoint);
+
+    std::cerr << "DEBUG: Print functions declared and implemented successfully" << std::endl;
 }
 
 std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* programCtx) {
@@ -1429,9 +1488,8 @@ llvm::Function* LLVMCodegen::declarePrintf() {
     }
 
     // Create printf function type using our type system
-    auto strType = typeRegistry.getStrType();
-    auto llvmStrType = LLVMTypeRegistry::getInstance().getLLVMType(strType, *context);
-    std::vector<llvm::Type*> paramTypes = {llvmStrType};  // Format string
+    std::vector<llvm::Type*> paramTypes;
+    paramTypes.push_back(llvm::Type::getInt8Ty(*context)->getPointerTo());  // Format string (i8*)
     llvm::FunctionType* printfType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(*context),  // Return type: int
         paramTypes,
@@ -1461,13 +1519,12 @@ llvm::Function* LLVMCodegen::declareMalloc() {
     // Create malloc function type
     // malloc takes a size_t (i64) parameter and returns an opaque pointer
     std::vector<llvm::Type*> paramTypes = {llvm::Type::getInt64Ty(*context)};  // size_t parameter
-    auto pointerType = typeRegistry.getPointerType();
-    auto llvmPointerType = LLVMTypeRegistry::getInstance().getLLVMType(pointerType, *context);
 
+    // Use opaque pointer type directly since LLVM 20.0.0 treats all pointers as opaque
     llvm::FunctionType* mallocType = llvm::FunctionType::get(
-        llvmPointerType,  // Return type: opaque pointer
-        paramTypes,       // Parameter types: size_t
-        false            // Not varargs
+        llvm::Type::getInt8Ty(*context),  // Return type: opaque pointer (i8)
+        paramTypes,                        // Parameter types: size_t
+        false                             // Not varargs
     );
 
     // Create the function
