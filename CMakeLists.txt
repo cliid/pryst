@@ -216,9 +216,7 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
 endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
-    list(APPEND LLVM_LIBS
-        ARM64CodeGen ARM64AsmParser ARM64Desc ARM64Info ARM64TargetMCA
-    )
+    # list(APPEND LLVM_LIBS)
 endif()
 
 # target_link_libraries(jit_compiler PRIVATE ${LLVM_LIBS} antlr4-runtime)
