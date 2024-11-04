@@ -364,6 +364,13 @@ std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
 // Declaration: Dispatches to the appropriate declaration type
 std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext* ctx) {
     std::cerr << "DEBUG: Visiting declaration" << std::endl;
+
+    // Ensure we have a valid insert point
+    if (!builder->GetInsertBlock() || builder->GetInsertBlock()->getParent() != currentFunction) {
+        std::cerr << "DEBUG: Resetting insert point to entry block" << std::endl;
+        builder->SetInsertPoint(&currentFunction->getEntryBlock());
+    }
+
     if (ctx->functionDecl()) {
         std::cerr << "DEBUG: Found function declaration in declaration context" << std::endl;
         std::cerr << "DEBUG: Function declaration text: " << ctx->functionDecl()->getText() << std::endl;
@@ -396,13 +403,29 @@ std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext* ctx) {
         return result;
     } else if (ctx->variableDecl()) {
         std::cerr << "DEBUG: Processing variable declaration" << std::endl;
-        visit(ctx->variableDecl());
+        auto result = visit(ctx->variableDecl());
+        std::cerr << "DEBUG: Variable declaration processed, verifying IR generation" << std::endl;
+        if (builder->GetInsertBlock()) {
+            std::string blockIR;
+            llvm::raw_string_ostream rso(blockIR);
+            builder->GetInsertBlock()->print(rso);
+            std::cerr << "DEBUG: Current block IR after variable declaration:\n" << blockIR << std::endl;
+        }
+        return result;
     } else if (ctx->classDeclaration()) {
         std::cerr << "DEBUG: Processing class declaration" << std::endl;
-        visit(ctx->classDeclaration());
-    } else {
+        return visit(ctx->classDeclaration());
+    } else if (ctx->statement()) {
         std::cerr << "DEBUG: Processing statement" << std::endl;
-        visit(ctx->statement());
+        auto result = visit(ctx->statement());
+        std::cerr << "DEBUG: Statement processed, verifying IR generation" << std::endl;
+        if (builder->GetInsertBlock()) {
+            std::string blockIR;
+            llvm::raw_string_ostream rso(blockIR);
+            builder->GetInsertBlock()->print(rso);
+            std::cerr << "DEBUG: Current block IR after statement:\n" << blockIR << std::endl;
+        }
+        return result;
     }
     return nullptr;
 }
@@ -522,21 +545,26 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     }
     std::cerr << "DEBUG: Set current function to: " << funcName << std::endl;
 
+    // Create entry block and set insert point
     std::cerr << "DEBUG: Creating entry block for function: " << funcName << std::endl;
-    // Create a new basic block
-    llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", function);
-    if (!bb) {
+    llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create(*context, "entry", function);
+    if (!entryBlock) {
         throw std::runtime_error("Failed to create entry block for function: " + funcName);
     }
-    builder->SetInsertPoint(bb);
+    builder->SetInsertPoint(entryBlock);
     std::cerr << "DEBUG: Entry block created and builder insert point set" << std::endl;
-    std::cerr << "DEBUG: Basic block has terminator: " << (bb->getTerminator() != nullptr) << std::endl;
 
-    std::cerr << "DEBUG: Creating new scope for function: " << funcName << std::endl;
+    // Verify entry block state
+    std::string blockIR;
+    llvm::raw_string_ostream blockRSO(blockIR);
+    entryBlock->print(blockRSO);
+    std::cerr << "DEBUG: Initial entry block state:\n" << blockIR << std::endl;
+
     // Create a new scope for function parameters
+    std::cerr << "DEBUG: Creating new scope for function: " << funcName << std::endl;
     pushScope();
 
-    // Create allocas for parameters
+    // Create allocas for parameters at the start of the entry block
     if (ctx->paramList()) {
         std::cerr << "DEBUG: Processing function parameters" << std::endl;
         size_t idx = 0;
@@ -554,7 +582,6 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     std::cerr << "DEBUG: Starting function body processing for: " << funcName << std::endl;
     std::cerr << "DEBUG: Function body text: " << ctx->getText() << std::endl;
     bool hasExplicitReturn = false;
-
     // Verify print functions are initialized
     std::cerr << "DEBUG: Verifying print functions initialization" << std::endl;
     for (const auto& [name, func] : functions) {
@@ -568,6 +595,11 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     auto functionEnd = ctx->RBRACE()->getSymbol()->getTokenIndex();
     std::cerr << "DEBUG: Function body spans tokens " << functionBody << " to " << functionEnd << std::endl;
 
+    // Always ensure we're in the entry block at the start of function body processing
+    builder->SetInsertPoint(&currentFunction->getEntryBlock());
+    std::cerr << "DEBUG: Set insert point to entry block" << std::endl;
+
+    // Process all declarations in the function body
     for (auto decl : ctx->declaration()) {
         if (!decl) {
             std::cerr << "DEBUG: Error - Null declaration in function body" << std::endl;
@@ -583,15 +615,31 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
 
         std::cerr << "DEBUG: Processing function body declaration: " << decl->getText() << std::endl;
         std::cerr << "DEBUG: Declaration type: " << typeid(*decl).name() << std::endl;
-        std::cerr << "DEBUG: Current basic block has terminator: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
+
+        // Visit the declaration to generate IR
+        std::any result = visit(decl);
+        std::cerr << "DEBUG: Declaration visit result: " << (result.has_value() ? "has value" : "null") << std::endl;
+
+        // After each declaration, verify we're still in a valid block
+        if (!builder->GetInsertBlock()) {
+            std::cerr << "DEBUG: Lost insert block, resetting to entry" << std::endl;
+            builder->SetInsertPoint(&currentFunction->getEntryBlock());
+        }
+
+        // Verify IR generation and basic block state
+        if (auto* currentBlock = builder->GetInsertBlock()) {
+            std::string blockIR;
+            llvm::raw_string_ostream blockRSO(blockIR);
+            currentBlock->print(blockRSO);
+            std::cerr << "DEBUG: Current block IR after declaration:\n" << blockIR << std::endl;
+        }
 
         if (auto varDecl = dynamic_cast<PrystParser::VariableDeclContext*>(decl)) {
             std::cerr << "DEBUG: Found variable declaration in function body: " << varDecl->IDENTIFIER()->getText() << std::endl;
             std::cerr << "DEBUG: Variable type: " << varDecl->type()->getText() << std::endl;
             std::cerr << "DEBUG: Variable has initializer: " << (varDecl->expression() != nullptr) << std::endl;
 
-            // Process variable declaration
-            visitVariableDecl(varDecl);
+            // Log variable declaration details
             std::cerr << "DEBUG: Variable declaration processed successfully" << std::endl;
             std::cerr << "DEBUG: Basic block state after var decl - has terminator: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
             std::cerr << "DEBUG: Variable is in named values map: " << (namedValues.find(varDecl->IDENTIFIER()->getText()) != namedValues.end()) << std::endl;
@@ -616,23 +664,29 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
                 std::cerr << "DEBUG: Expression type: " << typeid(*exprStmt->expression()).name() << std::endl;
                 std::cerr << "DEBUG: Current basic block before expression: " << builder->GetInsertBlock()->getName().str() << std::endl;
 
-                // Verify print function availability before processing expression
-                std::cerr << "DEBUG: Verifying print functions before expression" << std::endl;
-                for (const auto& [name, func] : functions) {
-                    if (name.find("print.") == 0) {
-                        std::cerr << "DEBUG: Found print function: " << name << " at " << func << std::endl;
-                    }
-                }
-
+                // Visit the expression to generate its IR
                 std::cerr << "DEBUG: About to visit expression" << std::endl;
                 visit(exprStmt->expression());
-                std::cerr << "DEBUG: Expression visited" << std::endl;
+                std::cerr << "DEBUG: Expression visited, lastValue: " << (lastValue != nullptr) << std::endl;
 
                 if (lastValue) {
                     std::cerr << "DEBUG: Expression evaluated successfully, type ID: " << lastValue->getType()->getTypeID() << std::endl;
                     auto typeInfo = typeMetadata->getTypeInfo(lastValue);
                     if (typeInfo) {
                         std::cerr << "DEBUG: Expression type info: " << typeInfo->getName() << std::endl;
+                        // For print function calls, ensure the call instruction is generated
+                        if (auto* call = llvm::dyn_cast<llvm::CallInst>(lastValue)) {
+                            std::cerr << "DEBUG: Expression is already a call instruction" << std::endl;
+                        } else {
+                            std::cerr << "DEBUG: Expression is a value that needs to be printed" << std::endl;
+                            std::string printFuncName = "print." + typeInfo->getName();
+                            auto printFunc = module->getFunction(printFuncName);
+                            if (printFunc) {
+                                std::cerr << "DEBUG: Creating print call for value" << std::endl;
+                                builder->CreateCall(printFunc, {lastValue});
+                                std::cerr << "DEBUG: Print call created successfully" << std::endl;
+                            }
+                        }
                     }
                     std::cerr << "DEBUG: Last value is valid" << std::endl;
                 } else {
@@ -653,6 +707,22 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
         std::cerr << "DEBUG: Current basic block state after declaration: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
     }
 
+    // Verify function body IR generation after declarations
+    std::cerr << "DEBUG: Verifying function body IR generation for: " << funcName << std::endl;
+    std::string funcIR;
+    llvm::raw_string_ostream rso(funcIR);
+    function->print(rso);
+    std::cerr << "DEBUG: Generated IR:\n" << funcIR << std::endl;
+
+    // Verify all basic blocks are properly linked
+    for (auto& block : *function) {
+        std::cerr << "DEBUG: Block '" << block.getName().str() << "' contents:" << std::endl;
+        std::string blockIR;
+        llvm::raw_string_ostream blockRSO(blockIR);
+        block.print(blockRSO);
+        std::cerr << blockIR << std::endl;
+    }
+
     // Add implicit return if no explicit return was found and block isn't terminated
     if (!hasExplicitReturn && !builder->GetInsertBlock()->getTerminator()) {
         std::cerr << "DEBUG: Adding implicit return for function: " << funcName << std::endl;
@@ -661,12 +731,12 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
 
         // Special handling for main function
         if (funcName == "main") {
-            builder->CreateRet(llvm::ConstantInt::get(returnType, 0));
+            builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0));
             std::cerr << "DEBUG: Added return 0 to main function" << std::endl;
         } else if (returnType->isVoidTy()) {
             builder->CreateRetVoid();
         } else {
-            builder->CreateRet(llvm::ConstantInt::get(returnType, 0));
+            builder->CreateRet(llvm::Constant::getNullValue(returnType));
         }
         std::cerr << "DEBUG: Implicit return added" << std::endl;
         std::cerr << "DEBUG: Basic block now has terminator: " << (builder->GetInsertBlock()->getTerminator() != nullptr) << std::endl;
@@ -918,7 +988,28 @@ std::any LLVMCodegen::visitType(PrystParser::TypeContext* ctx) {
 std::any LLVMCodegen::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
     std::cerr << "DEBUG: Starting expression statement visit" << std::endl;
     std::cerr << "DEBUG: Expression text: " << ctx->expression()->getText() << std::endl;
+
+    // Visit the expression and ensure proper IR generation
     visit(ctx->expression());
+
+    // Handle the result of the expression
+    if (lastValue) {
+        std::cerr << "DEBUG: Expression generated value of type: " << lastValue->getType()->getTypeID() << std::endl;
+
+        // Get type info for debugging
+        auto typeInfo = typeMetadata->getTypeInfo(lastValue);
+        if (typeInfo) {
+            std::cerr << "DEBUG: Expression type: " << typeInfo->getName() << std::endl;
+        }
+
+        // If this is a function call (like print), ensure the call instruction is properly generated
+        if (auto* callInst = llvm::dyn_cast<llvm::CallInst>(lastValue)) {
+            std::cerr << "DEBUG: Expression is a function call to: " << callInst->getCalledFunction()->getName().str() << std::endl;
+        }
+    } else {
+        std::cerr << "DEBUG: Warning - Expression did not generate a value" << std::endl;
+    }
+
     std::cerr << "DEBUG: Expression statement visit complete" << std::endl;
     return nullptr;
 }
@@ -2119,32 +2210,4 @@ llvm::Function* LLVMCodegen::declareToString() {
     );
 
     return func;
-}
-
-// Expression Statement: Handles expression statements in function bodies
-std::any LLVMCodegen::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
-    std::cerr << "DEBUG: Starting visitExprStatement" << std::endl;
-    std::cerr << "DEBUG: Expression statement text: " << ctx->getText() << std::endl;
-
-    if (!ctx->expression()) {
-        std::cerr << "DEBUG: Warning - Empty expression statement" << std::endl;
-        return nullptr;
-    }
-
-    std::cerr << "DEBUG: About to visit expression" << std::endl;
-    visit(ctx->expression());
-    std::cerr << "DEBUG: Expression visited" << std::endl;
-
-    if (lastValue) {
-        std::cerr << "DEBUG: Expression evaluated successfully" << std::endl;
-        auto typeInfo = typeMetadata->getTypeInfo(lastValue);
-        if (typeInfo) {
-            std::cerr << "DEBUG: Expression type: " << typeInfo->getName() << std::endl;
-        }
-    } else {
-        std::cerr << "DEBUG: Warning - Expression produced null value" << std::endl;
-    }
-
-    std::cerr << "DEBUG: Expression statement processed successfully" << std::endl;
-    return nullptr;
 }
