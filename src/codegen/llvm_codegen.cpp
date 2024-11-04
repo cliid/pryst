@@ -227,6 +227,9 @@ std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramCo
             throw std::runtime_error("Generated LLVM IR is invalid");
         }
 
+        std::cerr << "DEBUG: Dumping generated LLVM IR:" << std::endl;
+        module->print(llvm::errs(), nullptr);
+
         std::cerr << "DEBUG: Module generation complete" << std::endl;
         return std::move(module);
     } catch (const std::exception& e) {
@@ -258,8 +261,25 @@ std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
     try {
         // Visit all declarations in the program
         for (auto decl : ctx->declaration()) {
-            std::cerr << "DEBUG: Visiting declaration" << std::endl;
-            visit(decl);
+            std::cerr << "DEBUG: Visiting declaration: " << decl->getText() << std::endl;
+
+            if (auto varDecl = dynamic_cast<PrystParser::VariableDeclContext*>(decl)) {
+                std::cerr << "DEBUG: Processing variable declaration" << std::endl;
+                visitVariableDecl(varDecl);  // Call visitVariableDecl directly
+            } else if (auto stmt = dynamic_cast<PrystParser::StatementContext*>(decl)) {
+                std::cerr << "DEBUG: Processing statement" << std::endl;
+                if (auto exprStmt = dynamic_cast<PrystParser::ExprStatementContext*>(stmt)) {
+                    std::cerr << "DEBUG: Processing expression statement" << std::endl;
+                    visitExprStatement(exprStmt);
+                } else {
+                    visit(stmt);  // Handle other statement types
+                }
+            } else if (auto funcDecl = dynamic_cast<PrystParser::FunctionDeclContext*>(decl)) {
+                std::cerr << "DEBUG: Processing function declaration" << std::endl;
+                visit(funcDecl);
+            }
+
+            std::cerr << "DEBUG: Declaration processed successfully" << std::endl;
         }
 
         // Create return 0
@@ -569,7 +589,10 @@ std::any LLVMCodegen::visitType(PrystParser::TypeContext* ctx) {
 
 // Expression Statement: Evaluates an expression
 std::any LLVMCodegen::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
+    std::cerr << "DEBUG: Starting expression statement visit" << std::endl;
+    std::cerr << "DEBUG: Expression text: " << ctx->expression()->getText() << std::endl;
     visit(ctx->expression());
+    std::cerr << "DEBUG: Expression statement visit complete" << std::endl;
     return nullptr;
 }
 
