@@ -70,12 +70,15 @@ if(DEFINED ENV{LLVM_DIR})
         "$ENV{LLVM_DIR}/lib/cmake/llvm"
         "$ENV{LLVM_DIR}/lib/cmake"
         "$ENV{LLVM_DIR}/share/llvm/cmake"
+        "/usr/lib/llvm-20/lib/cmake/llvm"
+        "/usr/local/llvm-20/lib/cmake/llvm"
+        "/opt/llvm-20/lib/cmake/llvm"
     )
 else()
     if(APPLE)
         set(LLVM_DIR "/usr/local" CACHE PATH "Path to LLVM CMake config")
     else()
-        set(LLVM_DIR "/usr/lib/llvm-20" CACHE PATH "Path to LLVM CMake config")
+        set(LLVM_DIR "/usr/lib/llvm-20/lib/cmake/llvm" CACHE PATH "Path to LLVM CMake config")
     endif()
 endif()
 
@@ -201,15 +204,21 @@ llvm_map_components_to_libnames(LLVM_LIBS
 # Add architecture-specific libraries based on target
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     # X86 libraries already included above
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+endif()
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
     list(REMOVE_ITEM LLVM_LIBS
         X86CodeGen X86AsmParser X86Desc X86Info X86TargetMCA
     )
     list(APPEND LLVM_LIBS
         AArch64CodeGen AArch64AsmParser AArch64Desc AArch64Info AArch64TargetMCA
     )
-else()
-    message(STATUS "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+    list(APPEND LLVM_LIBS
+        ARM64CodeGen ARM64AsmParser ARM64Desc ARM64Info ARM64TargetMCA
+    )
 endif()
 
 # target_link_libraries(jit_compiler PRIVATE ${LLVM_LIBS} antlr4-runtime)
