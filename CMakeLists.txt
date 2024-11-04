@@ -75,7 +75,7 @@ else()
     if(APPLE)
         set(LLVM_DIR "/usr/local" CACHE PATH "Path to LLVM CMake config")
     else()
-        set(LLVM_DIR "/usr/lib/llvm-20" CACHE PATH "Path to LLVM CMake config")
+        set(LLVM_DIR "/usr/lib/llvm-20/lib/cmake/llvm" CACHE PATH "Path to LLVM CMake config")
     endif()
 endif()
 
@@ -201,12 +201,19 @@ llvm_map_components_to_libnames(LLVM_LIBS
 # Add architecture-specific libraries based on target
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     # X86 libraries already included above
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
     list(REMOVE_ITEM LLVM_LIBS
         X86CodeGen X86AsmParser X86Desc X86Info X86TargetMCA
     )
     list(APPEND LLVM_LIBS
         AArch64CodeGen AArch64AsmParser AArch64Desc AArch64Info AArch64TargetMCA
+    )
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+    list(REMOVE_ITEM LLVM_LIBS
+        X86CodeGen X86AsmParser X86Desc X86Info X86TargetMCA
+    )
+    list(APPEND LLVM_LIBS
+        ARM64CodeGen ARM64AsmParser ARM64Desc ARM64Info ARM64TargetMCA
     )
 else()
     message(STATUS "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
