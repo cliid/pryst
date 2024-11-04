@@ -393,18 +393,11 @@ SymbolTable::~SymbolTable() {
             }
         }
 
-        // Clear each function vector individually, handling each element
+        // Let shared_ptr handle cleanup automatically
         std::cout << "DEBUG: Clearing function vectors individually" << std::endl;
         for (auto& funcPair : globalScope.functions) {
             std::cout << "DEBUG: Clearing function '" << funcPair.first << "'" << std::endl;
-            // Clear each element's contents first
-            for (auto& func : funcPair.second) {
-                std::cout << "DEBUG: Clearing function element with return type '" << (*func).returnType << "'" << std::endl;
-                (*func).paramTypes.clear();
-                (*func).deducedReturnTypes.clear();
-                (*func).returnType.clear();
-            }
-            // Now clear the vector itself
+            // Clear vector directly, letting shared_ptr handle cleanup
             funcPair.second.clear();
             std::cout << "DEBUG: Vector cleared, size is now " << funcPair.second.size() << std::endl;
         }
