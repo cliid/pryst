@@ -1,0 +1,63 @@
+// Test basic string interpolation
+fn test_basic_interpolation() {
+    let name = "World";
+    let message = "Hello, {name}!";
+    print(message);  // Should output: Hello, World!
+}
+
+// Test integer formatting with padding and alignment
+fn test_integer_formatting() {
+    let value = 42;
+    print("Left aligned:  '{value:<5}'");   // Should pad right with spaces
+    print("Right aligned: '{value:>5}'");    // Should pad left with spaces
+    print("Zero padded:   '{value:05}'");    // Should pad with zeros
+}
+
+// Test float formatting with precision
+fn test_float_formatting() {
+    let pi = 3.14159;
+    print("Default:    '{pi}'");           // Default precision
+    print("2 decimal:  '{pi:.2f}'");       // 2 decimal places
+    print("Padded:     '{pi:8.3f}'");      // Width 8, 3 decimal places
+    print("Left pad:   '{pi:<8.3f}'");     // Left aligned, width 8, 3 decimals
+}
+
+// Test boolean formatting
+fn test_boolean_formatting() {
+    let t = true;
+    let f = false;
+    print("True value:  '{t}'");
+    print("False value: '{f}'");
+}
+
+// Test multiple interpolations
+fn test_multiple_values() {
+    let x = 10;
+    let y = 20;
+    let sum = x + y;
+    print("The sum of {x} and {y} is {sum}");
+}
+
+// Test expression interpolation
+fn test_expressions() {
+    let base = 5;
+    let exp = 2;
+    print("The square of {base} is {base * base}");
+    print("{base} raised to {exp} is {base ** exp}");
+}
+
+// Run all tests
+fn main() {
+    print("=== String Interpolation Tests ===");
+    test_basic_interpolation();
+    print("\n=== Integer Formatting Tests ===");
+    test_integer_formatting();
+    print("\n=== Float Formatting Tests ===");
+    test_float_formatting();
+    print("\n=== Boolean Formatting Tests ===");
+    test_boolean_formatting();
+    print("\n=== Multiple Values Test ===");
+    test_multiple_values();
+    print("\n=== Expression Interpolation Tests ===");
+    test_expressions();
+}
