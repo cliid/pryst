@@ -6,48 +6,87 @@
 namespace pryst {
 
 void StringBuilder::initializeStringFunctions() {
-    auto& typeRegistry = codegen->getTypeRegistry();
-    auto charPtrTy = typeRegistry.getPointerType();
-    auto context = codegen->getContext();
-    auto module = codegen->getModule();
+    PRYST_DEBUG("Initializing string builder functions");
 
-    // Initialize string manipulation functions
-    strlenFunc = string_utils::declareStrlen(codegen);
-    strcatFunc = string_utils::declareStrcat(codegen);
-    strcpyFunc = string_utils::declareStrcpy(codegen);
+    // Get types we'll need using TypeRegistry
+    auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+    auto int32Ty = builder->getInt32Ty();
+    auto int64Ty = builder->getInt64Ty();
+    auto voidTy = builder->getVoidTy();
 
-    // Declare malloc and free
-    std::vector<llvm::Type*> mallocArgs = {llvm::Type::getInt64Ty(*context)};
-    auto mallocType = llvm::FunctionType::get(charPtrTy, mallocArgs, false);
-    mallocFunc = llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "malloc", module);
+    // strlen(char*) -> size_t
+    std::vector<llvm::Type*> strlenArgs;
+    strlenArgs.push_back(charPtrTy);
+    strlenFunc = llvm::Function::Create(
+        llvm::FunctionType::get(int64Ty, strlenArgs, false),
+        llvm::Function::ExternalLinkage,
+        "strlen",
+        module
+    );
 
-    std::vector<llvm::Type*> freeArgs = {charPtrTy};
-    auto freeType = llvm::FunctionType::get(llvm::Type::getVoidTy(*context), freeArgs, false);
-    freeFunc = llvm::Function::Create(freeType, llvm::Function::ExternalLinkage, "free", module);
+    // strcat(char*, const char*) -> char*
+    std::vector<llvm::Type*> strcatArgs;
+    strcatArgs.push_back(charPtrTy);
+    strcatArgs.push_back(charPtrTy);
+    strcatFunc = llvm::Function::Create(
+        llvm::FunctionType::get(charPtrTy, strcatArgs, false),
+        llvm::Function::ExternalLinkage,
+        "strcat",
+        module
+    );
 
-    // Declare sprintf
-    std::vector<llvm::Type*> sprintfArgs = {charPtrTy, charPtrTy};
-    auto sprintfType = llvm::FunctionType::get(llvm::Type::getInt32Ty(*context), sprintfArgs, true);
-    sprintfFunc = llvm::Function::Create(sprintfType, llvm::Function::ExternalLinkage, "sprintf", module);
+    // strcpy(char*, const char*) -> char*
+    std::vector<llvm::Type*> strcpyArgs;
+    strcpyArgs.push_back(charPtrTy);
+    strcpyArgs.push_back(charPtrTy);
+    strcpyFunc = llvm::Function::Create(
+        llvm::FunctionType::get(charPtrTy, strcpyArgs, false),
+        llvm::Function::ExternalLinkage,
+        "strcpy",
+        module
+    );
+
+    // malloc(size_t) -> void*
+    std::vector<llvm::Type*> mallocArgs;
+    mallocArgs.push_back(int64Ty);
+    mallocFunc = llvm::Function::Create(
+        llvm::FunctionType::get(charPtrTy, mallocArgs, false),
+        llvm::Function::ExternalLinkage,
+        "malloc",
+        module
+    );
+
+    // free(void*)
+    std::vector<llvm::Type*> freeArgs;
+    freeArgs.push_back(charPtrTy);
+    freeFunc = llvm::Function::Create(
+        llvm::FunctionType::get(voidTy, freeArgs, false),
+        llvm::Function::ExternalLinkage,
+        "free",
+        module
+    );
+
+    // Initialize sprintf with variadic arguments
+    std::vector<llvm::Type*> sprintfArgs;
+    sprintfArgs.push_back(charPtrTy);
+    sprintfArgs.push_back(charPtrTy);
+    sprintfFunc = llvm::Function::Create(
+        llvm::FunctionType::get(int32Ty, sprintfArgs, true),
+        llvm::Function::ExternalLinkage,
+        "sprintf",
+        module
+    );
+
+    PRYST_DEBUG("String builder functions initialized");
 }
 
 llvm::Value* StringBuilder::appendLiteral(const std::string& str) {
-    auto& typeRegistry = codegen->getTypeRegistry();
-    auto charPtrTy = typeRegistry.getPointerType();
-    auto builder = codegen->getBuilder();
-
-    // Create global string constant
+    PRYST_DEBUG("Appending literal: " + str);
     auto globalStr = builder->CreateGlobalString(str);
-
-    // Allocate buffer for the string
-    auto size = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), str.length() + 1);
-    auto buffer = builder->CreateCall(mallocFunc, {size});
-
-    // Copy string to buffer
-    builder->CreateCall(strcpyFunc, {buffer, globalStr});
-
-    parts.push_back(buffer);
-    return buffer;
+    auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+    auto globalStrPtr = builder->CreateBitCast(globalStr, charPtrTy);
+    parts.push_back(globalStrPtr);
+    return globalStrPtr;
 }
 
 llvm::Value* StringBuilder::appendFormatted(llvm::Value* value, const std::string& format) {
@@ -72,12 +111,41 @@ llvm::Value* StringBuilder::appendFormatted(llvm::Value* value, const std::strin
     auto bufferSize = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), 64);
     auto buffer = builder->CreateCall(mallocFunc, {bufferSize});
 
-    // Create format string
-    std::string formatStr = format.empty() ? "%s" : format;
-    auto globalFormat = builder->CreateGlobalString(formatStr);
+    // Create format string based on value type and format specifier
+    std::string formatStr;
+    if (value->getType()->isFloatingPointTy()) {
+        if (format.empty()) {
+            formatStr = "%.6f"; // Default precision
+        } else if (format[0] == '.') {
+            int precision = std::stoi(format.substr(1));
+            formatStr = "%." + std::to_string(precision) + "f";
+        } else {
+            formatStr = "%" + format + "f";
+        }
+    } else if (value->getType()->isIntegerTy()) {
+        formatStr = format.empty() ? "%d" : "%" + format + "d";
+    } else if (value->getType()->isIntegerTy(1)) { // Boolean
+        formatStr = "%s";
+        auto trueStr = builder->CreateGlobalString("true");
+        auto falseStr = builder->CreateGlobalString("false");
+        auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+        auto trueStrPtr = builder->CreateBitCast(trueStr, charPtrTy);
+        auto falseStrPtr = builder->CreateBitCast(falseStr, charPtrTy);
+        value = builder->CreateSelect(value, trueStrPtr, falseStrPtr);
+    } else {
+        formatStr = "%s";
+    }
 
-    // Format the value into the buffer
-    std::vector<llvm::Value*> args = {buffer, globalFormat, value};
+    // Create format string constant
+    auto formatStrGlobal = builder->CreateGlobalString(formatStr);
+    auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+    auto formatStrPtr = builder->CreateBitCast(formatStrGlobal, charPtrTy);
+
+    // Call sprintf with appropriate arguments
+    std::vector<llvm::Value*> args;
+    args.push_back(buffer);
+    args.push_back(formatStrPtr);
+    args.push_back(value);
     builder->CreateCall(sprintfFunc, args);
 
     parts.push_back(buffer);
@@ -128,15 +196,9 @@ llvm::Value* StringBuilder::appendInterpolatedString(
 
 llvm::Value* StringBuilder::build() {
     if (parts.empty()) {
-        // Return empty string if no parts
-        auto& typeRegistry = codegen->getTypeRegistry();
-        auto charPtrTy = typeRegistry.getPointerType();
-        auto builder = codegen->getBuilder();
         auto emptyStr = builder->CreateGlobalString("");
-        auto size = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), 1);
-        auto buffer = builder->CreateCall(mallocFunc, {size});
-        builder->CreateCall(strcpyFunc, {buffer, emptyStr});
-        return buffer;
+        auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+        return builder->CreateBitCast(emptyStr, charPtrTy);
     }
 
     // Calculate total length

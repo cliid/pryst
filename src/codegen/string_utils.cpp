@@ -16,7 +16,7 @@ llvm::Function* declareStrlen(pryst::LLVMCodegen* codegen) {
     auto module = codegen->getModule();
 
     std::vector<llvm::Type*> strlenArgs;
-    strlenArgs.push_back(typeRegistry->getOpaquePointerType(*context));
+    strlenArgs.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));
 
     llvm::FunctionType* strlenType = llvm::FunctionType::get(
         llvm::Type::getInt64Ty(*context),
@@ -41,11 +41,11 @@ llvm::Function* declareStrcpy(pryst::LLVMCodegen* codegen) {
     auto module = codegen->getModule();
 
     std::vector<llvm::Type*> strcpyArgs;
-    strcpyArgs.push_back(typeRegistry->getOpaquePointerType(*context));  // dest
-    strcpyArgs.push_back(typeRegistry->getOpaquePointerType(*context));  // src
+    strcpyArgs.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));  // dest
+    strcpyArgs.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));  // src
 
     llvm::FunctionType* strcpyType = llvm::FunctionType::get(
-        typeRegistry->getOpaquePointerType(*context),  // Return type: char*
+        typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),  // Return type: char*
         strcpyArgs,
         false
     );
@@ -67,11 +67,11 @@ llvm::Function* declareStrcat(pryst::LLVMCodegen* codegen) {
     auto module = codegen->getModule();
 
     std::vector<llvm::Type*> strcatArgs;
-    strcatArgs.push_back(typeRegistry->getOpaquePointerType(*context));  // dest
-    strcatArgs.push_back(typeRegistry->getOpaquePointerType(*context));  // src
+    strcatArgs.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));  // dest
+    strcatArgs.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));  // src
 
     llvm::FunctionType* strcatType = llvm::FunctionType::get(
-        typeRegistry->getOpaquePointerType(*context),  // Return type: char*
+        typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),  // Return type: char*
         strcatArgs,
         false
     );
@@ -93,8 +93,8 @@ llvm::Function* declareMemcpy(pryst::LLVMCodegen* codegen) {
     auto module = codegen->getModule();
 
     std::vector<llvm::Type*> memcpyArgs;
-    memcpyArgs.push_back(typeRegistry->getOpaquePointerType(*context));  // dest
-    memcpyArgs.push_back(typeRegistry->getOpaquePointerType(*context));  // src
+    memcpyArgs.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));  // dest
+    memcpyArgs.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));  // src
     memcpyArgs.push_back(llvm::Type::getInt64Ty(*context));            // size
     memcpyArgs.push_back(llvm::Type::getInt1Ty(*context));            // isVolatile
 
@@ -251,7 +251,7 @@ llvm::Function* declareFormatInt(pryst::LLVMCodegen* codegen) {
     args.push_back(llvm::Type::getInt1Ty(*context));   // left align
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        typeRegistry->getOpaquePointerType(*context),  // Return type: char*
+        typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),  // Return type: char*
         args,
         false
     );
@@ -276,7 +276,7 @@ llvm::Function* declareFormatBool(pryst::LLVMCodegen* codegen) {
     args.push_back(llvm::Type::getInt1Ty(*context));  // bool value
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        typeRegistry->getOpaquePointerType(*context),  // Return type: char*
+        typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),  // Return type: char*
         args,
         false
     );
@@ -305,7 +305,7 @@ llvm::Function* declareFormatFloat(pryst::LLVMCodegen* codegen) {
     args.push_back(llvm::Type::getInt1Ty(*context));    // left align
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        typeRegistry->getOpaquePointerType(*context),  // Return type: char*
+        typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),  // Return type: char*
         args,
         false
     );
