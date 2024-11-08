@@ -5,6 +5,7 @@
 #include "type_registry.hpp"
 #include "class_info.hpp"
 #include "string_interpolation.hpp"
+#include "type_metadata.hpp"
 #include "utils/debug.hpp"
 #include <memory>
 #include <string>
@@ -26,9 +27,30 @@ public:
         module = std::make_unique<llvm::Module>("pryst", *context);
         builder = std::make_unique<llvm::IRBuilder<>>(*context);
         typeRegistry = std::make_unique<LLVMTypeRegistry>(*context, *builder, *module);
-        stringInterp = std::make_unique<codegen::StringInterpolation>();
+        stringInterp = std::make_unique<codegen::StringInterpolation>(builder.get(), module.get(), typeRegistry.get());
+        typeMetadata = std::make_unique<TypeMetadata>(*context, *module);
     }
     virtual ~LLVMCodegen() = default;
+
+    // Getter methods for private members
+    llvm::LLVMContext* getContext() const { return context.get(); }
+    llvm::Module* getModule() const { return module.get(); }
+    llvm::IRBuilder<>* getBuilder() const { return builder.get(); }
+    LLVMTypeRegistry* getTypeRegistry() const { return typeRegistry.get(); }
+
+    // Reflection API methods
+    llvm::Value* generateGetType(llvm::Value* value);
+    llvm::Value* generateIsInstance(llvm::Value* value, const std::string& typeName);
+    TypeInfoPtr getTypeInfo(llvm::Value* value);
+    void attachTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo);
+    llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo);
+
+    // Function registration
+    void registerFunction(const std::string& name, llvm::Function* func) {
+        if (func) {
+            module->getOrInsertFunction(name, func->getFunctionType());
+        }
+    }
 
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* ctx);
 
@@ -96,14 +118,32 @@ private:
     llvm::AllocaInst* createEntryBlockAlloca(llvm::Function* function, const std::string& varName, llvm::Type* type);
     void declarePrintFunctions();
 
+    // Builtin function declarations
+    llvm::Function* declareBoolToStr();
+    llvm::Function* declareIntToStr();
+    llvm::Function* declareFloatToStr();
+    llvm::Function* declareMathSqrt();
+    llvm::Function* declareMathPow();
+    llvm::Function* declareMathAbs();
+    llvm::Function* declareStrConcat();
+    llvm::Function* declareStrSubstr();
+    llvm::Function* declareMalloc();
+
+    // Type conversion functions
+    llvm::Function* declareToString();
+    llvm::Function* declareToInt();
+    llvm::Function* declareToFloat();
+
     // Private members
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<llvm::IRBuilder<>> builder;
     std::unique_ptr<LLVMTypeRegistry> typeRegistry;
     std::unique_ptr<codegen::StringInterpolation> stringInterp;
-    std::map<std::string, llvm::Value*> namedValues;
+    std::map<std::string, llvm::AllocaInst*> namedValues;
+    std::map<std::string, llvm::Function*> functions;  // Store function declarations
     llvm::Function* currentFunction;
+    std::unique_ptr<TypeMetadata> typeMetadata;
 };
 
 } // namespace pryst
