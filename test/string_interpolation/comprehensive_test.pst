@@ -1,0 +1,143 @@
+// Test comprehensive string interpolation functionality
+fn testBasicInterpolation() -> void {
+    let name = "Alice";
+    let age = 30;
+
+    // Basic interpolation
+    let basic = "Hello, ${name}!";
+    print(basic);  // Should print: Hello, Alice!
+
+    // Multiple interpolations
+    let multiple = "${name} is ${age} years old";
+    print(multiple);  // Should print: Alice is 30 years old
+}
+
+fn testNestedExpressions() -> void {
+    let x = 10;
+    let y = 20;
+
+    // Arithmetic expressions
+    let math = "Sum: ${x + y}, Product: ${x * y}";
+    print(math);  // Should print: Sum: 30, Product: 200
+
+    // Function calls in interpolation
+    let len = "Length of 'test': ${string('test').length()}";
+    print(len);  // Should print: Length of 'test': 4
+
+    // Nested string interpolation
+    let nested = "Nested: ${string('Value: ${x}')}";
+    print(nested);  // Should print: Nested: Value: 10
+}
+
+fn testTypeConversions() -> void {
+    let int_val = 42;
+    let float_val = 3.14159;
+    let bool_val = true;
+
+    // Different type conversions
+    let conversions = """
+    Integer: ${int_val}
+    Float: ${float_val}
+    Boolean: ${bool_val}
+    Hex: ${hex(int_val)}
+    Binary: ${bin(int_val)}
+    Scientific: ${scientific(float_val)}
+    """;
+    print(conversions);
+}
+
+fn testEscapeSequences() -> void {
+    // Test various escape sequences
+    let escaped = "Line 1\nLine 2\tTabbed\rCarriage Return";
+    print(escaped);
+
+    // Escaping ${
+    let dollar = "Cost: \${100}";
+    print(dollar);  // Should print: Cost: ${100}
+
+    // Escaping quotes
+    let quotes = "He said \"Hello!\"";
+    print(quotes);  // Should print: He said "Hello!"
+}
+
+fn testComplexObjects() -> void {
+    class Person {
+        private string name;
+        private int age;
+
+        fn new(string n, int a) -> Person {
+            this.name = n;
+            this.age = a;
+        }
+
+        fn toString() -> string {
+            return "${this.name} (${this.age})";
+        }
+    }
+
+    let person = new Person("Bob", 25);
+    print("Person: ${person}");  // Should print: Person: Bob (25)
+}
+
+fn testErrorCases() -> void {
+    // Test null handling
+    let nullable: string? = null;
+    try {
+        print("Null test: ${nullable}");
+    } catch (NullPointerException e) {
+        print("Caught null pointer as expected");
+    }
+
+    // Test invalid expressions
+    try {
+        let invalid = "Invalid: ${undefinedVariable}";
+    } catch (UndefinedVariableException e) {
+        print("Caught undefined variable as expected");
+    }
+}
+
+fn testMultilineStrings() -> void {
+    let name = "Charlie";
+    let multiline = """
+        Hello, ${name}!
+        This is a multiline
+        string with ${2 + 2}
+        interpolated values.
+    """;
+    print(multiline);
+}
+
+fn testConditionalInterpolation() -> void {
+    let condition = true;
+    let value = 42;
+
+    // Conditional expressions
+    let conditional = "The value is: ${condition ? value : 0}";
+    print(conditional);  // Should print: The value is: 42
+
+    // Complex conditions
+    let complex = """
+    Status: ${
+        if value > 50 {
+            "High"
+        } else if value > 20 {
+            "Medium"
+        } else {
+            "Low"
+        }
+    }
+    """;
+    print(complex);  // Should print: Status: Medium
+}
+
+// Entry point
+fn main() -> void {
+    testBasicInterpolation();
+    testNestedExpressions();
+    testTypeConversions();
+    testEscapeSequences();
+    testComplexObjects();
+    testErrorCases();
+    testMultilineStrings();
+    testConditionalInterpolation();
+}
