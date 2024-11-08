@@ -20,8 +20,7 @@ class ClassTypeInfo;
 
 using ClassTypeInfoPtr = std::shared_ptr<ClassTypeInfo>;
 
-// Forward declaration of type conversion function
-llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& context);
+namespace pryst {
 
 // Helper functions declarations
 bool isSubclassOf(const ClassTypeInfoPtr& derived, const ClassTypeInfoPtr& base);
@@ -29,6 +28,7 @@ size_t getMemberIndexInHierarchy(const ClassTypeInfoPtr& classInfo, const std::s
 bool isInstanceOf(const TypeInfoPtr& type, const ClassTypeInfoPtr& classType);
 
 // LLVM-specific type information that extends semantic types
+
 class LLVMTypeInfo {
 public:
     virtual ~LLVMTypeInfo() = default;
@@ -38,11 +38,11 @@ public:
 using LLVMTypeInfoPtr = std::shared_ptr<LLVMTypeInfo>;
 
 // LLVM-specific function type information
-class LLVMFunctionTypeInfo : public FunctionTypeInfo, public LLVMTypeInfo {
+class LLVMFunctionTypeInfo : public pryst::FunctionTypeInfo, public LLVMTypeInfo {
 public:
     LLVMFunctionTypeInfo(const std::string& name,
-                        TypeInfoPtr returnType,
-                        std::vector<TypeInfoPtr> paramTypes,
+                        pryst::TypeInfoPtr returnType,
+                        std::vector<pryst::TypeInfoPtr> paramTypes,
                         llvm::FunctionType* type)
         : FunctionTypeInfo(name, returnType, std::move(paramTypes)),
           llvmType(type) {}
@@ -57,7 +57,7 @@ private:
 };
 
 // LLVM-specific class type information
-class LLVMClassTypeInfo : public ClassTypeInfo, public LLVMTypeInfo {
+class LLVMClassTypeInfo : public pryst::ClassTypeInfo, public LLVMTypeInfo {
 public:
     LLVMClassTypeInfo(const std::string& name,
                       llvm::StructType* type,
@@ -85,6 +85,7 @@ using LLVMFunctionTypeInfoPtr = std::shared_ptr<LLVMFunctionTypeInfo>;
 using LLVMClassTypeInfoPtr = std::shared_ptr<LLVMClassTypeInfo>;
 
 // Type metadata management class
+
 class TypeMetadata {
 public:
     TypeMetadata(llvm::LLVMContext& ctx, llvm::Module& mod);
