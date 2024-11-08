@@ -14,20 +14,13 @@
 
 namespace pryst {
 
-LLVMCodegen::LLVMCodegen() {
-    context = std::make_unique<llvm::LLVMContext>();
-    module = std::make_unique<llvm::Module>("pryst_module", *context);
-    builder = std::make_unique<llvm::IRBuilder<>>(*context);
-    typeRegistry = std::make_unique<LLVMTypeRegistry>(*context);
-    currentFunction = nullptr;
-}
+
 
 std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
-    // Initialize module components
-    context = std::make_unique<llvm::LLVMContext>();
+    // Reset module for new generation
     module = std::make_unique<llvm::Module>("pryst_module", *context);
-    builder = std::make_unique<llvm::IRBuilder<>>(*context);
-    typeRegistry = std::make_unique<LLVMTypeRegistry>(*context);
+    builder->SetInsertPoint(llvm::BasicBlock::Create(*context));
+
     declarePrintFunctions();
     visitProgram(ctx);
 
@@ -98,6 +91,168 @@ llvm::AllocaInst* LLVMCodegen::createEntryBlockAlloca(llvm::Function* function,
 
 void LLVMCodegen::declarePrintFunctions() {
     // Print function declarations will be implemented in subsequent updates
+}
+
+// Type system implementations
+llvm::Type* LLVMCodegen::getPointerType(llvm::Type* elementType) {
+    // In LLVM 20.0.0, all pointers are opaque i8*
+    return llvm::Type::getInt8Ty(*context);
+}
+
+llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) {
+    if (!typeInfo) {
+        throw std::runtime_error("Invalid type info");
+    }
+    return ::pryst::getLLVMTypeFromTypeInfo(typeInfo, *context);
+}
+
+// Class member visitor implementations
+std::any LLVMCodegen::visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext *ctx) {
+    PRYST_DEBUG("Visiting class typed variable declaration");
+    // Get the type
+    auto typeCtx = ctx->type();
+    llvm::Type* varType = std::any_cast<llvm::Type*>(visit(typeCtx));
+
+    // Get the variable name
+    std::string varName = ctx->IDENTIFIER()->getText();
+
+    // Get the initialization value
+    llvm::Value* initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+
+    // Create alloca for the class member
+    llvm::AllocaInst* alloca = createEntryBlockAlloca(currentFunction, varName, varType);
+
+    // Store the initial value
+    builder->CreateStore(initValue, alloca);
+
+    // Add to symbol table
+    namedValues[varName] = alloca;
+
+    return std::any();
+}
+
+std::any LLVMCodegen::visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext *ctx) {
+    PRYST_DEBUG("Visiting class inferred variable declaration");
+    // Get the variable name
+    std::string varName = ctx->IDENTIFIER()->getText();
+
+    // Get the initialization value and infer type
+    llvm::Value* initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+    llvm::Type* varType = initValue->getType();
+
+    // Create alloca for the class member
+    llvm::AllocaInst* alloca = createEntryBlockAlloca(currentFunction, varName, varType);
+
+    // Store the initial value
+    builder->CreateStore(initValue, alloca);
+
+    // Add to symbol table
+    namedValues[varName] = alloca;
+
+    return std::any();
+}
+
+std::any LLVMCodegen::visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext *ctx) {
+    PRYST_DEBUG("Visiting class const inferred declaration");
+    // Get the variable name
+    std::string varName = ctx->IDENTIFIER()->getText();
+
+    // Get the initialization value and infer type
+    llvm::Value* initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+    llvm::Type* varType = initValue->getType();
+
+    // Create constant value
+    llvm::GlobalVariable* constVar = new llvm::GlobalVariable(
+        *module,
+        varType,
+        true, // isConstant
+        llvm::GlobalValue::PrivateLinkage,
+        llvm::dyn_cast<llvm::Constant>(initValue),
+        varName
+    );
+
+    // Add to symbol table
+    namedValues[varName] = constVar;
+
+    return std::any();
+}
+
+std::any LLVMCodegen::visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext *ctx) {
+    PRYST_DEBUG("Visiting class const typed declaration");
+    // Get the type
+    auto typeCtx = ctx->type();
+    llvm::Type* varType = std::any_cast<llvm::Type*>(visit(typeCtx));
+
+    // Get the variable name
+    std::string varName = ctx->IDENTIFIER()->getText();
+
+    // Get the initialization value
+    llvm::Value* initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+
+    // Create constant value
+    llvm::GlobalVariable* constVar = new llvm::GlobalVariable(
+        *module,
+        varType,
+        true, // isConstant
+        llvm::GlobalValue::PrivateLinkage,
+        llvm::dyn_cast<llvm::Constant>(initValue),
+        varName
+    );
+
+    // Add to symbol table
+    namedValues[varName] = constVar;
+
+    return std::any();
+}
+
+std::any LLVMCodegen::visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *ctx) {
+    PRYST_DEBUG("Visiting class function declaration");
+    // Get function name
+    std::string funcName = ctx->IDENTIFIER()->getText();
+
+    // Get return type
+    auto returnTypeCtx = ctx->type();
+    llvm::Type* returnType = std::any_cast<llvm::Type*>(visit(returnTypeCtx));
+
+    // Get parameter types
+    std::vector<llvm::Type*> paramTypes;
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            auto paramType = std::any_cast<llvm::Type*>(visit(param->type()));
+            paramTypes.push_back(paramType);
+        }
+    }
+
+    // Create function type
+    llvm::FunctionType* funcType = llvm::FunctionType::get(
+        returnType,
+        paramTypes,
+        false // isVarArg
+    );
+
+    // Create function
+    llvm::Function* function = llvm::Function::Create(
+        funcType,
+        llvm::Function::ExternalLinkage,
+        funcName,
+        module.get()
+    );
+
+    // Create basic block
+    llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", function);
+    builder->SetInsertPoint(bb);
+
+    // Save the current function
+    llvm::Function* parentFunction = currentFunction;
+    currentFunction = function;
+
+    // Visit function body
+    visit(ctx->functionBody());
+
+    // Restore the parent function
+    currentFunction = parentFunction;
+
+    return std::any();
 }
 
 } // namespace pryst
