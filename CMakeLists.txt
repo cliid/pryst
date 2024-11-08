@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
+enable_testing()
 project(PrystCompiler)
 
 # Use environment variables for compiler settings if available
@@ -188,10 +189,16 @@ file(GLOB GENERATED_SRC
     "${CMAKE_SOURCE_DIR}/src/generated/*.h"
 )
 
-# Create executable target
-add_executable(pryst ${ANTLR_SOURCES})
+add_library(pryst_lib STATIC ${ANTLR_SOURCES})
+add_dependencies(pryst_lib GenerateParser)
 
-# Add dependencies
+target_link_libraries(pryst_lib
+    ${ANTLR4_RUNTIME_LIBRARY}
+    ${llvm_libs}
+)
+
+add_executable(pryst ${CMAKE_SOURCE_DIR}/src/main.cpp)
+
 add_dependencies(pryst GenerateParser)
 
 # Link against LLVM libraries
@@ -212,8 +219,7 @@ llvm_map_components_to_libnames(llvm_libs
 
 # Link against required libraries
 target_link_libraries(pryst
-    ${ANTLR4_RUNTIME_LIBRARY}
-    ${llvm_libs}
+    pryst_lib
 )
 
 # Print configuration summary
@@ -224,3 +230,6 @@ message(STATUS "  LLVM Directory: ${LLVM_DIR}")
 message(STATUS "  ANTLR4 Include Directory: ${ANTLR4_INCLUDE_DIR}")
 message(STATUS "  ANTLR4 Library Directory: ${ANTLR4_LIBRARY_DIR}")
 message(STATUS "  ANTLR4 Executable: ${ANTLR4_EXECUTABLE}")
+
+# Add test directory
+add_subdirectory(test)
