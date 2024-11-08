@@ -1,0 +1,37 @@
+// Test all type conversion paths
+fn main() -> int {
+    // String to int conversions
+    let strNum = "123";
+    let intFromStr = toInt(strNum);
+    print("String to int: " + toString(intFromStr));  // Should print 123
+
+    // Float to int conversions
+    let floatNum = 456.789;
+    let intFromFloat = toInt(floatNum);
+    print("Float to int: " + toString(intFromFloat));  // Should print 456
+
+    // Bool to int conversions
+    let boolVal = true;
+    let intFromBool = toInt(boolVal);
+    print("Bool to int: " + toString(intFromBool));  // Should print 1
+
+    // String to float conversions
+    let strFloat = "123.456";
+    let floatFromStr = toFloat(strFloat);
+    print("String to float: " + toString(floatFromStr));  // Should print 123.456
+
+    // Int to float conversions
+    let intNum = 789;
+    let floatFromInt = toFloat(intNum);
+    print("Int to float: " + toString(floatFromInt));  // Should print 789.0
+
+    // Bool to float conversions
+    let floatFromBool = toFloat(true);
+    print("Bool to float: " + toString(floatFromBool));  // Should print 1.0
+
+    // Test edge cases
+    print("Empty string to int: " + toString(toInt("")));  // Should print 0
+    print("Invalid string to float: " + toString(toFloat("abc")));  // Should print 0.0
+
+    return 0;
+}
