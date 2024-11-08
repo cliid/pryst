@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../generated/PrystBaseVisitor.h"
+#include "../generated/PrystParserBaseVisitor.h"
 #include "../generated/PrystParser.h"
 #include "type_registry.hpp"
 #include "type_metadata.hpp"
@@ -23,7 +23,7 @@ namespace pryst {
 // Forward declarations
 class TypeMetadata;
 
-class LLVMCodegen : public PrystBaseVisitor {
+class LLVMCodegen : public PrystParserBaseVisitor {
 public:
     LLVMCodegen() {
         initializeModule();
@@ -57,7 +57,10 @@ public:
     std::any visitNamespaceDecl(PrystParser::NamespaceDeclContext *ctx) override;
     std::any visitModuleDecl(PrystParser::ModuleDeclContext *ctx) override;
     std::any visitImportDecl(PrystParser::ImportDeclContext *ctx) override;
-    std::any visitImportPath(PrystParser::ImportPathContext *ctx) override;
+    std::any visitUsingDecl(PrystParser::GlobalUsingDeclContext *ctx) override;
+    std::any visitStringLiteral(PrystParser::StringLiteralContext *ctx) override;
+    std::any visitStringPart(PrystParser::StringPartContext *ctx) override;
+    std::any visitTryCatchStatement(PrystParser::TryCatchStatementContext *ctx) override;
 
     // Functions and Classes
     std::any visitFunctionDecl(PrystParser::FunctionDeclContext *ctx) override;
@@ -69,14 +72,8 @@ public:
     std::any visitParamTypeList(PrystParser::ParamTypeListContext *ctx) override;
     std::any visitClassDeclaration(PrystParser::ClassDeclarationContext *ctx) override;
     std::any visitClassBody(PrystParser::ClassBodyContext *ctx) override;
+    std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext *ctx) override;
     std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *ctx) override;
-    std::any visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext *ctx) override;
-    std::any visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext *ctx) override;
-    std::any visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext *ctx) override;
-    std::any visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext *ctx) override;
-
-    // String handling
-    std::any visitSimpleString(PrystParser::SimpleStringContext *ctx) override;
 
     // Type conversions
     std::any visitTypeCastExpr(PrystParser::TypeCastExprContext *ctx) override;
@@ -104,7 +101,7 @@ public:
     std::any visitWhileStatement(PrystParser::WhileStatementContext *ctx) override;
     std::any visitForStatement(PrystParser::ForStatementContext *ctx) override;
     std::any visitReturnStatement(PrystParser::ReturnStatementContext *ctx) override;
-    std::any visitTryStatement(PrystParser::TryStatementContext *ctx) override;
+    std::any visitTryCatchStatement(PrystParser::TryCatchStatementContext *ctx) override;
     std::any visitPrintStatement(PrystParser::PrintStatementContext *ctx) override;
 
 private:
@@ -135,7 +132,11 @@ private:
     std::unique_ptr<TypeMetadata> typeMetadata_;
     std::map<std::string, llvm::Value*> namedValues_;
     std::map<std::string, llvm::Function*> functions_;
+    std::string currentNamespace_;
+    std::string currentModule_;
+    std::set<std::string> importedModules_;
     llvm::Function* currentFunction_;
+    llvm::Function* getTypeIdFunc_;
 };
 
 } // namespace pryst
