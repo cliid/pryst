@@ -9,7 +9,9 @@
 #include <iostream>
 
 ModuleLoader::ModuleLoader(std::shared_ptr<SymbolTable> symbolTable)
-    : symbolTable(symbolTable) {
+    : symbolTable(symbolTable),
+      usingManager(std::make_shared<pryst::UsingDeclarationManager>()),
+      interfaceManager(std::make_shared<pryst::ModuleInterfaceManager>()) {
     initializeModuleSystem();
 }
 
@@ -55,6 +57,11 @@ ModuleInfo ModuleLoader::loadModule(const std::string& modulePath) {
         std::string resolvedPath = resolveModulePath(modulePath, "");
         PRYST_DEBUG("Resolved path: " + resolvedPath);
 
+        // Try to load and validate interface first
+        if (tryLoadInterface(resolvedPath)) {
+            PRYST_DEBUG("Interface loaded for module: " + modulePath);
+        }
+
         // Mark as loaded to prevent circular imports
         loadedModules[modulePath] = true;
         PRYST_DEBUG("Marked module as loaded: " + modulePath);
@@ -64,8 +71,15 @@ ModuleInfo ModuleLoader::loadModule(const std::string& modulePath) {
         ModuleInfo moduleInfo = parseModuleFile(resolvedPath);
         PRYST_DEBUG("Module file parsed successfully");
 
+        // Validate against interface if it exists
+        if (hasInterface(modulePath)) {
+            if (!loadAndValidateInterface(modulePath)) {
+                throw std::runtime_error("Module implementation does not match interface: " + modulePath);
+            }
+        }
+
         // Set the qualified name based on the original module path
-        moduleInfo.qualifiedName = modulePath.substr(0, modulePath.find("::"));
+        moduleInfo.qualifiedName = modulePath;
         PRYST_DEBUG("Set qualified name: " + moduleInfo.qualifiedName);
 
         // Register module functions with symbol table
@@ -86,7 +100,7 @@ ModuleInfo ModuleLoader::loadModule(const std::string& modulePath) {
     } catch (const std::exception& e) {
         // Remove from loaded modules on failure
         loadedModules.erase(modulePath);
-        PRYST_DEBUG("Failed to load module: " + modulePath + " - " + e.what());
+        PRYST_ERROR("Failed to load module: " + modulePath + " - " + e.what());
         throw std::runtime_error("Failed to load module '" + modulePath + "': " + e.what());
     }
 }
@@ -340,4 +354,80 @@ bool ModuleLoader::validateModuleStructure(const std::string& modulePath) const 
     bool isValid = hasModuleDeclaration && braceCount == 0;
     PRYST_DEBUG("Module structure validation result for " + modulePath + ": " + (isValid ? "valid" : "invalid"));
     return isValid;
+}
+// Add new methods at the end of the file
+
+void ModuleLoader::addUsingDeclaration(
+    const std::string& target,
+    int scopeLevel,
+    bool isModule,
+    const std::string& alias,
+    const std::string& sourceFile,
+    int sourceLine
+) {
+    usingManager->addUsingDeclaration(target, scopeLevel, isModule, alias, sourceFile, sourceLine);
+    PRYST_DEBUG("Added using declaration for " + target + " at scope level " + std::to_string(scopeLevel));
+}
+
+void ModuleLoader::removeUsingDeclarationsAtScope(int scopeLevel) {
+    usingManager->removeUsingDeclarationsAtScope(scopeLevel);
+    PRYST_DEBUG("Removed using declarations at scope level " + std::to_string(scopeLevel));
+}
+
+std::string ModuleLoader::resolveSymbol(const std::string& symbol, int currentScope) const {
+    return usingManager->resolveQualifiedName(symbol, currentScope);
+}
+
+bool ModuleLoader::hasInterface(const std::string& modulePath) const {
+    return interfaceManager->hasInterface(modulePath);
+}
+
+bool ModuleLoader::loadAndValidateInterface(const std::string& modulePath) {
+    if (!hasInterface(modulePath)) {
+        return tryLoadInterface(modulePath);
+    }
+    return true;
+}
+
+bool ModuleLoader::tryLoadInterface(const std::string& modulePath) {
+    namespace fs = std::filesystem;
+
+    // Try to find .psti file
+    fs::path interfacePath = fs::path(modulePath).replace_extension(".psti");
+    if (!fs::exists(interfacePath)) {
+        return false;
+    }
+
+    try {
+        auto interface = interfaceManager->parseInterfaceFile(interfacePath.string());
+        interfaceManager->registerInterface(modulePath, interface);
+        PRYST_DEBUG("Successfully loaded interface for module: " + modulePath);
+        return true;
+    } catch (const std::exception& e) {
+        PRYST_ERROR("Failed to load interface for module: " + modulePath + " - " + e.what());
+        return false;
+    }
+}
+
+void ModuleLoader::discoverAndCacheModules() {
+    namespace fs = std::filesystem;
+    PRYST_DEBUG("Starting automatic module discovery");
+
+    for (const auto& searchPath : searchPaths) {
+        if (!fs::exists(searchPath)) continue;
+
+        for (const auto& entry : fs::recursive_directory_iterator(searchPath)) {
+            if (entry.path().extension() == ".pst") {
+                std::string modulePath = pathToQualifiedName(entry.path().string());
+                if (!isModuleLoaded(modulePath)) {
+                    try {
+                        loadModule(modulePath);
+                        PRYST_DEBUG("Discovered and loaded module: " + modulePath);
+                    } catch (const std::exception& e) {
+                        PRYST_ERROR("Failed to load discovered module: " + modulePath + " - " + e.what());
+                    }
+                }
+            }
+        }
+    }
 }

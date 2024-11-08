@@ -1,0 +1,44 @@
+// Basic try-catch test
+fn<void> testTryCatch() {
+    try {
+        let x = 5;
+        print(x);
+        throw "Test error";
+    } catch (str error) {
+        print(error);
+    }
+}
+
+// Nested try-catch test
+fn<void> testNestedTryCatch() {
+    try {
+        try {
+            let x = 10;
+            throw "Inner error";
+        } catch (str innerError) {
+            print(innerError);
+            throw "Outer error";
+        }
+    } catch (str outerError) {
+        print(outerError);
+    }
+}
+
+// String interpolation in try-catch
+fn<void> testStringInterpolation() {
+    try {
+        let name = "John";
+        let age = 30;
+        print("Name: ${name}, Age: ${age}");
+        throw "Error in ${name}'s code";
+    } catch (str error) {
+        print("Caught error: ${error}");
+    }
+}
+
+// Main test runner
+fn<void> main() {
+    testTryCatch();
+    testNestedTryCatch();
+    testStringInterpolation();
+}
