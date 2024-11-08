@@ -1,0 +1,139 @@
+// Test comprehensive type conversion scenarios
+fn testNumericConversions() -> void {
+    // Integer conversions
+    let i8_val: i8 = 127;
+    let i16_val: i16 = i16(i8_val);
+    let i32_val: i32 = i32(i16_val);
+    let i64_val: i64 = i64(i32_val);
+
+    // Unsigned conversions
+    let u8_val: u8 = 255;
+    let u16_val: u16 = u16(u8_val);
+    let u32_val: u32 = u32(u16_val);
+    let u64_val: u64 = u64(u32_val);
+
+    // Float conversions
+    let f32_val: f32 = f32(i32_val);
+    let f64_val: f64 = f64(f32_val);
+
+    // Test overflow handling
+    try {
+        let overflow: i8 = i8(1000);
+    } catch (OverflowException e) {
+        print("Caught overflow: ${e.getMessage()}");
+    }
+}
+
+// Test string conversions
+fn testStringConversions() -> void {
+    // To string conversions
+    let int_str = string(42);
+    let float_str = string(3.14159);
+    let bool_str = string(true);
+
+    // From string conversions
+    let parsed_int = int("42");
+    let parsed_float = float("3.14159");
+    let parsed_bool = bool("true");
+
+    // Test format specifiers
+    let hex_str = hex(255);  // "0xFF"
+    let bin_str = bin(15);   // "0b1111"
+    let sci_str = scientific(1234.5678);  // "1.2345678e+3"
+
+    // Test invalid conversions
+    try {
+        let invalid = int("not a number");
+    } catch (TypeConversionException e) {
+        print("Caught invalid conversion: ${e.getMessage()}");
+    }
+}
+
+// Test boolean conversions
+fn testBooleanConversions() -> void {
+    // Numeric to boolean
+    let bool_from_int = bool(1);
+    let bool_from_zero = bool(0);
+    let bool_from_float = bool(0.0);
+
+    // String to boolean
+    let bool_from_true = bool("true");
+    let bool_from_false = bool("false");
+    let bool_from_yes = bool("yes");
+    let bool_from_no = bool("no");
+
+    // Test invalid boolean conversions
+    try {
+        let invalid = bool("invalid");
+    } catch (TypeConversionException e) {
+        print("Caught invalid boolean: ${e.getMessage()}");
+    }
+}
+
+// Test array and collection conversions
+fn testCollectionConversions() -> void {
+    // Array conversions
+    let int_array = [1, 2, 3];
+    let float_array = float[](int_array);
+    let string_array = string[](int_array);
+
+    // List conversions
+    let int_list = List<int>(int_array);
+    let float_list = List<float>(float_array);
+
+    // Set conversions
+    let string_set = Set<string>(string_array);
+}
+
+// Test custom type conversions
+class CustomType {
+    private int value;
+
+    fn new(int v) -> CustomType {
+        this.value = v;
+    }
+
+    fn toString() -> string {
+        return string(this.value);
+    }
+
+    static fn fromString(string s) -> CustomType {
+        return new CustomType(int(s));
+    }
+}
+
+fn testCustomConversions() -> void {
+    let custom = new CustomType(42);
+    let str = string(custom);
+    let back = CustomType::fromString(str);
+
+    try {
+        let invalid = CustomType::fromString("invalid");
+    } catch (TypeConversionException e) {
+        print("Caught custom conversion error: ${e.getMessage()}");
+    }
+}
+
+// Test chained conversions
+fn testChainedConversions() -> void {
+    // Multiple conversions
+    let start: int = 42;
+    let result = string(float(start));
+
+    // Complex chains
+    let complex = int(float(string(bool(1))));
+
+    // Test conversion preservation
+    let precise = float(string(3.14159));
+    print("Precision test: ${precise}");
+}
+
+// Entry point
+fn main() -> void {
+    testNumericConversions();
+    testStringConversions();
+    testBooleanConversions();
+    testCollectionConversions();
+    testCustomConversions();
+    testChainedConversions();
+}
