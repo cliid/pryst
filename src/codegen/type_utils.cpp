@@ -1,45 +1,86 @@
-#include "llvm_codegen.hpp"
-#include "type_metadata.hpp"
+#include "type_utils.hpp"
 #include <llvm/IR/DerivedTypes.h>
 
-// Global type conversion function
-llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& context) {
-    if (!typeInfo) {
-        throw std::runtime_error("Invalid type info");
-    }
+namespace pryst {
+
+llvm::Type* getLLVMTypeFromTypeInfo(const TypeInfoPtr& typeInfo, llvm::LLVMContext& context) {
+    if (!typeInfo) return nullptr;
 
     switch (typeInfo->getKind()) {
-        case TypeInfo::Kind::Basic: {
-            const std::string& name = typeInfo->getName();
-            if (name == "int") return llvm::Type::getInt32Ty(context);
-            if (name == "float") return llvm::Type::getDoubleTy(context);
-            if (name == "bool") return llvm::Type::getInt1Ty(context);
-            if (name == "str") return llvm::Type::getInt8Ty(context);  // All pointers are opaque i8
-            throw std::runtime_error("Unknown basic type: " + name);
+        case TypeKind::Int:
+        case TypeKind::Float:
+        case TypeKind::Bool:
+        case TypeKind::String:
+        case TypeKind::Void: {
+            auto basicInfo = std::dynamic_pointer_cast<BasicTypeInfo>(typeInfo);
+            if (!basicInfo) return nullptr;
+            return getBasicLLVMType(basicInfo->getBasicKind(), context);
         }
-        case TypeInfo::Kind::Class:
-            if (auto classInfo = std::dynamic_pointer_cast<LLVMClassTypeInfo>(typeInfo)) {
-                return classInfo->getStructType();
+        case TypeKind::Array: {
+            auto arrayInfo = std::dynamic_pointer_cast<ArrayTypeInfo>(typeInfo);
+            if (!arrayInfo) return nullptr;
+            auto elementType = getLLVMTypeFromTypeInfo(arrayInfo->getElementType(), context);
+            if (!elementType) return nullptr;
+            return llvm::PointerType::get(context, 0);
+        }
+        case TypeKind::Function: {
+            auto funcInfo = std::dynamic_pointer_cast<FunctionTypeInfo>(typeInfo);
+            if (!funcInfo) return nullptr;
+
+            std::vector<llvm::Type*> paramTypes;
+            for (const auto& paramType : funcInfo->getParamTypes()) {
+                if (auto llvmType = getLLVMTypeFromTypeInfo(paramType, context)) {
+                    paramTypes.push_back(llvmType);
+                } else {
+                    return nullptr;
+                }
             }
-            throw std::runtime_error("Invalid class type info");
-        case TypeInfo::Kind::Function:
-            if (auto funcInfo = std::dynamic_pointer_cast<LLVMFunctionTypeInfo>(typeInfo)) {
-                return funcInfo->getFunctionType(context);
-            }
-            throw std::runtime_error("Invalid function type info");
-        case TypeInfo::Kind::Array:
-            // TODO: Implement array type handling
-            throw std::runtime_error("Array types not yet implemented");
-        case TypeInfo::Kind::Pointer:
-            return llvm::Type::getInt8Ty(context);  // All pointers are opaque i8
+
+            auto returnType = getLLVMTypeFromTypeInfo(funcInfo->getReturnType(), context);
+            if (!returnType) return nullptr;
+
+            return llvm::FunctionType::get(returnType, paramTypes, false);
+        }
         default:
-            throw std::runtime_error("Unknown type kind");
+            return nullptr;
     }
 }
 
-llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) {
-    if (!typeInfo) {
-        throw std::runtime_error("Invalid type info");
+llvm::Type* getBasicLLVMType(BasicTypeInfo::BasicKind kind, llvm::LLVMContext& context) {
+    switch (kind) {
+        case BasicTypeInfo::BasicKind::Void:
+            return llvm::Type::getVoidTy(context);
+        case BasicTypeInfo::BasicKind::Bool:
+            return llvm::Type::getInt1Ty(context);
+        case BasicTypeInfo::BasicKind::Int:
+            return llvm::Type::getInt32Ty(context);
+        case BasicTypeInfo::BasicKind::Float:
+            return llvm::Type::getDoubleTy(context);
+        case BasicTypeInfo::BasicKind::String:
+            return llvm::PointerType::get(context, 0);
+        default:
+            return nullptr;
     }
-    return ::getLLVMTypeFromTypeInfo(typeInfo, module->getContext());
 }
+
+bool isConvertibleTypes(const TypeInfo* from, const TypeInfo* to) {
+    if (!from || !to) return false;
+    if (from->getKind() == to->getKind()) return true;
+
+    // Handle numeric type conversions
+    if (from->getKind() == TypeKind::Int && to->getKind() == TypeKind::Float) {
+        return true;
+    }
+
+    // Handle conversions to string
+    if (to->getKind() == TypeKind::String &&
+        (from->getKind() == TypeKind::Int ||
+         from->getKind() == TypeKind::Float ||
+         from->getKind() == TypeKind::Bool)) {
+        return true;
+    }
+
+    return false;
+}
+
+} // namespace pryst

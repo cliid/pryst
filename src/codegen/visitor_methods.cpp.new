@@ -195,7 +195,7 @@ llvm::Value* LLVMCodegen::convertValue(llvm::Value* value, const std::string& ta
     }
 
     throw std::runtime_error("Unsupported type conversion from " +
-                           (sourceTypeInfo ? sourceTypeInfo->getTypeName() : "unknown") +
+                           (sourceTypeInfo ? sourceTypeInfo->getName() : "unknown") +
                            " to " + targetType);
 }
 
@@ -213,7 +213,7 @@ llvm::Value* LLVMCodegen::generateMethodCall(llvm::Value* object, const std::str
         throw std::runtime_error("Method calls are only supported on class instances");
     }
 
-    std::string className = typeInfo->getTypeName();
+    std::string className = typeInfo->getName();
     auto classInfo = getClassInfo(className);
     if (!classInfo) {
         throw std::runtime_error("Unknown class type: " + className);

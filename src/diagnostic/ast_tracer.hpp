@@ -11,7 +11,13 @@ class ASTTracer : public PrystBaseVisitor {
 public:
     virtual std::any visitProgram(PrystParser::ProgramContext* ctx) override;
     virtual std::any visitDeclaration(PrystParser::DeclarationContext* ctx) override;
-    virtual std::any visitVariableDecl(PrystParser::VariableDeclContext* ctx) override;
+    virtual std::any visitInferredVariableDecl(PrystParser::InferredVariableDeclContext* ctx) override;
+    virtual std::any visitTypedVariableDecl(PrystParser::TypedVariableDeclContext* ctx) override;
+    virtual std::any visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext* ctx) override;
+    virtual std::any visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext* ctx) override;
+    virtual std::any visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext* ctx) override;
+    virtual std::any visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext* ctx) override;
+    virtual std::any visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext* ctx) override;
     virtual std::any visitExpression(PrystParser::ExpressionContext* ctx) override;
     virtual std::any visitLogicOr(PrystParser::LogicOrContext* ctx) override;
     virtual std::any visitLogicAnd(PrystParser::LogicAndContext* ctx) override;
@@ -26,6 +32,7 @@ public:
     virtual std::any visitTypeCastExpr(PrystParser::TypeCastExprContext* ctx) override;
     virtual std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) override;
     virtual std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext* ctx) override;
+    virtual std::any visitSimpleString(PrystParser::SimpleStringContext* ctx) override;
 
 private:
     int indentLevel = 0;

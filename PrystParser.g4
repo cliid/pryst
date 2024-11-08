@@ -57,7 +57,13 @@ functionBody
     ;
 
 variableDecl
-    : (LET | CONST | type | CONST type | CONST_EXPR) IDENTIFIER (EQUAL expression)? SEMICOLON
+    : LET IDENTIFIER EQUAL expression SEMICOLON                    # inferredVariableDecl
+    | type IDENTIFIER EQUAL expression SEMICOLON                   # typedVariableDecl
+    | type IDENTIFIER SEMICOLON                                    # uninitializedVariableDecl
+    | CONST IDENTIFIER EQUAL expression SEMICOLON                  # classInferredVariableDecl
+    | CONST type IDENTIFIER EQUAL expression SEMICOLON            # classTypedVariableDecl
+    | CONST_EXPR IDENTIFIER EQUAL expression SEMICOLON            # classConstInferredDecl
+    | CONST_EXPR type IDENTIFIER EQUAL expression SEMICOLON       # classConstTypedDecl
     ;
 
 classDeclaration
@@ -108,6 +114,8 @@ statement
     | RETURN expression? SEMICOLON                  # returnStatement
     | LBRACE statement* RBRACE                    # blockStatement
     | PRINT LPAREN expression RPAREN SEMICOLON      # printStatement
+    | TRY statement (CATCH LPAREN type IDENTIFIER RPAREN statement)*  # tryStatement
+    | TRY LBRACE statement* RBRACE (CATCH LPAREN type IDENTIFIER RPAREN LBRACE statement* RBRACE)*  # tryCatchStatement
     ;
 
 expression
@@ -121,7 +129,8 @@ expression
     ;
 
 stringLiteral
-    : STRING_START stringPart* STRING_END
+    : STRING_START stringPart* STRING_END           # interpolatedString
+    | STRING_START STRING_CONTENT? STRING_END       # simpleString
     ;
 
 stringPart

@@ -1,83 +1,58 @@
 #pragma once
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Module.h>
+
 #include <string>
 #include <vector>
-#include <unordered_map>
-#include "../utils/debug.hpp"
-#include "../codegen/type_registry.hpp"
+#include <memory>
+#include <llvm/IR/Value.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include "codegen/type_registry.hpp"
 
 namespace pryst {
 
-/**
- * StringBuilder class for handling string manipulation and interpolation in LLVM IR generation.
- * Provides functionality for building strings, formatting values, and string interpolation.
- */
 class StringBuilder {
 public:
-    /**
-     * Constructor initializes the StringBuilder with LLVM context and required dependencies.
-     * @param context LLVM context reference
-     * @param builder LLVM IR builder pointer
-     * @param module LLVM module pointer
-     * @param typeRegistry Type registry for managing LLVM types
-     */
-    StringBuilder(llvm::LLVMContext& context, llvm::IRBuilder<>* builder, llvm::Module* module, LLVMTypeRegistry& typeRegistry)
-        : context(context), builder(builder), module(module), typeRegistry(typeRegistry) {
-        // Initialize string builder functions
-        initializeStringFunctions();
-    }
+    StringBuilder(llvm::LLVMContext& context, llvm::IRBuilder<>* builder,
+                 llvm::Module* module, TypeRegistry& typeRegistry)
+        : context(context), builder(builder), module(module), typeRegistry(typeRegistry) {}
 
-    /**
-     * Appends a string literal to the builder.
-     * @param str The string literal to append
-     * @return LLVM Value pointer representing the appended string
-     */
-    llvm::Value* appendLiteral(const std::string& str);
+    // String manipulation methods
+    llvm::Value* createStringLiteral(const std::string& str);
+    llvm::Value* concatenateStrings(llvm::Value* str1, llvm::Value* str2);
+    llvm::Value* createFormattedString(const std::string& format,
+                                     const std::vector<llvm::Value*>& args);
 
-    /**
-     * Appends a formatted value to the builder.
-     * @param value LLVM Value to format
-     * @param format Optional format specifier string
-     * @return LLVM Value pointer representing the formatted string
-     */
-    llvm::Value* appendFormatted(llvm::Value* value, const std::string& format = "");
+    // String conversion methods
+    llvm::Value* convertIntToString(llvm::Value* intValue);
+    llvm::Value* convertFloatToString(llvm::Value* floatValue);
+    llvm::Value* convertBoolToString(llvm::Value* boolValue);
 
-    /**
-     * Appends an interpolated string with variable substitutions.
-     * @param format Format string with {variable} placeholders
-     * @param values Map of variable names to LLVM Values
-     * @return LLVM Value pointer representing the interpolated string
-     */
-    llvm::Value* appendInterpolatedString(const std::string& format, const std::unordered_map<std::string, llvm::Value*>& values);
+    // String operations
+    llvm::Value* getStringLength(llvm::Value* str);
+    llvm::Value* compareStrings(llvm::Value* str1, llvm::Value* str2);
+    llvm::Value* findSubstring(llvm::Value* str, llvm::Value* substr);
 
-    /**
-     * Builds and returns the final string.
-     * @return LLVM Value pointer representing the complete string
-     */
-    llvm::Value* build();
+    // Memory management
+    llvm::Value* allocateString(size_t size);
+    void freeString(llvm::Value* str);
+
+    // Utility methods
+    llvm::Value* createStringBuffer(size_t size);
+    llvm::Value* copyString(llvm::Value* src);
 
 private:
-    /**
-     * Initializes required string manipulation functions.
-     */
-    void initializeStringFunctions();
-
     llvm::LLVMContext& context;
     llvm::IRBuilder<>* builder;
     llvm::Module* module;
-    LLVMTypeRegistry& typeRegistry;
+    TypeRegistry& typeRegistry;
 
-    // String manipulation functions
-    llvm::Function* strlenFunc = nullptr;
-    llvm::Function* strcatFunc = nullptr;
-    llvm::Function* strcpyFunc = nullptr;
-    llvm::Function* mallocFunc = nullptr;
-    llvm::Function* freeFunc = nullptr;
-    llvm::Function* sprintfFunc = nullptr;
-
-    // Buffer for building the string
-    std::vector<llvm::Value*> parts;
+    // Helper methods
+    llvm::Function* getOrDeclareStrlen();
+    llvm::Function* getOrDeclareStrcpy();
+    llvm::Function* getOrDeclareStrcat();
+    llvm::Function* getOrDeclareMalloc();
+    llvm::Function* getOrDeclareFree();
 };
 
 } // namespace pryst

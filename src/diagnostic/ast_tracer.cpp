@@ -32,15 +32,87 @@ std::any ASTTracer::visitDeclaration(PrystParser::DeclarationContext* ctx) {
     return std::any();
 }
 
-std::any ASTTracer::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
-    std::cout << getIndent() << "Entering VariableDecl: " << ctx->IDENTIFIER()->getText() << " : " << ctx->type()->getText() << std::endl;
+std::any ASTTracer::visitInferredVariableDecl(PrystParser::InferredVariableDeclContext* ctx) {
+    std::cout << getIndent() << "Entering InferredVariableDecl: " << ctx->IDENTIFIER()->getText() << std::endl;
     indentLevel++;
     if (ctx->expression()) {
         std::cout << getIndent() << "Processing initialization expression" << std::endl;
         visit(ctx->expression());
     }
     indentLevel--;
-    std::cout << getIndent() << "Exiting VariableDecl" << std::endl;
+    std::cout << getIndent() << "Exiting InferredVariableDecl" << std::endl;
+    return std::any();
+}
+
+std::any ASTTracer::visitTypedVariableDecl(PrystParser::TypedVariableDeclContext* ctx) {
+    std::cout << getIndent() << "Entering TypedVariableDecl: " << ctx->IDENTIFIER()->getText()
+              << " : " << ctx->type()->getText() << std::endl;
+    indentLevel++;
+    if (ctx->expression()) {
+        std::cout << getIndent() << "Processing initialization expression" << std::endl;
+        visit(ctx->expression());
+    }
+    indentLevel--;
+    std::cout << getIndent() << "Exiting TypedVariableDecl" << std::endl;
+    return std::any();
+}
+
+std::any ASTTracer::visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext* ctx) {
+    std::cout << getIndent() << "Entering UninitializedVariableDecl: " << ctx->IDENTIFIER()->getText()
+              << " : " << ctx->type()->getText() << std::endl;
+    indentLevel++;
+    indentLevel--;
+    std::cout << getIndent() << "Exiting UninitializedVariableDecl" << std::endl;
+    return std::any();
+}
+
+std::any ASTTracer::visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext* ctx) {
+    std::cout << getIndent() << "Entering ClassInferredVariableDecl: " << ctx->IDENTIFIER()->getText() << std::endl;
+    indentLevel++;
+    if (ctx->expression()) {
+        std::cout << getIndent() << "Processing initialization expression" << std::endl;
+        visit(ctx->expression());
+    }
+    indentLevel--;
+    std::cout << getIndent() << "Exiting ClassInferredVariableDecl" << std::endl;
+    return std::any();
+}
+
+std::any ASTTracer::visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext* ctx) {
+    std::cout << getIndent() << "Entering ClassTypedVariableDecl: " << ctx->IDENTIFIER()->getText()
+              << " : " << ctx->type()->getText() << std::endl;
+    indentLevel++;
+    if (ctx->expression()) {
+        std::cout << getIndent() << "Processing initialization expression" << std::endl;
+        visit(ctx->expression());
+    }
+    indentLevel--;
+    std::cout << getIndent() << "Exiting ClassTypedVariableDecl" << std::endl;
+    return std::any();
+}
+
+std::any ASTTracer::visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext* ctx) {
+    std::cout << getIndent() << "Entering ClassConstInferredDecl: " << ctx->IDENTIFIER()->getText() << std::endl;
+    indentLevel++;
+    if (ctx->expression()) {
+        std::cout << getIndent() << "Processing initialization expression" << std::endl;
+        visit(ctx->expression());
+    }
+    indentLevel--;
+    std::cout << getIndent() << "Exiting ClassConstInferredDecl" << std::endl;
+    return std::any();
+}
+
+std::any ASTTracer::visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext* ctx) {
+    std::cout << getIndent() << "Entering ClassConstTypedDecl: " << ctx->IDENTIFIER()->getText()
+              << " : " << ctx->type()->getText() << std::endl;
+    indentLevel++;
+    if (ctx->expression()) {
+        std::cout << getIndent() << "Processing initialization expression" << std::endl;
+        visit(ctx->expression());
+    }
+    indentLevel--;
+    std::cout << getIndent() << "Exiting ClassConstTypedDecl" << std::endl;
     return std::any();
 }
 
@@ -148,10 +220,16 @@ std::any ASTTracer::visitPrimary(PrystParser::PrimaryContext* ctx) {
     indentLevel++;
     if (ctx->NUMBER()) {
         std::cout << getIndent() << "Number literal: " << ctx->NUMBER()->getText() << std::endl;
-    } else if (ctx->STRING()) {
-        std::cout << getIndent() << "String literal: " << ctx->STRING()->getText() << std::endl;
-    } else if (ctx->IDENTIFIER()) {
-        std::cout << getIndent() << "Identifier: " << ctx->IDENTIFIER()->getText() << std::endl;
+    } else if (ctx->qualifiedIdentifier()) {
+        visit(ctx->qualifiedIdentifier());
+        if (ctx->LPAREN()) {
+            std::cout << getIndent() << "Function call" << std::endl;
+            if (ctx->arguments()) {
+                visit(ctx->arguments());
+            }
+        }
+    } else if (ctx->TRUE() || ctx->FALSE()) {
+        std::cout << getIndent() << "Boolean literal: " << ctx->getText() << std::endl;
     }
     indentLevel--;
     std::cout << getIndent() << "Exiting Primary" << std::endl;
@@ -165,8 +243,9 @@ std::any ASTTracer::visitNamedFunction(PrystParser::NamedFunctionContext* ctx) {
         std::cout << getIndent() << "Parameters:" << std::endl;
         visit(ctx->paramList());
     }
-    for (auto decl : ctx->declaration()) {
-        visit(decl);
+    if (ctx->functionBody()) {
+        std::cout << getIndent() << "Processing function body" << std::endl;
+        visit(ctx->functionBody());
     }
     indentLevel--;
     std::cout << getIndent() << "Exiting Named Function" << std::endl;
@@ -180,8 +259,14 @@ std::any ASTTracer::visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx)
         std::cout << getIndent() << "Parameters:" << std::endl;
         visit(ctx->paramList());
     }
-    for (auto decl : ctx->declaration()) {
-        visit(decl);
+    if (!ctx->declaration().empty()) {
+        std::cout << getIndent() << "Processing lambda body" << std::endl;
+        for (auto decl : ctx->declaration()) {
+            visit(decl);
+        }
+    } else if (ctx->expression()) {
+        std::cout << getIndent() << "Processing lambda expression" << std::endl;
+        visit(ctx->expression());
     }
     indentLevel--;
     std::cout << getIndent() << "Exiting Lambda Function" << std::endl;
@@ -215,5 +300,16 @@ std::any ASTTracer::visitClassConversionExpr(PrystParser::ClassConversionExprCon
     visit(ctx->expression());
     indentLevel--;
     std::cout << getIndent() << "Exiting Class Conversion Expression" << std::endl;
+    return std::any();
+}
+
+std::any ASTTracer::visitSimpleString(PrystParser::SimpleStringContext* ctx) {
+    std::cout << getIndent() << "Entering Simple String" << std::endl;
+    indentLevel++;
+    if (ctx->STRING_CONTENT()) {
+        std::cout << getIndent() << "String content: " << ctx->STRING_CONTENT()->getText() << std::endl;
+    }
+    indentLevel--;
+    std::cout << getIndent() << "Exiting Simple String" << std::endl;
     return std::any();
 }
