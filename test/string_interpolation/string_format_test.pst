@@ -1,0 +1,90 @@
+// Test basic string interpolation
+fn test_basic_interpolation() {
+    let name = "Alice";
+    let age = 25;
+
+    // Test simple identifier interpolation
+    let str1 = "Hello, {name}!";
+    assert(str1 == "Hello, Alice!");
+
+    // Test expression interpolation
+    let str2 = "In ${age + 5} years, you'll be 30";
+    assert(str2 == "In 30 years, you'll be 30");
+}
+
+// Test format specifiers
+fn test_format_specifiers() {
+    let num = 42;
+    let pi = 3.14159;
+
+    // Test integer formatting
+    let str1 = "{num:5d}";  // Right-aligned, width 5
+    assert(str1 == "   42");
+
+    let str2 = "{num:05d}"; // Zero-padded
+    assert(str2 == "00042");
+
+    // Test float formatting
+    let str3 = "{pi:.2f}";  // 2 decimal places
+    assert(str3 == "3.14");
+
+    let str4 = "{pi:8.3f}"; // Width 8, 3 decimal places
+    assert(str4 == "  3.142");
+}
+
+// Test alignment and padding
+fn test_alignment() {
+    let text = "test";
+
+    // Test left alignment
+    let str1 = "{text:<10}";
+    assert(str1 == "test      ");
+
+    // Test right alignment
+    let str2 = "{text:>10}";
+    assert(str2 == "      test");
+}
+
+// Test boolean formatting
+fn test_boolean_format() {
+    let flag = true;
+    let str1 = "Value is {flag:b}";
+    assert(str1 == "Value is true");
+
+    flag = false;
+    let str2 = "{flag:>6b}";
+    assert(str2 == " false");
+}
+
+// Test multiple interpolations
+fn test_multiple_values() {
+    let name = "Bob";
+    let age = 30;
+    let height = 1.75;
+
+    let str = "Name: {name}, Age: {age}, Height: {height:.2f}m";
+    assert(str == "Name: Bob, Age: 30, Height: 1.75m");
+}
+
+// Test complex expressions
+fn test_complex_expressions() {
+    let x = 10;
+    let y = 20;
+
+    let str1 = "${x * y + 5}";
+    assert(str1 == "205");
+
+    let str2 = "Result: ${(x + y) * 2:4d}";
+    assert(str2 == "Result:   60");
+}
+
+// Run all tests
+fn main() {
+    test_basic_interpolation();
+    test_format_specifiers();
+    test_alignment();
+    test_boolean_format();
+    test_multiple_values();
+    test_complex_expressions();
+    print("All string interpolation tests passed!");
+}
