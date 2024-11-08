@@ -2,8 +2,11 @@
 #include "type_metadata.hpp"
 #include <llvm/IR/DerivedTypes.h>
 
-// Global type conversion function
-llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& context) {
+namespace pryst {
+
+namespace {
+// Internal helper function
+llvm::Type* getLLVMTypeFromTypeInfoImpl(TypeInfoPtr typeInfo, llvm::LLVMContext& context) {
     if (!typeInfo) {
         throw std::runtime_error("Invalid type info");
     }
@@ -36,10 +39,13 @@ llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& con
             throw std::runtime_error("Unknown type kind");
     }
 }
+} // anonymous namespace
 
-llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) {
+llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) const {
     if (!typeInfo) {
         throw std::runtime_error("Invalid type info");
     }
-    return ::getLLVMTypeFromTypeInfo(typeInfo, module->getContext());
+    return getLLVMTypeFromTypeInfoImpl(typeInfo, module->getContext());
 }
+
+} // namespace pryst

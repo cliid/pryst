@@ -10,6 +10,16 @@
 #include <string>
 #include "../semantic/type_info.hpp"
 
+namespace pryst {
+
+// Forward declarations
+class TypeInfo;
+class FunctionTypeInfo;
+class ClassTypeInfo;
+using TypeInfoPtr = std::shared_ptr<TypeInfo>;
+using FunctionTypeInfoPtr = std::shared_ptr<FunctionTypeInfo>;
+using ClassTypeInfoPtr = std::shared_ptr<ClassTypeInfo>;
+
 // Forward declaration of type conversion function
 llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& context);
 
@@ -27,7 +37,7 @@ public:
                         TypeInfoPtr returnType,
                         std::vector<TypeInfoPtr> paramTypes,
                         llvm::FunctionType* type)
-        : FunctionTypeInfo(returnType, std::move(paramTypes)),
+        : FunctionTypeInfo(name, returnType, std::move(paramTypes)),
           llvmType(type) {}
 
     llvm::Type* getLLVMType() const override { return llvmType; }
@@ -40,10 +50,10 @@ private:
     llvm::FunctionType* createFunctionType(llvm::LLVMContext& context) const {
         std::vector<llvm::Type*> paramLLVMTypes;
         for (const auto& paramType : getParamTypes()) {
-            paramLLVMTypes.push_back(::getLLVMTypeFromTypeInfo(paramType, context));
+            paramLLVMTypes.push_back(getLLVMTypeFromTypeInfo(paramType, context));
         }
         return llvm::FunctionType::get(
-            ::getLLVMTypeFromTypeInfo(getReturnType(), context),
+            getLLVMTypeFromTypeInfo(getReturnType(), context),
             paramLLVMTypes,
             false
         );
@@ -152,3 +162,5 @@ private:
     std::unordered_map<llvm::Function*, LLVMFunctionTypeInfoPtr> functionTypes;
     std::unordered_map<llvm::StructType*, LLVMClassTypeInfoPtr> classTypes;
 };
+
+} // namespace pryst

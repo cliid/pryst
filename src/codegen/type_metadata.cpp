@@ -2,6 +2,8 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <stdexcept>
 
+namespace pryst {
+
 // Helper function to check if a type is a subclass of another type
 bool isSubclassOf(const ClassTypeInfoPtr& derived, const ClassTypeInfoPtr& base) {
     if (!derived || !base) return false;
@@ -55,3 +57,5 @@ bool isInstanceOf(const TypeInfoPtr& type, const ClassTypeInfoPtr& classType) {
     }
     return false;
 }
+
+} // namespace pryst

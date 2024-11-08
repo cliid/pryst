@@ -1,9 +1,12 @@
 #pragma once
 
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <antlr4-runtime.h>
+#include "../semantic/type_info.hpp"
 #include <memory>
 #include <string>
 #include <map>
@@ -57,18 +60,32 @@ public:
     }
 
     // Type registration and lookup
-    void registerType(const std::string& name, llvm::Type* type) {
-        typeMap[name] = type;
+    void registerType(const std::string& name, TypeInfoPtr typeInfo, llvm::Type* llvmType) {
+        typeInfoMap[name] = typeInfo;
+        llvmTypeMap[name] = llvmType;
     }
 
-    llvm::Type* lookupType(const std::string& name) {
-        auto it = typeMap.find(name);
-        return (it != typeMap.end()) ? it->second : nullptr;
+    TypeInfoPtr lookupType(const std::string& name) {
+        auto it = typeInfoMap.find(name);
+        return (it != typeInfoMap.end()) ? it->second : nullptr;
     }
+
+    llvm::Type* lookupLLVMType(const std::string& name) {
+        auto it = llvmTypeMap.find(name);
+        return (it != llvmTypeMap.end()) ? it->second : nullptr;
+    }
+
+    // Type conversion and parsing methods
+    llvm::Type* getType(antlr4::tree::ParseTree* typeContext);
+    llvm::Type* getClassType(const std::string& className);
+    llvm::Value* convertType(llvm::Value* value, llvm::Type* targetType, llvm::IRBuilder<>* builder);
+    llvm::Value* convertClassType(llvm::Value* value, llvm::Type* targetType, llvm::IRBuilder<>* builder);
+    llvm::Type* getLLVMType(TypeInfoPtr typeInfo);
 
 private:
     llvm::LLVMContext& context;
-    std::map<std::string, llvm::Type*> typeMap;
+    std::map<std::string, TypeInfoPtr> typeInfoMap;
+    std::map<std::string, llvm::Type*> llvmTypeMap;
 };
 
 } // namespace pryst
