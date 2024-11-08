@@ -1,8 +1,13 @@
 #include "llvm_codegen.hpp"
+#include "type_registry.hpp"
+#include "../semantic/type_info.hpp"
+#include "../utils/debug.hpp"
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
 #include <stdexcept>
+
+namespace pryst {
 
 // Type conversion helper functions
 llvm::Value* LLVMCodegen::convertToString(llvm::Value* value) {
@@ -45,16 +50,19 @@ std::any LLVMCodegen::visitTypeConversionExpr(PrystParser::TypeConversionExprCon
     std::string targetTypeName = ctx->type()->getText();
     llvm::Type* targetType = getLLVMType(targetTypeName);
 
-    // Get type information from registry using our type tracking system
-    auto& registry = TypeRegistry::getInstance();
-    TypeInfoPtr valueTypeInfo = getTypeInfo(value);
-    TypeInfoPtr targetTypeInfo = registry.lookupType(targetTypeName);
+    // Get type information for both value and target
+    pryst::TypeInfoPtr fromTypeInfo = typeRegistry->getTypeInfoFromLLVMType(value->getType());
+    pryst::TypeInfoPtr toTypeInfo = typeRegistry->getTypeInfo(targetTypeName);
+
+    if (!fromTypeInfo || !toTypeInfo) {
+        throw std::runtime_error("Could not determine type information for conversion");
+    }
 
     // Handle string conversions
-    if (valueTypeInfo && valueTypeInfo->getKind() == TypeKind::String) {
+    if (fromTypeInfo->getName() == "string") {
         // Converting from string
         lastValue = convertFromString(value, targetType);
-    } else if (targetTypeInfo && targetTypeInfo->getKind() == TypeKind::String) {
+    } else if (toTypeInfo->getName() == "string") {
         // Converting to string
         lastValue = convertToString(value);
     } else if (value->getType()->isIntegerTy() && targetType->isFloatingPointTy()) {
@@ -68,8 +76,7 @@ std::any LLVMCodegen::visitTypeConversionExpr(PrystParser::TypeConversionExprCon
         lastValue = value;
     } else {
         throw std::runtime_error("Unsupported type conversion from " +
-                               (valueTypeInfo ? valueTypeInfo->getTypeName() : "unknown") +
-                               " to " + targetTypeName);
+                               fromTypeInfo->getName() + " to " + toTypeInfo->getName());
     }
 
     return nullptr;
@@ -153,8 +160,11 @@ std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx)
     }
 
     // Visit function body
-    for (auto decl : ctx->declaration()) {
-        visit(decl);
+    auto* body = ctx->functionBody();
+    if (body) {
+        for (auto stmt : body->statement()) {
+            visit(stmt);
+        }
     }
 
     // Verify all return statements match declared type
@@ -221,8 +231,8 @@ std::any LLVMCodegen::visitLambdaFunction(PrystParser::LambdaFunctionContext* ct
     for (auto &arg : tempFunction->args()) {
         arg.setName(paramNames[idx++]);
         // Use TypeRegistry for parameter type handling
-        auto paramType = typeRegistry.getPointerType();
-        auto llvmType = LLVMTypeRegistry::getInstance().getLLVMType(paramType, *context);
+        auto paramType = typeRegistry->getTypeInfoFromLLVMType(arg.getType());
+        llvm::Type* llvmType = typeRegistry->getLLVMType(paramType, *context);
         llvm::AllocaInst* alloca = builder->CreateAlloca(llvmType, nullptr, arg.getName().str());
         builder->CreateStore(&arg, alloca);
         namedValues[arg.getName().str()] = alloca;
@@ -268,8 +278,8 @@ std::any LLVMCodegen::visitLambdaFunction(PrystParser::LambdaFunctionContext* ct
     idx = 0;
     for (auto &arg : function->args()) {
         // Use TypeRegistry for parameter type handling
-        auto paramType = typeRegistry.getPointerType();
-        auto llvmType = LLVMTypeRegistry::getInstance().getLLVMType(paramType, *context);
+        auto paramType = typeRegistry->getTypeInfoFromLLVMType(arg.getType());
+        llvm::Type* llvmType = typeRegistry->getLLVMType(paramType, *context);
         llvm::AllocaInst* alloca = builder->CreateAlloca(llvmType, nullptr, arg.getName().str());
         builder->CreateStore(&arg, alloca);
         namedValues[arg.getName().str()] = alloca;
@@ -356,3 +366,5 @@ llvm::Type* LLVMCodegen::deduceReturnType(const std::vector<llvm::Type*>& types)
     }
     return deducedType;
 }
+
+} // namespace pryst
