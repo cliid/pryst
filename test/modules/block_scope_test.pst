@@ -1,0 +1,41 @@
+// Test block-level using declarations
+namespace test::block_scope {
+    fn<int> add(int x, int y) -> int {
+        return x + y;
+    }
+
+    fn<int> multiply(int x, int y) -> int {
+        return x * y;
+    }
+}
+
+namespace test::math {
+    fn<int> subtract(int x, int y) -> int {
+        return x - y;
+    }
+}
+
+fn<void> main() -> void {
+    // Global using declaration
+    using namespace test::block_scope;
+
+    let result1 = add(5, 3);  // Should work
+    print(result1);  // Expected: 8
+
+    {
+        // Block-scoped using declaration
+        using namespace test::math {
+            let result2 = subtract(10, 3);  // Should work
+            print(result2);  // Expected: 7
+
+            // Nested block with multiple using declarations
+            {
+                let result3 = multiply(4, 2);  // Should work due to outer scope
+                print(result3);  // Expected: 8
+            }
+        }
+
+        // This should fail as test::math is out of scope
+        // let result4 = subtract(8, 3);  // Compilation error
+    }
+}
