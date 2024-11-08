@@ -134,9 +134,12 @@ add_custom_command(
         ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.h
         ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.h
     COMMAND
-        ${ANTLR4_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o ${CMAKE_SOURCE_DIR}/src/generated ${CMAKE_SOURCE_DIR}/Pryst.g4
+        ${ANTLR4_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o ${CMAKE_SOURCE_DIR}/src/generated ${CMAKE_SOURCE_DIR}/PrystLexer.g4
+    COMMAND
+        ${ANTLR4_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o ${CMAKE_SOURCE_DIR}/src/generated ${CMAKE_SOURCE_DIR}/PrystParser.g4
     DEPENDS
-        ${CMAKE_SOURCE_DIR}/Pryst.g4
+        ${CMAKE_SOURCE_DIR}/PrystLexer.g4
+        ${CMAKE_SOURCE_DIR}/PrystParser.g4
     COMMENT "Generating ANTLR parser files"
 )
 
@@ -188,6 +191,9 @@ file(GLOB GENERATED_SRC
     "${CMAKE_SOURCE_DIR}/src/generated/*.h"
 )
 
+# Add runtime library subdirectory
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/runtime)
+
 # Create executable target
 add_executable(pryst ${ANTLR_SOURCES})
 
@@ -214,6 +220,7 @@ llvm_map_components_to_libnames(llvm_libs
 target_link_libraries(pryst
     ${ANTLR4_RUNTIME_LIBRARY}
     ${llvm_libs}
+    pryst_runtime
 )
 
 # Print configuration summary
