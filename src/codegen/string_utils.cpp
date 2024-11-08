@@ -219,7 +219,8 @@ llvm::Value* interpolateString(pryst::LLVMCodegen* codegen, const std::string& f
     );
 
     // Initialize buffer with format string
-    auto formatStr = builder->CreateGlobalStringPtr(format);
+    auto formatStrGlobal = builder->CreateGlobalString(format);
+    auto formatStr = builder->CreateConstGEP2_64(formatStrGlobal->getType(), formatStrGlobal, 0, 0);
     auto strcpyFunc = declareStrcpy(codegen);
     builder->CreateCall(strcpyFunc, {buffer, formatStr});
 
