@@ -66,7 +66,8 @@ private:
 // Class types with methods and fields
 class ClassTypeInfo : public TypeInfo {
 public:
-    ClassTypeInfo(const std::string& name) : TypeInfo(Kind::Class, name) {}
+    ClassTypeInfo(const std::string& name, std::shared_ptr<ClassTypeInfo> parent = nullptr)
+        : TypeInfo(Kind::Class, name), parentClass(parent) {}
 
     void addMethod(const std::string& name, TypeInfoPtr methodType) {
         methods[name] = methodType;
@@ -78,14 +79,43 @@ public:
 
     const std::map<std::string, TypeInfoPtr>& getMethods() const { return methods; }
     const std::map<std::string, TypeInfoPtr>& getFields() const { return fields; }
+    std::shared_ptr<ClassTypeInfo> getParent() const { return parentClass; }
 
-    // Add getMembers method to return all fields as a vector of pairs
     std::vector<std::pair<std::string, TypeInfoPtr>> getMembers() const {
         std::vector<std::pair<std::string, TypeInfoPtr>> result;
         for (const auto& [name, type] : fields) {
             result.push_back({name, type});
         }
         return result;
+    }
+
+    virtual TypeInfoPtr getMemberTypeInfo(const std::string& memberName) const {
+        auto it = fields.find(memberName);
+        if (it != fields.end()) {
+            return it->second;
+        }
+        if (parentClass) {
+            return parentClass->getMemberTypeInfo(memberName);
+        }
+        return nullptr;
+    }
+
+    bool isConvertibleTo(const TypeInfoPtr& other) const override {
+        if (other->getKind() != Kind::Class) {
+            return false;
+        }
+        auto otherClass = std::dynamic_pointer_cast<ClassTypeInfo>(other);
+        if (!otherClass) {
+            return false;
+        }
+        const ClassTypeInfo* current = this;
+        while (current) {
+            if (current->getName() == otherClass->getName()) {
+                return true;
+            }
+            current = current->getParent().get();
+        }
+        return false;
     }
 
     std::string toString() const override {
@@ -95,6 +125,7 @@ public:
 private:
     std::map<std::string, TypeInfoPtr> methods;
     std::map<std::string, TypeInfoPtr> fields;
+    std::shared_ptr<ClassTypeInfo> parentClass;
 };
 
 // Module types for handling module-level type information
@@ -112,7 +143,10 @@ public:
     }
 
     const std::map<std::string, TypeInfoPtr>& getTypes() const { return types; }
-    bool isConvertibleTo(const TypeInfoPtr& other) const override;
+
+    bool isConvertibleTo(const TypeInfoPtr& other) const override {
+        return other->getKind() == Kind::Module && getName() == other->getName();
+    }
 
     std::string toString() const override {
         return "module " + name;
