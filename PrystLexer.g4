@@ -20,6 +20,8 @@ NAMESPACE   : 'namespace' ;
 MODULE      : 'module' ;
 IMPORT      : 'import' ;
 USING       : 'using' ;
+TRY         : 'try' ;
+CATCH       : 'catch' ;
 LET         : 'let' ;
 FN          : 'fn' ;
 CONST       : 'const' ;

@@ -106,6 +106,7 @@ statement
       expression? SEMICOLON
       expression? RPAREN statement                  # forStatement
     | RETURN expression? SEMICOLON                  # returnStatement
+    | TRY statement (CATCH LPAREN type IDENTIFIER RPAREN statement)* # tryCatchStatement
     | LBRACE statement* RBRACE                    # blockStatement
     | PRINT LPAREN expression RPAREN SEMICOLON      # printStatement
     ;

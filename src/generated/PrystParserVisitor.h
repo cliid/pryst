@@ -1,5 +1,5 @@
 
-// Generated from Pryst.g4 by ANTLR 4.13.2
+// Generated from /home/ubuntu/pryst/PrystParser.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -13,7 +13,7 @@
  * This class defines an abstract visitor for a parse tree
  * produced by PrystParser.
  */
-class  PrystVisitor : public antlr4::tree::AbstractParseTreeVisitor {
+class  PrystParserVisitor : public antlr4::tree::AbstractParseTreeVisitor {
 public:
 
   /**
@@ -45,23 +45,13 @@ public:
 
     virtual std::any visitFunctionBody(PrystParser::FunctionBodyContext *context) = 0;
 
-    virtual std::any visitInferredVariableDecl(PrystParser::InferredVariableDeclContext *context) = 0;
-
-    virtual std::any visitTypedVariableDecl(PrystParser::TypedVariableDeclContext *context) = 0;
-
-    virtual std::any visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext *context) = 0;
+    virtual std::any visitVariableDecl(PrystParser::VariableDeclContext *context) = 0;
 
     virtual std::any visitClassDeclaration(PrystParser::ClassDeclarationContext *context) = 0;
 
     virtual std::any visitClassBody(PrystParser::ClassBodyContext *context) = 0;
 
-    virtual std::any visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext *context) = 0;
-
-    virtual std::any visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext *context) = 0;
-
-    virtual std::any visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext *context) = 0;
-
-    virtual std::any visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext *context) = 0;
+    virtual std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext *context) = 0;
 
     virtual std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *context) = 0;
 
@@ -72,6 +62,8 @@ public:
     virtual std::any visitParamTypeList(PrystParser::ParamTypeListContext *context) = 0;
 
     virtual std::any visitFloatType(PrystParser::FloatTypeContext *context) = 0;
+
+    virtual std::any visitLambdaType(PrystParser::LambdaTypeContext *context) = 0;
 
     virtual std::any visitArrayType(PrystParser::ArrayTypeContext *context) = 0;
 
@@ -97,15 +89,17 @@ public:
 
     virtual std::any visitReturnStatement(PrystParser::ReturnStatementContext *context) = 0;
 
-    virtual std::any visitBlockStatement(PrystParser::BlockStatementContext *context) = 0;
+    virtual std::any visitTryCatchStatement(PrystParser::TryCatchStatementContext *context) = 0;
 
-    virtual std::any visitTryStatement(PrystParser::TryStatementContext *context) = 0;
+    virtual std::any visitBlockStatement(PrystParser::BlockStatementContext *context) = 0;
 
     virtual std::any visitPrintStatement(PrystParser::PrintStatementContext *context) = 0;
 
     virtual std::any visitExpression(PrystParser::ExpressionContext *context) = 0;
 
-    virtual std::any visitSimpleString(PrystParser::SimpleStringContext *context) = 0;
+    virtual std::any visitStringLiteral(PrystParser::StringLiteralContext *context) = 0;
+
+    virtual std::any visitStringPart(PrystParser::StringPartContext *context) = 0;
 
     virtual std::any visitAssignment(PrystParser::AssignmentContext *context) = 0;
 
@@ -146,8 +140,6 @@ public:
     virtual std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext *context) = 0;
 
     virtual std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext *context) = 0;
-
-    virtual std::any visitTryCatchStatement(PrystParser::TryCatchStatementContext *context) = 0;
 
 
 };

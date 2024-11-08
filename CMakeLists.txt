@@ -134,9 +134,10 @@ add_custom_command(
         ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.h
         ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.h
     COMMAND
-        ${ANTLR4_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o ${CMAKE_SOURCE_DIR}/src/generated ${CMAKE_SOURCE_DIR}/Pryst.g4
+        java -jar /usr/local/lib/antlr-4.13.2-complete.jar -Dlanguage=Cpp -no-listener -visitor -o "${CMAKE_SOURCE_DIR}/src/generated" "${CMAKE_SOURCE_DIR}/PrystLexer.g4" "${CMAKE_SOURCE_DIR}/PrystParser.g4"
     DEPENDS
-        ${CMAKE_SOURCE_DIR}/Pryst.g4
+        ${CMAKE_SOURCE_DIR}/PrystLexer.g4
+        ${CMAKE_SOURCE_DIR}/PrystParser.g4
     COMMENT "Generating ANTLR parser files"
 )
 
