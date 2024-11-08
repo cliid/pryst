@@ -84,11 +84,7 @@ private:
     bool useColor;
 };
 
-// Debug macros with source location
-#define PRYST_TRACE(msg) Logger::getInstance().trace(msg, __FILE__, __LINE__)
-#define PRYST_DEBUG(msg) Logger::getInstance().debug(msg, __FILE__, __LINE__)
-#define PRYST_INFO(msg)  Logger::getInstance().info(msg)
-#define PRYST_WARN(msg)  Logger::getInstance().warn(msg)
-#define PRYST_ERROR(msg) Logger::getInstance().error(msg)
+
+
 
 } // namespace pryst
