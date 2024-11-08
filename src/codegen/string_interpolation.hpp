@@ -4,6 +4,7 @@
 #include <llvm/IR/Module.h>
 #include <string>
 #include <optional>
+#include "type_registry.hpp"
 
 namespace pryst {
 namespace codegen {
@@ -21,8 +22,8 @@ struct FormatSpecifier {
 
 class StringInterpolation {
 public:
-    StringInterpolation(llvm::IRBuilder<>& builder, llvm::Module* module)
-        : builder_(builder), module_(module) {}
+    StringInterpolation(llvm::IRBuilder<>* builder, llvm::Module* module, LLVMTypeRegistry* registry)
+        : builder_(*builder), module_(module), typeRegistry_(registry) {}
 
     // Parse a format specifier string (e.g., ":>10.2f")
     std::optional<FormatSpecifier> parseFormatSpec(const std::string& spec);
@@ -39,6 +40,7 @@ public:
 private:
     llvm::IRBuilder<>& builder_;
     llvm::Module* module_;
+    LLVMTypeRegistry* typeRegistry_;
 
     // Helper methods for different types
     llvm::Value* formatInteger(llvm::Value* value, const FormatSpecifier& format);
