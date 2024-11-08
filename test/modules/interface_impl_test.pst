@@ -1,0 +1,36 @@
+// Implementation of the math module interface
+module test::math {
+    class Vector {
+        float x;
+        float y;
+        float z;
+
+        fn dot(Vector other) -> float {
+            return x * other.x + y * other.y + z * other.z;
+        }
+
+        fn scale(float factor) -> Vector {
+            let result = new Vector();
+            result.x = x * factor;
+            result.y = y * factor;
+            result.z = z * factor;
+            return result;
+        }
+    }
+
+    fn<int> add(int x, int y) -> int {
+        return x + y;
+    }
+
+    fn<int> subtract(int x, int y) -> int {
+        return x - y;
+    }
+
+    fn<int> multiply(int x, int y) -> int {
+        return x * y;
+    }
+
+    fn<float> divide(int x, int y) -> float {
+        return (float)x / (float)y;
+    }
+}
