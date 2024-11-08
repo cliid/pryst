@@ -28,97 +28,12 @@ public:
         initialize();
     }
 
-    void initialize() {
-        PRYST_DEBUG("Initializing built-in types");
-        // Register basic types
-        registerBasicType("void", llvm::Type::getVoidTy(*context));
-        registerBasicType("bool", llvm::Type::getInt1Ty(*context));
-        registerBasicType("int", llvm::Type::getInt32Ty(*context));
-        registerBasicType("float", llvm::Type::getFloatTy(*context));
-        // Use opaque pointer for string type
-        registerBasicType("string", createOpaquePointer());
+    bool isSameType(const TypeInfoPtr& type1, const TypeInfoPtr& type2) const {
+        if (!type1 || !type2) return false;
+        return type1->getName() == type2->getName();
     }
 
-    llvm::Type* getVoidType() {
-        auto type = getType("void");
-        if (!type) {
-            type = llvm::Type::getVoidTy(*context);
-            registerBasicType("void", type);
-        }
-        return type;
-    }
-
-    llvm::Type* getIntType(unsigned bits = 32) {
-        if (bits == 32) {
-            auto type = getType("int");
-            if (!type) {
-                type = llvm::Type::getInt32Ty(*context);
-                registerBasicType("int", type);
-            }
-            return type;
-        }
-        return llvm::Type::getIntNTy(*context, bits);
-    }
-
-    llvm::Type* getFloatType() {
-        auto type = getType("float");
-        if (!type) {
-            type = llvm::Type::getFloatTy(*context);
-            registerBasicType("float", type);
-        }
-        return type;
-    }
-
-    llvm::Type* getBoolType() {
-        auto type = getType("bool");
-        if (!type) {
-            type = llvm::Type::getInt1Ty(*context);
-            registerBasicType("bool", type);
-        }
-        return type;
-    }
-
-    llvm::Type* getStringType() {
-        auto type = getType("string");
-        if (!type) {
-            type = createOpaquePointer();
-            registerBasicType("string", type);
-        }
-        return type;
-    }
-
-    llvm::Type* createOpaquePointer() {
-        // Create an opaque pointer type with addrspace 0
-        return llvm::PointerType::get(*context, 0);
-    }
-
-    void registerBasicType(const std::string& name, llvm::Type* type) {
-        if (!type) {
-            PRYST_ERROR("Attempted to register null type for " + name);
-            return;
-        }
-        PRYST_DEBUG("Registering basic type: " + name);
-        typeCache[name] = type;
-    }
-
-    void registerType(TypeInfoPtr type) {
-        if (!type) {
-            PRYST_ERROR("Attempted to register null type");
-            return;
-        }
-        PRYST_DEBUG("Registering type: " + type->getName());
-        typeCache[type->getName()] = getLLVMType(type, *context);
-    }
-
-    llvm::Type* getType(const std::string& name) {
-        auto it = typeCache.find(name);
-        if (it != typeCache.end()) {
-            return it->second;
-        }
-        PRYST_DEBUG("Type not found in cache: " + name);
-        return nullptr;
-    }
-
+    // Main implementation of getLLVMType
     llvm::Type* getLLVMType(TypeInfoPtr type, llvm::LLVMContext& context) {
         if (!type) {
             PRYST_ERROR("Attempted to get LLVM type for null TypeInfo");
@@ -227,6 +142,117 @@ public:
         return result;
     }
 
+    llvm::PointerType* getOpaquePointerType(llvm::LLVMContext& context) const {
+        return llvm::PointerType::get(context, 0);
+    }
+
+    void initialize() {
+        PRYST_DEBUG("Initializing built-in types");
+        // Register basic types
+        registerBasicType("void", llvm::Type::getVoidTy(*context));
+        registerBasicType("bool", llvm::Type::getInt1Ty(*context));
+        registerBasicType("int", llvm::Type::getInt32Ty(*context));
+        registerBasicType("float", llvm::Type::getFloatTy(*context));
+        // Use opaque pointer for string type
+        registerBasicType("string", createOpaquePointer());
+    }
+
+    // Get TypeInfo by name
+    std::shared_ptr<TypeInfo> getTypeInfo(const std::string& typeName) const {
+        auto it = typeInfoCache.find(typeName);
+        return (it != typeInfoCache.end()) ? it->second : nullptr;
+    }
+
+    llvm::Type* getVoidType() {
+        auto type = getType("void");
+        if (!type) {
+            type = llvm::Type::getVoidTy(*context);
+            registerBasicType("void", type);
+        }
+        return type;
+    }
+
+    llvm::Type* getIntType(unsigned bits = 32) {
+        if (bits == 32) {
+            auto type = getType("int");
+            if (!type) {
+                type = llvm::Type::getInt32Ty(*context);
+                registerBasicType("int", type);
+            }
+            return type;
+        }
+        return llvm::Type::getIntNTy(*context, bits);
+    }
+
+    llvm::Type* getFloatType() {
+        auto type = getType("float");
+        if (!type) {
+            type = llvm::Type::getFloatTy(*context);
+            registerBasicType("float", type);
+        }
+        return type;
+    }
+
+    llvm::Type* getBoolType() {
+        auto type = getType("bool");
+        if (!type) {
+            type = llvm::Type::getInt1Ty(*context);
+            registerBasicType("bool", type);
+        }
+        return type;
+    }
+
+    llvm::Type* getStringType() {
+        auto type = getType("string");
+        if (!type) {
+            type = createOpaquePointer();
+            registerBasicType("string", type);
+        }
+        return type;
+    }
+
+    // Alias for getStringType to maintain compatibility
+    llvm::Type* getStrType() {
+        return getStringType();
+    }
+
+    // Get pointer type for LLVM 20.0.0 compatibility
+    llvm::Type* getPointerType(llvm::Type* elementType) {
+        return llvm::PointerType::get(*context, 0);
+    }
+
+    llvm::Type* createOpaquePointer() {
+        // Create an opaque pointer type with addrspace 0
+        return llvm::PointerType::get(*context, 0);
+    }
+
+    void registerBasicType(const std::string& name, llvm::Type* type) {
+        if (!type) {
+            PRYST_ERROR("Attempted to register null type for " + name);
+            return;
+        }
+        PRYST_DEBUG("Registering basic type: " + name);
+        typeCache[name] = type;
+    }
+
+    void registerType(TypeInfoPtr type) {
+        if (!type) {
+            PRYST_ERROR("Attempted to register null type");
+            return;
+        }
+        PRYST_DEBUG("Registering type: " + type->getName());
+        typeCache[type->getName()] = getLLVMType(type, *context);
+    }
+
+    llvm::Type* getType(const std::string& name) {
+        auto it = typeCache.find(name);
+        if (it != typeCache.end()) {
+            return it->second;
+        }
+        PRYST_DEBUG("Type not found in cache: " + name);
+        return nullptr;
+    }
+
     llvm::Type* getLoadStoreType(TypeInfoPtr type, llvm::LLVMContext& context) {
         if (!type) {
             PRYST_ERROR("Attempted to get load/store type for null TypeInfo");
@@ -237,73 +263,92 @@ public:
     }
 
     // Convert a value from one type to another
-    llvm::Value* convertValue(llvm::Value* value, llvm::Type* targetType) {
-        if (!value || !targetType) {
-            PRYST_ERROR("Null value or target type in conversion");
+    llvm::Value* convertValue(llvm::Value* value, TypeInfoPtr fromType, TypeInfoPtr toType, llvm::IRBuilder<>& builder) {
+        if (!value || !fromType || !toType) {
+            PRYST_ERROR("Invalid arguments for type conversion");
             return nullptr;
         }
 
-        llvm::Type* sourceType = value->getType();
-        if (sourceType == targetType) {
+        // If types are the same, no conversion needed
+        if (isSameType(fromType, toType)) {
             return value;
         }
 
-        // Integer to floating point
-        if (sourceType->isIntegerTy() && targetType->isFloatingPointTy()) {
-            return builder.CreateSIToFP(value, targetType, "int2float");
-        }
+        // Handle basic type conversions
+        if (fromType->getKind() == TypeInfo::Kind::Basic && toType->getKind() == TypeInfo::Kind::Basic) {
+            const std::string& fromName = fromType->getName();
+            const std::string& toName = toType->getName();
 
-        // Floating point to integer
-        if (sourceType->isFloatingPointTy() && targetType->isIntegerTy()) {
-            return builder.CreateFPToSI(value, targetType, "float2int");
-        }
+            // Integer to float conversion
+            if (fromName == "int" && toName == "float") {
+                return builder.CreateSIToFP(value, llvm::Type::getFloatTy(builder.getContext()), "int_to_float");
+            }
 
-        // Integer or float to string
-        if ((sourceType->isIntegerTy() || sourceType->isFloatingPointTy()) &&
-            targetType == getStringType()) {
-            // Call runtime conversion function
-            std::vector<llvm::Value*> args = {value};
-            if (sourceType->isIntegerTy()) {
-                return builder.CreateCall(module.getFunction("int_to_string"), args, "int2str");
-            } else {
-                return builder.CreateCall(module.getFunction("float_to_string"), args, "float2str");
+            // Float to integer conversion
+            if (fromName == "float" && toName == "int") {
+                return builder.CreateFPToSI(value, llvm::Type::getInt32Ty(builder.getContext()), "float_to_int");
+            }
+
+            // Integer to boolean conversion
+            if (fromName == "int" && toName == "bool") {
+                return builder.CreateICmpNE(value, llvm::ConstantInt::get(llvm::Type::getInt32Ty(builder.getContext()), 0), "int_to_bool");
+            }
+
+            // Boolean to integer conversion
+            if (fromName == "bool" && toName == "int") {
+                return builder.CreateZExt(value, llvm::Type::getInt32Ty(builder.getContext()), "bool_to_int");
             }
         }
 
-        PRYST_ERROR("Unsupported type conversion");
+        PRYST_ERROR("Unsupported type conversion from " + fromType->getName() + " to " + toType->getName());
         return nullptr;
     }
 
     // Get default value for a type
-    llvm::Value* getDefaultValue(llvm::Type* type) {
+    llvm::Value* getDefaultValue(TypeInfoPtr type) {
         if (!type) {
-            PRYST_ERROR("Null type in getDefaultValue");
+            PRYST_ERROR("Attempted to get default value for null type");
             return nullptr;
         }
 
-        if (type->isIntegerTy()) {
-            return llvm::ConstantInt::get(type, 0);
-        }
-        if (type->isFloatingPointTy()) {
-            return llvm::ConstantFP::get(type, 0.0);
-        }
-        if (type == getStringType()) {
-            // Return empty string
-            return builder.CreateCall(module.getFunction("create_empty_string"), {}, "empty_str");
-        }
-        if (type->isPointerTy()) {
-            return llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(type));
-        }
+        const std::string& typeName = type->getName();
+        if (typeName == "int") return llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0);
+        if (typeName == "float") return llvm::ConstantFP::get(llvm::Type::getFloatTy(*context), 0.0);
+        if (typeName == "bool") return llvm::ConstantInt::get(llvm::Type::getInt1Ty(*context), 0);
+        if (typeName == "string") return llvm::ConstantPointerNull::get(llvm::PointerType::get(*context, 0));
 
-        PRYST_ERROR("Unsupported type for default value");
+        PRYST_ERROR("No default value implemented for type: " + typeName);
         return nullptr;
     }
 
 private:
     llvm::LLVMContext* context;
-    std::unordered_map<std::string, llvm::Type*> typeCache;
     llvm::IRBuilder<>& builder;
     llvm::Module& module;
+    std::unordered_map<std::string, llvm::Type*> typeCache;
+    std::unordered_map<std::string, TypeInfoPtr> typeInfoCache;
+
+public:
+    // Semantic type info management
+    TypeInfoPtr getTypeInfo(const std::string& name) {
+        auto it = typeInfoCache.find(name);
+        if (it != typeInfoCache.end()) {
+            return it->second;
+        }
+        PRYST_DEBUG("Type info not found in cache: " + name);
+        return nullptr;
+    }
+
+    void registerTypeInfo(TypeInfoPtr typeInfo) {
+        if (!typeInfo) {
+            PRYST_ERROR("Attempted to register null type info");
+            return;
+        }
+        PRYST_DEBUG("Registering type info: " + typeInfo->getName());
+        typeInfoCache[typeInfo->getName()] = typeInfo;
+        // Also register corresponding LLVM type
+        registerType(typeInfo);
+    }
 };
 
 } // namespace pryst
