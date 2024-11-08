@@ -1,18 +1,18 @@
 
-// Generated from Pryst.g4 by ANTLR 4.13.2
+// Generated from PrystParser.g4 by ANTLR 4.13.2
 
 #pragma once
 
 
 #include "antlr4-runtime.h"
-#include "PrystVisitor.h"
+#include "PrystParserVisitor.h"
 
 
 /**
- * This class provides an empty implementation of PrystVisitor, which can be
+ * This class provides an empty implementation of PrystParserVisitor, which can be
  * extended to create a visitor which only needs to handle a subset of the available methods.
  */
-class  PrystBaseVisitor : public PrystVisitor {
+class  PrystParserBaseVisitor : public PrystParserVisitor {
 public:
 
   virtual std::any visitProgram(PrystParser::ProgramContext *ctx) override {
@@ -67,15 +67,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitInferredVariableDecl(PrystParser::InferredVariableDeclContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitTypedVariableDecl(PrystParser::TypedVariableDeclContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext *ctx) override {
+  virtual std::any visitVariableDecl(PrystParser::VariableDeclContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -87,23 +79,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitClassMemberDecl(PrystParser::ClassMemberDeclContext *ctx) override {
+  virtual std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitClassMemberInferredDecl(PrystParser::ClassMemberInferredDeclContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitClassMemberConstInferredDecl(PrystParser::ClassMemberConstInferredDeclContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitClassMemberConstTypedDecl(PrystParser::ClassMemberConstTypedDeclContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitClassMemberFunctionDecl(PrystParser::ClassMemberFunctionDeclContext *ctx) override {
+  virtual std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -120,6 +100,10 @@ public:
   }
 
   virtual std::any visitFloatType(PrystParser::FloatTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitLambdaType(PrystParser::LambdaTypeContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -175,15 +159,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitTryStmtWrapper(PrystParser::TryStmtWrapperContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual std::any visitPrintStatement(PrystParser::PrintStatementContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitTryStatement(PrystParser::TryStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -191,7 +167,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitStringLiteralRule(PrystParser::StringLiteralRuleContext *ctx) override {
+  virtual std::any visitStringLiteral(PrystParser::StringLiteralContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitStringPart(PrystParser::StringPartContext *ctx) override {
     return visitChildren(ctx);
   }
 
