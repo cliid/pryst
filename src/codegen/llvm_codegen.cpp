@@ -1,5 +1,7 @@
 #include "llvm_codegen.hpp"
 #include "utils/debug.hpp"
+#include "../generated/PrystLexer.h"
+#include "../generated/PrystParser.h"
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
@@ -20,7 +22,7 @@ std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramCo
     // Reset module for new generation
     module = std::make_unique<llvm::Module>("pryst_module", *context);
     builder = std::make_unique<llvm::IRBuilder<>>(*context);
-    typeRegistry = std::make_unique<LLVMTypeRegistry>(*context, builder.get(), module.get());
+    typeRegistry = std::make_unique<LLVMTypeRegistry>(*context, *builder, *module);
     stringInterp = std::make_unique<codegen::StringInterpolation>(builder.get(), module.get(), typeRegistry.get());
     declarePrintFunctions();
     visitProgram(ctx);
@@ -94,22 +96,50 @@ void LLVMCodegen::declarePrintFunctions() {
     // Print function declarations will be implemented in subsequent updates
 }
 
+llvm::Function* LLVMCodegen::declareMalloc() {
+    if (auto* existingFunc = functions["malloc"]) return existingFunc;
+
+    std::vector<llvm::Type*> mallocArgs = {
+        llvm::Type::getInt64Ty(*context)
+    };
+    auto* mallocType = llvm::FunctionType::get(
+        typeRegistry->createOpaquePointer(),  // Return type (void*)
+        mallocArgs,
+        false
+    );
+
+    auto* mallocFunc = llvm::Function::Create(
+        mallocType,
+        llvm::Function::ExternalLinkage,
+        "malloc",
+        module.get()
+    );
+
+    functions["malloc"] = mallocFunc;
+    return mallocFunc;
+}
+
 std::any LLVMCodegen::visitStringLiteralRule(PrystParser::StringLiteralRuleContext *ctx) {
     PRYST_DEBUG("Visiting string literal");
 
     std::vector<llvm::Value*> values;
     std::string formatStr;
 
-    // Process string parts
-    for (auto part : ctx->stringPart()) {
-        if (auto content = part->STRING_CONTENT()) {
-            formatStr += content->getText();
-        } else if (auto escape = part->ESCAPE_SEQ()) {
-            formatStr += stringInterp->processEscapeSequence(escape->getText());
-        } else if (auto interp = part->INTERP_START()) {
+    // Process string parts (skip STRING_START and STRING_END tokens)
+    for (size_t i = 1; i < ctx->children.size() - 1; i++) {
+        auto child = ctx->children[i];
+
+        // Check the type of the child using dynamic_cast
+        if (auto content = dynamic_cast<antlr4::tree::TerminalNode*>(child)) {
+            auto tokenType = content->getSymbol()->getType();
+            if (tokenType == PrystParser::STRING_CONTENT) {
+                formatStr += content->getText();
+            } else if (tokenType == PrystParser::ESCAPE_SEQ) {
+                formatStr += stringInterp->processEscapeSequence(content->getText());
+            }
+        } else if (auto interpCtx = dynamic_cast<PrystParser::ExpressionContext*>(child)) {
             // Handle interpolation expression
-            auto expr = part->expression();
-            auto exprValue = std::any_cast<llvm::Value*>(visit(expr));
+            auto exprValue = std::any_cast<llvm::Value*>(visit(interpCtx));
             values.push_back(exprValue);
             formatStr += "{}"; // Placeholder for interpolation
         }
