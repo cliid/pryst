@@ -58,7 +58,7 @@ llvm::Function* LLVMCodegen::declareIntToStr() {
     auto strType = typeRegistry->getStringType();
     auto llvmStrType = strType;  // No need for getLLVMType since getStringType returns LLVM type
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        llvmStrType,
+        charPtrTy,
         paramTypes,
         false
     );
@@ -114,7 +114,7 @@ llvm::Function* LLVMCodegen::declareFloatToStr() {
     auto strType = typeRegistry->getStringType();
     auto llvmStrType = strType;  // No need for getLLVMType since getStringType returns LLVM type
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        llvmStrType,
+        charPtrTy,
         paramTypes,
         false
     );
@@ -300,7 +300,7 @@ llvm::Function* LLVMCodegen::declareStrConcat() {
     paramTypes.push_back(llvmStrType);
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        llvmStrType,
+        charPtrTy,
         paramTypes,
         false
     );
@@ -379,7 +379,7 @@ llvm::Function* LLVMCodegen::declareStrSubstr() {
     paramTypes.push_back(llvm::Type::getInt32Ty(*context));  // length
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        llvmStrType,
+        charPtrTy,
         paramTypes,
         false
     );
