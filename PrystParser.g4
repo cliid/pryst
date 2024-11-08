@@ -57,7 +57,12 @@ functionBody
     ;
 
 variableDecl
-    : (LET | CONST | type | CONST type | CONST_EXPR) IDENTIFIER (EQUAL expression)? SEMICOLON
+    : LET IDENTIFIER (EQUAL expression)? SEMICOLON                                # inferredVariableDecl
+    | CONST IDENTIFIER (EQUAL expression)? SEMICOLON                             # inferredConstVariableDecl
+    | type IDENTIFIER (EQUAL expression)? SEMICOLON                              # typedVariableDecl
+    | CONST type IDENTIFIER (EQUAL expression)? SEMICOLON                        # typedConstVariableDecl
+    | CONST_EXPR IDENTIFIER (EQUAL expression)? SEMICOLON                        # constExprVariableDecl
+    | type IDENTIFIER SEMICOLON                                                  # uninitializedVariableDecl
     ;
 
 classDeclaration
@@ -69,8 +74,11 @@ classBody
     ;
 
 classMember
-    : type IDENTIFIER (EQUAL expression)? SEMICOLON  # classVariableDecl
-    | IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody # classFunctionDecl
+    : type IDENTIFIER (EQUAL expression)? SEMICOLON                              # classMemberDecl
+    | LET IDENTIFIER (EQUAL expression)? SEMICOLON                               # classMemberInferredDecl
+    | CONST IDENTIFIER (EQUAL expression)? SEMICOLON                             # classMemberConstInferredDecl
+    | CONST type IDENTIFIER (EQUAL expression)? SEMICOLON                        # classMemberConstTypedDecl
+    | IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody                # classMemberFunctionDecl
     ;
 
 paramList
@@ -108,6 +116,15 @@ statement
     | RETURN expression? SEMICOLON                  # returnStatement
     | LBRACE statement* RBRACE                    # blockStatement
     | PRINT LPAREN expression RPAREN SEMICOLON      # printStatement
+    | tryStmtWrapper                                # tryStmt
+    ;
+
+tryStmtWrapper
+    : TRY statement catchBlock+                     # tryStatement
+    ;
+
+catchBlock
+    : CATCH LPAREN type IDENTIFIER RPAREN statement # catchStatement
     ;
 
 expression
@@ -116,12 +133,12 @@ expression
     | typeCastExpr
     | typeConversionExpr
     | classConversionExpr
-    | stringLiteral
+    | stringLiteralRule
     | logicOr
     ;
 
-stringLiteral
-    : STRING_START stringPart* STRING_END
+stringLiteralRule
+    : STRING_START stringPart* STRING_END           # stringLiteralExpr
     ;
 
 stringPart
