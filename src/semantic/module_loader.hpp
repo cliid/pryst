@@ -7,6 +7,8 @@
 #include <filesystem>
 #include "types.hpp"
 #include "symbol_table.hpp"
+#include "using_declaration_manager.hpp"
+#include "module_interface.hpp"
 
 class ModuleLoader {
 public:
@@ -46,6 +48,23 @@ public:
     // Get module exported classes
     std::unordered_map<std::string, ClassInfo> getModuleExportedClasses(const std::string& qualifiedName) const;
 
+    // Add using declaration at current scope
+    void addUsingDeclaration(const std::string& target, int scopeLevel, bool isModule = true,
+                           const std::string& alias = "", const std::string& sourceFile = "",
+                           int sourceLine = 0);
+
+    // Remove using declarations at scope
+    void removeUsingDeclarationsAtScope(int scopeLevel);
+
+    // Resolve symbol to fully qualified name
+    std::string resolveSymbol(const std::string& symbol, int currentScope) const;
+
+    // Check if module has interface
+    bool hasInterface(const std::string& modulePath) const;
+
+    // Load and validate module interface
+    bool loadAndValidateInterface(const std::string& modulePath);
+
 private:
     // Map of module paths to their loaded status
     std::unordered_map<std::string, bool> loadedModules;
@@ -58,6 +77,12 @@ private:
 
     // Symbol table reference
     std::shared_ptr<SymbolTable> symbolTable;
+
+    // Using declaration manager
+    std::shared_ptr<pryst::UsingDeclarationManager> usingManager;
+
+    // Module interface manager
+    std::shared_ptr<pryst::ModuleInterfaceManager> interfaceManager;
 
     // Convert file path to module qualified name
     std::string pathToQualifiedName(const std::string& path) const;
@@ -73,4 +98,10 @@ private:
 
     // Validate module structure
     bool validateModuleStructure(const std::string& modulePath) const;
+
+    // Try to load module interface file
+    bool tryLoadInterface(const std::string& modulePath);
+
+    // Automatic module discovery in search paths
+    void discoverAndCacheModules();
 };
