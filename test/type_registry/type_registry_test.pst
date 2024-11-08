@@ -1,0 +1,92 @@
+// Test file for type registry functionality
+
+// Test primitive type declarations
+fn testPrimitiveTypes() {
+    let i: int = 42;
+    let f: float = 3.14;
+    let b: bool = true;
+    let s: string = "test";
+
+    print("Int value: " + i);
+    print("Float value: " + f);
+    print("Bool value: " + b);
+    print("String value: " + s);
+}
+
+// Test pointer types and opaque pointer handling
+class TestClass {
+    value: int;
+
+    fn init(v: int) {
+        this.value = v;
+    }
+}
+
+// Test function types
+fn functionTypeTest(callback: fn<int>(int, int)) -> int {
+    return callback(10, 20);
+}
+
+// Test type conversions
+fn testTypeConversions() {
+    // Numeric conversions
+    let i: int = 42;
+    let f: float = i;  // Implicit int to float
+    print("Int to float: " + f);
+
+    // String conversions
+    let num_str: string = i;  // Implicit int to string
+    print("Int to string: " + num_str);
+
+    let float_str: string = f;  // Implicit float to string
+    print("Float to string: " + float_str);
+}
+
+// Test array types
+fn testArrayTypes() {
+    let numbers: int[] = [1, 2, 3, 4, 5];
+    let strings: string[] = ["one", "two", "three"];
+
+    print("First number: " + numbers[0]);
+    print("First string: " + strings[0]);
+}
+
+// Test class inheritance and type checking
+class BaseClass {
+    x: int;
+    fn init(x: int) { this.x = x; }
+}
+
+class DerivedClass : BaseClass {
+    y: int;
+    fn init(x: int, y: int) {
+        super.init(x);
+        this.y = y;
+    }
+}
+
+fn testInheritance() {
+    let base = new BaseClass(10);
+    let derived = new DerivedClass(20, 30);
+
+    // Test type relationships
+    print("Derived is instance of Base: " + derived.isInstance("BaseClass"));
+}
+
+fn main() {
+    print("=== Testing Primitive Types ===");
+    testPrimitiveTypes();
+
+    print("\n=== Testing Type Conversions ===");
+    testTypeConversions();
+
+    print("\n=== Testing Array Types ===");
+    testArrayTypes();
+
+    print("\n=== Testing Inheritance ===");
+    testInheritance();
+
+    print("\n=== Testing Function Types ===");
+    let add = (a: int, b: int) -> int { return a + b; };
+    print("Function result: " + functionTypeTest(add));
+}

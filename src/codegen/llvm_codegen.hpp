@@ -3,6 +3,9 @@
 #include "../generated/PrystBaseVisitor.h"
 #include "../generated/PrystParser.h"
 #include "type_registry.hpp"
+#include "type_metadata.hpp"
+#include "type_utils.hpp"
+#include "reflection_api.hpp"
 #include "class_info.hpp"
 #include "string_interpolation.hpp"
 #include "utils/debug.hpp"
@@ -20,12 +23,31 @@
 
 namespace pryst {
 
-class LLVMCodegen : public PrystBaseVisitor {
+class LLVMCodegen : public PrystBaseVisitor, public ReflectionAPI {
 public:
     LLVMCodegen() : typeRegistry(nullptr), stringInterp(nullptr) {}
     virtual ~LLVMCodegen() = default;
 
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* ctx);
+
+    // Getter methods for private members
+    llvm::LLVMContext* getContext() const { return context.get(); }
+    llvm::Module* getModule() const { return module.get(); }
+    llvm::IRBuilder<>* getBuilder() const { return builder.get(); }
+    LLVMTypeRegistry& getTypeRegistry() const { return *typeRegistry; }
+    void registerFunction(const std::string& name, llvm::Function* func) {
+        module->getOrInsertFunction(name, func->getFunctionType());
+    }
+
+    // Type system methods
+    llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo);
+    llvm::Type* getPointerType(llvm::Type* elementType);
+
+    // Reflection API methods (implementing ReflectionAPI interface)
+    llvm::Value* generateGetType(llvm::Value* value) override;
+    llvm::Value* generateIsInstance(llvm::Value* value, const std::string& typeName) override;
+    TypeInfoPtr getTypeInfo(llvm::Value* value) override;
+    void attachTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo) override;
 
     // Program structure and declarations
     std::any visitProgram(PrystParser::ProgramContext *ctx) override;
@@ -91,6 +113,16 @@ private:
     llvm::AllocaInst* createEntryBlockAlloca(llvm::Function* function, const std::string& varName, llvm::Type* type);
     void declarePrintFunctions();
 
+    // Builtin function declarations
+    llvm::Function* declareMathSqrt();
+    llvm::Function* declareMathPow();
+    llvm::Function* declareMathAbs();
+    llvm::Function* declareStrConcat();
+    llvm::Function* declareStrSubstr();
+    llvm::Function* declareBoolToStr();
+    llvm::Function* declareIntToStr();
+    llvm::Function* declareFloatToStr();
+
     // Private members
     std::unique_ptr<llvm::LLVMContext> context;
     std::unique_ptr<llvm::Module> module;
@@ -100,5 +132,4 @@ private:
     std::map<std::string, llvm::Value*> namedValues;
     llvm::Function* currentFunction;
 };
-
 } // namespace pryst

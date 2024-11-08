@@ -59,3 +59,5 @@ extern "C" void free_formatted_string(char* str) {
 
 } // namespace runtime
 } // namespace pryst
+
+} // extern "C"
