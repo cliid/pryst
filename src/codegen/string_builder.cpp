@@ -13,8 +13,7 @@ void StringBuilder::initializeStringFunctions() {
     PRYST_DEBUG("Initializing string builder functions");
 
     // Get types we'll need using TypeRegistry
-    auto& typeRegistry = LLVMTypeRegistry::getInstance();
-    auto charPtrTy = typeRegistry.getOpaquePointerType(context);
+    auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
     auto int32Ty = builder->getInt32Ty();
     auto int64Ty = builder->getInt64Ty();
     auto voidTy = builder->getVoidTy();
@@ -87,9 +86,8 @@ void StringBuilder::initializeStringFunctions() {
 
 llvm::Value* StringBuilder::appendLiteral(const std::string& str) {
     PRYST_DEBUG("Appending literal: " + str);
-    auto& typeRegistry = LLVMTypeRegistry::getInstance();
     auto globalStr = builder->CreateGlobalString(str);
-    auto charPtrTy = typeRegistry.getOpaquePointerType(context);
+    auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
     auto globalStrPtr = builder->CreateBitCast(globalStr, charPtrTy);
     parts.push_back(globalStrPtr);
     return globalStrPtr;
@@ -117,10 +115,9 @@ llvm::Value* StringBuilder::appendFormatted(llvm::Value* value, const std::strin
         formatStr = format.empty() ? "%d" : "%" + format + "d";
     } else if (value->getType()->isIntegerTy(1)) { // Boolean
         formatStr = "%s";
-        auto& typeRegistry = LLVMTypeRegistry::getInstance();
         auto trueStr = builder->CreateGlobalString("true");
         auto falseStr = builder->CreateGlobalString("false");
-        auto charPtrTy = typeRegistry.getOpaquePointerType(context);
+        auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
         auto trueStrPtr = builder->CreateBitCast(trueStr, charPtrTy);
         auto falseStrPtr = builder->CreateBitCast(falseStr, charPtrTy);
         value = builder->CreateSelect(value, trueStrPtr, falseStrPtr);
@@ -129,9 +126,8 @@ llvm::Value* StringBuilder::appendFormatted(llvm::Value* value, const std::strin
     }
 
     // Create format string constant
-    auto& typeRegistry = LLVMTypeRegistry::getInstance();
     auto formatStrGlobal = builder->CreateGlobalString(formatStr);
-    auto charPtrTy = typeRegistry.getOpaquePointerType(context);
+    auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
     auto formatStrPtr = builder->CreateBitCast(formatStrGlobal, charPtrTy);
 
     // Call sprintf with appropriate arguments
@@ -191,9 +187,8 @@ llvm::Value* StringBuilder::build() {
     PRYST_DEBUG("Building final string");
 
     if (parts.empty()) {
-        auto& typeRegistry = LLVMTypeRegistry::getInstance();
         auto emptyStr = builder->CreateGlobalString("");
-        auto charPtrTy = typeRegistry.getOpaquePointerType(context);
+        auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
         return builder->CreateBitCast(emptyStr, charPtrTy);
     }
 

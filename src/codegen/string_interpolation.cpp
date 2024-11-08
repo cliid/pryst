@@ -1,6 +1,7 @@
 #include "string_interpolation.hpp"
 #include <cctype>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace pryst {
 namespace codegen {
@@ -47,6 +48,40 @@ std::optional<FormatSpecifier> StringInterpolation::parseFormatSpec(const std::s
     }
 
     return format;
+}
+
+std::string StringInterpolation::processEscapeSequence(const std::string& sequence) {
+    static const std::unordered_map<std::string, std::string> escapeMap = {
+        {"\\n", "\n"},   // Newline
+        {"\\t", "\t"},   // Tab
+        {"\\r", "\r"},   // Carriage return
+        {"\\\"", "\""},  // Double quote
+        {"\\'", "'"},    // Single quote
+        {"\\\\", "\\"}, // Backslash
+        {"\\b", "\b"},  // Backspace
+        {"\\f", "\f"},  // Form feed
+        {"\\v", "\v"},  // Vertical tab
+        {"\\0", "\0"}   // Null character
+    };
+
+    auto it = escapeMap.find(sequence);
+    if (it != escapeMap.end()) {
+        return it->second;
+    }
+
+    // Handle hex escape sequences (\xHH)
+    if (sequence.size() == 4 && sequence[0] == '\\' && sequence[1] == 'x') {
+        try {
+            int value = std::stoi(sequence.substr(2), nullptr, 16);
+            return std::string(1, static_cast<char>(value));
+        } catch (...) {
+            // Return original sequence on error
+            return sequence;
+        }
+    }
+
+    // If no match found, return the sequence as-is
+    return sequence;
 }
 
 llvm::Value* StringInterpolation::generateFormattedValue(
@@ -148,7 +183,7 @@ llvm::Value* StringInterpolation::generateInterpolation(
 llvm::Function* StringInterpolation::getFormatIntFunction() {
     auto func = module_->getFunction("pryst_format_int");
     if (!func) {
-        auto charPtrTy = builder_.getInt8Ty()->getPointerTo();
+        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
         std::vector<llvm::Type*> args = {
             builder_.getInt64Ty(),    // value
             builder_.getInt32Ty(),    // width
@@ -165,7 +200,7 @@ llvm::Function* StringInterpolation::getFormatIntFunction() {
 llvm::Function* StringInterpolation::getFormatFloatFunction() {
     auto func = module_->getFunction("pryst_format_float");
     if (!func) {
-        auto charPtrTy = builder_.getInt8Ty()->getPointerTo();
+        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
         std::vector<llvm::Type*> args = {
             builder_.getDoubleTy(),   // value
             builder_.getInt32Ty(),    // precision
@@ -183,7 +218,7 @@ llvm::Function* StringInterpolation::getFormatFloatFunction() {
 llvm::Function* StringInterpolation::getFormatBoolFunction() {
     auto func = module_->getFunction("pryst_format_bool");
     if (!func) {
-        auto charPtrTy = builder_.getInt8Ty()->getPointerTo();
+        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
         std::vector<llvm::Type*> args = {builder_.getInt1Ty()};
         auto funcTy = llvm::FunctionType::get(charPtrTy, args, false);
         func = llvm::Function::Create(funcTy, llvm::Function::ExternalLinkage,
@@ -195,7 +230,7 @@ llvm::Function* StringInterpolation::getFormatBoolFunction() {
 llvm::Function* StringInterpolation::getFormatStringFunction() {
     auto func = module_->getFunction("pryst_format_string");
     if (!func) {
-        auto charPtrTy = builder_.getInt8Ty()->getPointerTo();
+        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
         std::vector<llvm::Type*> args = {
             charPtrTy,               // str
             builder_.getInt32Ty(),   // width
@@ -212,7 +247,7 @@ llvm::Function* StringInterpolation::getFormatStringFunction() {
 llvm::Function* StringInterpolation::getInterpolateStringFunction() {
     auto func = module_->getFunction("pryst_interpolate_string");
     if (!func) {
-        auto charPtrTy = builder_.getInt8Ty()->getPointerTo();
+        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
         std::vector<llvm::Type*> args = {
             charPtrTy,               // format
             builder_.getInt32Ty()    // count
