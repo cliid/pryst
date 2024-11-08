@@ -17,8 +17,7 @@ namespace pryst {
 // Constructor is defined in header
 
 std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
-    // Initialize module components
-    context = std::make_unique<llvm::LLVMContext>();
+    // Reset module for new generation
     module = std::make_unique<llvm::Module>("pryst_module", *context);
     builder = std::make_unique<llvm::IRBuilder<>>(*context);
     typeRegistry = std::make_unique<LLVMTypeRegistry>(*context, builder.get(), module.get());

@@ -1,0 +1,48 @@
+// Test file for reflection API functionality
+class TestClass {
+    x: int;
+    y: float;
+
+    fn init(x: int, y: float) {
+        this.x = x;
+        this.y = y;
+    }
+
+    fn getX() -> int {
+        return this.x;
+    }
+}
+
+class DerivedClass : TestClass {
+    z: string;
+
+    fn init(x: int, y: float, z: string) {
+        super.init(x, y);
+        this.z = z;
+    }
+}
+
+fn main() {
+    // Test basic type reflection
+    let obj = new TestClass(10, 20.5);
+    let derived = new DerivedClass(5, 15.3, "test");
+
+    // Test getType()
+    print("Type of obj: " + obj.getType());  // Should print "TestClass"
+    print("Type of derived: " + derived.getType());  // Should print "DerivedClass"
+
+    // Test isInstance()
+    print("obj is TestClass: " + obj.isInstance("TestClass"));  // Should print true
+    print("derived is TestClass: " + derived.isInstance("TestClass"));  // Should print true
+    print("derived is DerivedClass: " + derived.isInstance("DerivedClass"));  // Should print true
+    print("obj is DerivedClass: " + obj.isInstance("DerivedClass"));  // Should print false
+
+    // Test type checking with primitives
+    let num: int = 42;
+    let str: string = "hello";
+    print("Type of num: " + num.getType());  // Should print "int"
+    print("Type of str: " + str.getType());  // Should print "string"
+
+    // Test type checking with function calls
+    print("Type of getX return: " + obj.getX().getType());  // Should print "int"
+}
