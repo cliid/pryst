@@ -13,10 +13,9 @@ llvm::Function* LLVMCodegen::declareBoolToStr() {
     std::vector<llvm::Type*> paramTypes = {
         llvm::Type::getInt1Ty(*context)
     };
-    auto strType = typeRegistry.getStrType();
-    auto llvmStrType = typeRegistry.getLLVMType(strType, *context);
+    auto strType = typeRegistry->getStringType();
     llvm::FunctionType* funcType = llvm::FunctionType::get(
-        llvmStrType,
+        strType,
         paramTypes,
         false
     );
@@ -54,11 +53,10 @@ llvm::Function* LLVMCodegen::declareBoolToStr() {
 
 llvm::Function* LLVMCodegen::declareIntToStr() {
     PRYST_DEBUG("Declaring int_to_str function");
-    std::vector<llvm::Type*> paramTypes = {
-        llvm::Type::getInt32Ty(*context)
-    };
-    auto strType = typeRegistry.getStrType();
-    auto llvmStrType = typeRegistry.getLLVMType(strType, *context);
+    std::vector<llvm::Type*> paramTypes;
+    paramTypes.push_back(llvm::Type::getInt32Ty(*context));
+    auto strType = typeRegistry->getStringType();
+    auto llvmStrType = strType;  // No need for getLLVMType since getStringType returns LLVM type
     llvm::FunctionType* funcType = llvm::FunctionType::get(
         llvmStrType,
         paramTypes,
@@ -81,17 +79,16 @@ llvm::Function* LLVMCodegen::declareIntToStr() {
     // Create buffer for string conversion
     auto bufferSize = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 32);
     auto buffer = builder->CreateAlloca(llvm::ArrayType::get(llvm::Type::getInt8Ty(*context), 32));
-    auto bufferPtr = builder->CreateBitCast(buffer, typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)));
+    auto bufferPtr = builder->CreateBitCast(buffer, typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));
 
     // Create format string for integer
     auto formatStr = builder->CreateGlobalString("%d", "int_format");
 
     // Declare sprintf
-    std::vector<llvm::Type*> sprintfTypes = {
-        typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-        typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-        llvm::Type::getInt32Ty(*context)
-    };
+    std::vector<llvm::Type*> sprintfTypes;
+    sprintfTypes.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));
+    sprintfTypes.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));
+    sprintfTypes.push_back(llvm::Type::getInt32Ty(*context));
     llvm::FunctionType* sprintfType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(*context),
         sprintfTypes,
@@ -100,7 +97,10 @@ llvm::Function* LLVMCodegen::declareIntToStr() {
     auto sprintfFunc = module->getOrInsertFunction("sprintf", sprintfType);
 
     // Call sprintf
-    std::vector<llvm::Value*> args = {bufferPtr, formatStr, intValue};
+    std::vector<llvm::Value*> args;
+    args.push_back(bufferPtr);
+    args.push_back(formatStr);
+    args.push_back(intValue);
     builder->CreateCall(sprintfFunc, args);
 
     builder->CreateRet(bufferPtr);
@@ -109,11 +109,10 @@ llvm::Function* LLVMCodegen::declareIntToStr() {
 
 llvm::Function* LLVMCodegen::declareFloatToStr() {
     PRYST_DEBUG("Declaring float_to_str function");
-    std::vector<llvm::Type*> paramTypes = {
-        llvm::Type::getDoubleTy(*context)
-    };
-    auto strType = typeRegistry.getStrType();
-    auto llvmStrType = typeRegistry.getLLVMType(strType, *context);
+    std::vector<llvm::Type*> paramTypes;
+    paramTypes.push_back(llvm::Type::getDoubleTy(*context));
+    auto strType = typeRegistry->getStringType();
+    auto llvmStrType = strType;  // No need for getLLVMType since getStringType returns LLVM type
     llvm::FunctionType* funcType = llvm::FunctionType::get(
         llvmStrType,
         paramTypes,
@@ -136,17 +135,16 @@ llvm::Function* LLVMCodegen::declareFloatToStr() {
     // Create buffer for string conversion
     auto bufferSize = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 32);
     auto buffer = builder->CreateAlloca(llvm::ArrayType::get(llvm::Type::getInt8Ty(*context), 32));
-    auto bufferPtr = builder->CreateBitCast(buffer, typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)));
+    auto bufferPtr = builder->CreateBitCast(buffer, typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));
 
     // Create format string for float with 6 decimal places
     auto formatStr = builder->CreateGlobalString("%.6f", "float_format");
 
     // Declare sprintf
-    std::vector<llvm::Type*> sprintfTypes = {
-        typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-        typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-        llvm::Type::getDoubleTy(*context)
-    };
+    std::vector<llvm::Type*> sprintfTypes;
+    sprintfTypes.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));
+    sprintfTypes.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));
+    sprintfTypes.push_back(llvm::Type::getDoubleTy(*context));
     llvm::FunctionType* sprintfType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(*context),
         sprintfTypes,
@@ -155,7 +153,10 @@ llvm::Function* LLVMCodegen::declareFloatToStr() {
     auto sprintfFunc = module->getOrInsertFunction("sprintf", sprintfType);
 
     // Call sprintf
-    std::vector<llvm::Value*> args = {bufferPtr, formatStr, floatValue};
+    std::vector<llvm::Value*> args;
+    args.push_back(bufferPtr);
+    args.push_back(formatStr);
+    args.push_back(floatValue);
     builder->CreateCall(sprintfFunc, args);
 
     builder->CreateRet(bufferPtr);
@@ -291,13 +292,12 @@ llvm::Function* LLVMCodegen::declareMathAbs() {
 
 llvm::Function* LLVMCodegen::declareStrConcat() {
     PRYST_DEBUG("Declaring str_concat function");
-    auto strType = typeRegistry.getStrType();
-    auto llvmStrType = typeRegistry.getLLVMType(strType, *context);
+    auto strType = typeRegistry->getStringType();
+    auto llvmStrType = strType;
 
-    std::vector<llvm::Type*> paramTypes = {
-        llvmStrType,
-        llvmStrType
-    };
+    std::vector<llvm::Type*> paramTypes;
+    paramTypes.push_back(llvmStrType);
+    paramTypes.push_back(llvmStrType);
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(
         llvmStrType,
@@ -321,9 +321,8 @@ llvm::Function* LLVMCodegen::declareStrConcat() {
     llvm::Value* str2 = &*it;
 
     // Declare strlen
-    std::vector<llvm::Type*> strlenTypes = {
-        typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context))
-    };
+    std::vector<llvm::Type*> strlenTypes;
+    strlenTypes.push_back(typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)));
     llvm::FunctionType* strlenType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(*context),
         strlenTypes,
@@ -345,18 +344,18 @@ llvm::Function* LLVMCodegen::declareStrConcat() {
     // Declare strcpy and strcat
     auto strcpyFunc = module->getOrInsertFunction("strcpy",
         llvm::FunctionType::get(
-            typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-            {typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-             typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context))},
+            typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),
+            {typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),
+             typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context))},
             false
         )
     );
 
     auto strcatFunc = module->getOrInsertFunction("strcat",
         llvm::FunctionType::get(
-            typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-            {typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-             typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context))},
+            typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),
+            {typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),
+             typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context))},
             false
         )
     );
@@ -371,14 +370,13 @@ llvm::Function* LLVMCodegen::declareStrConcat() {
 
 llvm::Function* LLVMCodegen::declareStrSubstr() {
     PRYST_DEBUG("Declaring str_substr function");
-    auto strType = typeRegistry.getStrType();
-    auto llvmStrType = typeRegistry.getLLVMType(strType, *context);
+    auto strType = typeRegistry->getStringType();
+    auto llvmStrType = strType;  // No need for getLLVMType since getStringType returns LLVM type
 
-    std::vector<llvm::Type*> paramTypes = {
-        llvmStrType,
-        llvm::Type::getInt32Ty(*context),  // start
-        llvm::Type::getInt32Ty(*context)   // length
-    };
+    std::vector<llvm::Type*> paramTypes;
+    paramTypes.push_back(llvmStrType);
+    paramTypes.push_back(llvm::Type::getInt32Ty(*context));  // start
+    paramTypes.push_back(llvm::Type::getInt32Ty(*context));  // length
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(
         llvmStrType,
@@ -412,9 +410,9 @@ llvm::Function* LLVMCodegen::declareStrSubstr() {
     // Declare strncpy
     auto strncpyFunc = module->getOrInsertFunction("strncpy",
         llvm::FunctionType::get(
-            typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-            {typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
-             typeRegistry.getPointerType(llvm::Type::getInt8Ty(*context)),
+            typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),
+            {typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),
+             typeRegistry->getPointerType(llvm::Type::getInt8Ty(*context)),
              llvm::Type::getInt32Ty(*context)},
             false
         )
