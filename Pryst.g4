@@ -1,14 +1,37 @@
 grammar Pryst;
 
 program
-    : declaration* EOF
+    : (namespaceDecl | moduleDecl | importDecl | declaration)* EOF
     ;
 
 declaration
     : functionDecl
     | variableDecl
     | classDeclaration
+    | usingDecl
     | statement
+    ;
+
+usingDecl
+    : (USING NAMESPACE | USING MODULE) qualifiedIdentifier SEMICOLON                    # GlobalUsingDecl
+    | USING NAMESPACE qualifiedIdentifier LBRACE declaration* RBRACE                    # BlockScopedNamespaceDecl
+    | USING MODULE qualifiedIdentifier LBRACE declaration* RBRACE                       # BlockScopedModuleDecl
+    ;
+
+namespaceDecl
+    : NAMESPACE qualifiedIdentifier LBRACE (declaration | moduleDecl)* RBRACE
+    ;
+
+moduleDecl
+    : MODULE qualifiedIdentifier LBRACE declaration* RBRACE
+    ;
+
+importDecl
+    : IMPORT importPath SEMICOLON
+    ;
+
+importPath
+    : IDENTIFIER (DOUBLE_COLON IDENTIFIER)*
     ;
 
 functionDecl
@@ -17,15 +40,24 @@ functionDecl
     ;
 
 namedFunction
-    : type IDENTIFIER LPAREN paramList? RPAREN LBRACE declaration* RBRACE
+    : FN LESS type GREATER IDENTIFIER LPAREN paramList? RPAREN functionBody
+    | FN IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody
+    | type IDENTIFIER LPAREN paramList? RPAREN functionBody
     ;
 
 lambdaFunction
-    : type? LPAREN paramList? RPAREN ARROW LBRACE declaration* RBRACE
+    : LPAREN paramList? RPAREN ARROW type LBRACE declaration* RBRACE
+    | LPAREN paramList? RPAREN ARROW type expression
+    ;
+
+functionBody
+    : LBRACE statement* RBRACE
     ;
 
 variableDecl
-    : type IDENTIFIER (EQUAL expression)? SEMICOLON
+    : (LET | CONST) IDENTIFIER EQUAL expression SEMICOLON                      # inferredVariableDecl
+    | (type | CONST type | CONST_EXPR) IDENTIFIER EQUAL expression SEMICOLON   # typedVariableDecl
+    | type IDENTIFIER SEMICOLON                                                # uninitializedVariableDecl
     ;
 
 classDeclaration
@@ -37,8 +69,11 @@ classBody
     ;
 
 classMember
-    : type IDENTIFIER (EQUAL expression)? SEMICOLON  # classVariableDecl
-    | type IDENTIFIER LPAREN paramList? RPAREN LBRACE declaration* RBRACE # classFunctionDecl
+    : type IDENTIFIER EQUAL expression SEMICOLON                    # classTypedVariableDecl
+    | LET IDENTIFIER EQUAL expression SEMICOLON                     # classInferredVariableDecl
+    | CONST IDENTIFIER EQUAL expression SEMICOLON                   # classConstInferredDecl
+    | CONST type IDENTIFIER EQUAL expression SEMICOLON             # classConstTypedDecl
+    | IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody  # classFunctionDecl
     ;
 
 paramList
@@ -47,16 +82,22 @@ paramList
 
 param
     : type IDENTIFIER
+    | FN LESS type GREATER LPAREN paramTypeList? RPAREN IDENTIFIER
+    ;
+
+paramTypeList
+    : type (COMMA type)*
     ;
 
 type
-    : INT
-    | FLOAT
-    | BOOL
-    | STR
-    | VOID
-    | IDENTIFIER
-    | type LBRACKET RBRACKET
+    : INT                                             # intType
+    | FLOAT                                           # floatType
+    | BOOL                                            # boolType
+    | STR                                             # strType
+    | VOID                                            # voidType
+    | IDENTIFIER                                      # identifierType
+    | type LBRACKET RBRACKET                         # arrayType
+    | FN LESS type GREATER LPAREN paramTypeList? RPAREN   # functionType
     ;
 
 statement
@@ -67,19 +108,27 @@ statement
       expression? SEMICOLON
       expression? RPAREN statement                  # forStatement
     | RETURN expression? SEMICOLON                  # returnStatement
-    | LBRACE declaration* RBRACE                    # blockStatement
+    | LBRACE statement* RBRACE                    # blockStatement
+    | tryCatchStatement                                # tryStatement
+    | PRINT LPAREN (expression (COMMA expression)*)? RPAREN SEMICOLON      # printStatement
     ;
 
 expression
     : assignment
+    | lambdaFunction
     | typeCastExpr
     | typeConversionExpr
     | classConversionExpr
+    | stringLiteral
     | logicOr
     ;
 
+stringLiteral
+    : STRING                                           # simpleString
+    ;
+
 assignment
-    : (call DOT)? IDENTIFIER EQUAL expression
+    : (call DOT)? qualifiedIdentifier EQUAL expression
     ;
 
 logicOr
@@ -126,10 +175,11 @@ callSuffix
 
 memberSuffix
     : DOT IDENTIFIER
+    | DOT IDENTIFIER LPAREN arguments? RPAREN
     ;
 
 call
-    : primary (DOT IDENTIFIER)*
+    : qualifiedIdentifier (DOT IDENTIFIER)*
     ;
 
 primary
@@ -139,10 +189,14 @@ primary
     | THIS
     | NUMBER
     | STRING
-    | IDENTIFIER (LPAREN arguments? RPAREN)?
+    | qualifiedIdentifier (LPAREN arguments? RPAREN)?
     | LPAREN expression RPAREN
     | SUPER DOT IDENTIFIER
     | newExpression
+    ;
+
+qualifiedIdentifier
+    : IDENTIFIER (DOUBLE_COLON IDENTIFIER)*
     ;
 
 newExpression
@@ -156,6 +210,7 @@ arguments
 // Type conversion expressions
 typeCastExpr
     : LPAREN type RPAREN expression
+    | type LPAREN expression RPAREN
     ;
 
 typeConversionExpr
@@ -164,6 +219,10 @@ typeConversionExpr
 
 classConversionExpr
     : IDENTIFIER DOT CONVERT LPAREN expression RPAREN
+    ;
+
+tryCatchStatement
+    : TRY statement (CATCH LPAREN IDENTIFIER RPAREN statement)?
     ;
 
 // Lexer Rules
@@ -194,8 +253,10 @@ OR          : '||' ;
 INCREMENT   : '++' ;
 DECREMENT   : '--' ;
 PERCENT     : '%' ;
-ARROW       : '=>' ;
+ARROW       : '->' ;
+DOUBLE_COLON : '::' ;
 
+PRINT       : 'print' ;
 CLASS       : 'class' ;
 EXTENDS     : 'extends' ;
 ELSE        : 'else' ;
@@ -210,6 +271,16 @@ TRUE        : 'true' ;
 WHILE       : 'while' ;
 NEW         : 'new' ;
 CONVERT     : 'convert' ;
+NAMESPACE   : 'namespace' ;
+MODULE      : 'module' ;
+IMPORT      : 'import' ;
+USING       : 'using' ;
+LET         : 'let' ;
+FN          : 'fn' ;
+CONST       : 'const' ;
+CONST_EXPR  : 'const!' ;
+TRY         : 'try' ;
+CATCH       : 'catch' ;
 
 INT         : 'int' ;
 FLOAT       : 'float' ;
@@ -218,7 +289,26 @@ STR         : 'str' ;
 VOID        : 'void' ;
 
 NUMBER      : [0-9]+ ('.' [0-9]+)? ;
-STRING      : '"' (~["\r\n\\] | '\\' .)* '"' ;
+
+// String tokens
+STRING      : '"' (~["\\\r\n${] | ESCAPE_SEQ | INTERP_EXPR)* '"' ;
+
+fragment ESCAPE_SEQ
+    : '\\' [btnfr"'\\]
+    | '\\u' HexDigit HexDigit HexDigit HexDigit
+    ;
+
+fragment INTERP_EXPR
+    : '${' .*? '}'
+    ;
+
+fragment StringCharacter
+    : ~["\r\n\\$]
+    | '\\' [btnfr"'\\]
+    | '\\u' HexDigit HexDigit HexDigit HexDigit
+    ;
+
+fragment HexDigit : [0-9a-fA-F] ;
 IDENTIFIER  : [a-zA-Z_][a-zA-Z_0-9]* ;
 
 COMMENT     : '//' ~[\r\n]* -> skip ;

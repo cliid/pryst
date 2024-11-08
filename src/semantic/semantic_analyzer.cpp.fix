@@ -1,0 +1,33 @@
+// Add this method to semantic_analyzer.cpp, right after visitReturnStatement
+
+std::any SemanticAnalyzer::visitFunctionBody(PrystParser::FunctionBodyContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null function body context");
+    }
+
+    PRYST_DEBUG("Processing function body");
+
+    // Process all declarations in the function body
+    if (!ctx->declaration().empty()) {
+        PRYST_DEBUG("Processing " + std::to_string(ctx->declaration().size()) + " declarations in function body");
+        for (auto decl : ctx->declaration()) {
+            if (!decl) {
+                throw std::runtime_error("Null declaration in function body");
+            }
+            visit(decl);
+        }
+    }
+
+    // Process all statements in the function body
+    if (!ctx->statement().empty()) {
+        PRYST_DEBUG("Processing " + std::to_string(ctx->statement().size()) + " statements in function body");
+        for (auto stmt : ctx->statement()) {
+            if (!stmt) {
+                throw std::runtime_error("Null statement in function body");
+            }
+            visit(stmt);
+        }
+    }
+
+    return std::any();
+}

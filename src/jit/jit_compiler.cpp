@@ -1,56 +1,72 @@
+// Include project headers first
 #include "jit_compiler.hpp"
-#include <llvm/IR/Module.h>
+#include "utils/debug.hpp"
+#include "utils/logger.hpp"
+
+// Then include LLVM headers
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/Error.h>
-#include <llvm/Support/InitLLVM.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
-#include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
-#include <iostream>
+
+#include <memory>
+#include <string>
+
+namespace pryst {
 
 JITCompiler::JITCompiler() {
+    PRYST_DEBUG("Initializing JIT compiler");
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
-
-    auto JIT = llvm::orc::LLJITBuilder().create();
-    if (!JIT) {
-        std::cerr << "Failed to create LLJIT: " << llvm::toString(JIT.takeError()) << std::endl;
-        std::exit(1);
-    }
-    jit = std::move(*JIT);
-
-    // Add dynamic library search generator to find external symbols
-    auto& DL = jit->getDataLayout();
-    auto& JD = jit->getMainJITDylib();
-    auto Generator = llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix());
-    if (!Generator) {
-        std::cerr << "Failed to create dynamic library search generator: "
-                  << llvm::toString(Generator.takeError()) << std::endl;
-        std::exit(1);
-    }
-    JD.addGenerator(std::move(*Generator));
 }
 
 void JITCompiler::compileAndRun(std::unique_ptr<llvm::Module> module) {
-    // Add the module to the JIT
-    auto err = jit->addIRModule(llvm::orc::ThreadSafeModule(std::move(module), std::make_unique<llvm::LLVMContext>()));
-    if (err) {
-        std::cerr << "Failed to add module: " << llvm::toString(std::move(err)) << std::endl;
+    if (!module) {
+        PRYST_ERROR("Null module provided to compileAndRun");
         return;
     }
 
-    // Look up the JIT'd code
+    PRYST_DEBUG("Creating LLJIT instance");
+    auto jitOrErr = llvm::orc::LLJITBuilder().create();
+    if (!jitOrErr) {
+        std::string errMsg;
+        llvm::raw_string_ostream os(errMsg);
+        os << jitOrErr.takeError();
+        PRYST_ERROR("Failed to create LLJIT: " + errMsg);
+        return;
+    }
+
+    jit = std::move(*jitOrErr);
+    PRYST_DEBUG("Created LLJIT instance successfully");
+
+    auto tsm = llvm::orc::ThreadSafeModule(std::move(module), std::make_unique<llvm::LLVMContext>());
+    PRYST_DEBUG("Created ThreadSafeModule");
+
+    if (auto err = jit->addIRModule(std::move(tsm))) {
+        std::string errMsg;
+        llvm::raw_string_ostream os(errMsg);
+        os << err;
+        PRYST_ERROR("Failed to add IR module: " + errMsg);
+        return;
+    }
+    PRYST_DEBUG("Added IR module successfully");
+
     auto mainSymbol = jit->lookup("main");
     if (!mainSymbol) {
-        std::cerr << "Failed to find main function: " << llvm::toString(mainSymbol.takeError()) << std::endl;
+        std::string errMsg;
+        llvm::raw_string_ostream os(errMsg);
+        os << mainSymbol.takeError();
+        PRYST_ERROR("Failed to find main function: " + errMsg);
         return;
     }
+    PRYST_DEBUG("Found main function");
 
-    // Cast the symbol address to a function pointer
-    int (*mainFunc)() = mainSymbol->toPtr<int(*)()>();
-
-    // Call the JIT'd code
-    int result = mainFunc();
-    std::cout << "JIT execution result: " << result << std::endl;
+    auto mainFn = (int(*)())(intptr_t)mainSymbol->getValue();
+    PRYST_DEBUG("Executing main function");
+    mainFn();
+    PRYST_DEBUG("Main function execution completed");
 }
+
+} // namespace pryst

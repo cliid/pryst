@@ -1,0 +1,6 @@
+try {
+    // ... existing code ...
+} catch (const std::exception& ex) {
+    PRYST_DEBUG("Failed to load module: " + modulePath + " - " + ex.what());
+    throw std::runtime_error("Failed to load module '" + modulePath + "': " + ex.what());
+}

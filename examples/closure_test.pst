@@ -1,0 +1,121 @@
+// Test closure functionality and variable capture
+fn test_basic_closure() -> void {
+    let x = 10;
+    let y = 20;
+
+    // Create a closure that captures x and y
+    let closure = (int z) -> int {
+        return x + y + z;
+    };
+
+    // Test the closure with different values
+    print(closure(5));  // Should print 35
+    print(closure(10)); // Should print 40
+}
+
+fn test_mutable_capture() -> void {
+    let counter = 0;
+
+    // Test mutable capture
+    let increment = () -> int {
+        counter = counter + 1;
+        return counter;
+    };
+
+    print(increment());  // Should print 1
+    print(increment());  // Should print 2
+    print(counter);      // Should print 2
+}
+
+fn test_nested_closures() -> void {
+    let x = 1;
+    let y = 2;
+    let z = 3;
+
+    // Test multiple levels of nested closures with shadowing
+    let outer = (int a) -> fn<fn<int>(int)>(int) {
+        let x = 10;  // Shadows outer x
+        return (int b) -> fn<int>(int) {
+            let y = 20;  // Shadows outer y
+            return (int c) -> int {
+                let z = 30;  // Shadows outer z
+                return x + y + z + a + b + c;  // Uses shadowed variables
+            };
+        };
+    };
+
+    let middle = outer(100);
+    let inner = middle(200);
+    print(inner(300));  // Should print 660 (10 + 20 + 30 + 100 + 200 + 300)
+}
+
+fn test_closure_lifetime() -> void {
+    // Test closure outliving its creation scope
+    let make_counter = () -> fn<int>() {
+        let count = 0;
+        return () -> int {
+            count = count + 1;
+            return count;
+        };
+    };
+
+    let counter1 = make_counter();
+    let counter2 = make_counter();
+
+    print(counter1());  // Should print 1
+    print(counter1());  // Should print 2
+    print(counter2());  // Should print 1 (separate instance)
+}
+
+fn test_closure_error_cases() -> void {
+    let x = 42;
+
+    // Test capturing const variable (should work)
+    const FACTOR = 10;
+    let multiply = (int y) -> int {
+        return y * FACTOR;  // Can capture const
+    };
+    print(multiply(5));  // Should print 50
+
+    // Test variable shadowing and scope
+    {
+        let x = "shadow";  // Shadows outer x
+        let printer = () -> void {
+            print(x);  // Should print "shadow"
+        };
+        printer();
+    }
+
+    print(x);  // Should print 42 (original x)
+}
+
+fn main() -> void {
+    // Run all closure tests
+    test_basic_closure();
+    test_mutable_capture();
+    test_nested_closures();
+    test_closure_lifetime();
+    test_closure_error_cases();
+
+    // Test closure type inference
+    let add = (int x, int y) -> int {
+        return x + y;
+    };
+    print(add(5, 3));  // Should print 8
+
+    // Test closure as function argument
+    fn apply(fn<int>(int, int) operation, int a, int b) -> int {
+        return operation(a, b);
+    }
+
+    let result = apply(add, 10, 20);
+    print(result);  // Should print 30
+
+    // Uncomment to test error cases:
+    // let invalid_capture = () -> void {
+    //     let local = 42;
+    //     return () -> int {
+    //         return local;  // Error: capturing variable that will be destroyed
+    //     };
+    // };
+}
