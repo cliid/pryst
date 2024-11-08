@@ -1,103 +1,200 @@
 #include "llvm_codegen.hpp"
-#include "utils/debug.hpp"
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
-#include <llvm/IR/Verifier.h>
-#include <memory>
-#include <string>
+#include "../semantic/type_info.hpp"
+#include "../semantic/basic_type_info.hpp"
+#include "../semantic/type_kinds.hpp"
 
 namespace pryst {
 
-LLVMCodegen::LLVMCodegen() {
-    context = std::make_unique<llvm::LLVMContext>();
-    module = std::make_unique<llvm::Module>("pryst_module", *context);
-    builder = std::make_unique<llvm::IRBuilder<>>(*context);
-    typeRegistry = std::make_unique<LLVMTypeRegistry>(*context);
-    currentFunction = nullptr;
+LLVMCodegen::LLVMCodegen(llvm::LLVMContext& ctx)
+    : context(ctx)
+    , builder(std::make_unique<llvm::IRBuilder<>>(ctx))
+    , typeRegistry(std::make_unique<TypeRegistry>(ctx))
+    , typeMetadata(std::make_unique<TypeMetadata>()) {
+    initializeModule();
 }
 
-std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
-    // Initialize module components
-    context = std::make_unique<llvm::LLVMContext>();
-    module = std::make_unique<llvm::Module>("pryst_module", *context);
-    builder = std::make_unique<llvm::IRBuilder<>>(*context);
-    typeRegistry = std::make_unique<LLVMTypeRegistry>(*context);
-    declarePrintFunctions();
-    visitProgram(ctx);
-
-    // Verify module
-    std::string errorInfo;
-    llvm::raw_string_ostream errorStream(errorInfo);
-    if (llvm::verifyModule(*module, &errorStream)) {
-        PRYST_ERROR("Module verification failed: " + errorInfo);
-        return nullptr;
-    }
-    return std::move(module);
+void LLVMCodegen::setModule(std::unique_ptr<llvm::Module> mod) {
+    module = std::move(mod);
+    initializeBuiltins();
 }
 
-std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext *ctx) {
-    PRYST_DEBUG("Visiting program");
-    for (auto decl : ctx->declaration()) {
-        visitDeclaration(decl);
-    }
-    return std::any();
+void LLVMCodegen::initializeModule() {
+    // Implementation
 }
 
-std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext *ctx) {
-    PRYST_DEBUG("Visiting declaration");
+void LLVMCodegen::initializeBuiltins() {
+    // Implementation
+}
+
+std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
     return visitChildren(ctx);
 }
 
-std::any LLVMCodegen::visitGlobalUsingDecl(PrystParser::GlobalUsingDeclContext *ctx) {
-    PRYST_DEBUG("Visiting global using declaration");
-    return std::any();
+std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext* ctx) {
+    return visitChildren(ctx);
 }
 
-std::any LLVMCodegen::visitBlockScopedNamespaceDecl(PrystParser::BlockScopedNamespaceDeclContext *ctx) {
-    PRYST_DEBUG("Visiting block scoped namespace declaration");
-    return std::any();
+std::any LLVMCodegen::visitBlockStatement(PrystParser::BlockStatementContext* ctx) {
+    return visitChildren(ctx);
 }
 
-std::any LLVMCodegen::visitBlockScopedModuleDecl(PrystParser::BlockScopedModuleDeclContext *ctx) {
-    PRYST_DEBUG("Visiting block scoped module declaration");
-    return std::any();
+std::any LLVMCodegen::visitReturnStatement(PrystParser::ReturnStatementContext* ctx) {
+    return visitChildren(ctx);
 }
 
-std::any LLVMCodegen::visitNamespaceDecl(PrystParser::NamespaceDeclContext *ctx) {
-    PRYST_DEBUG("Visiting namespace declaration");
-    return std::any();
+std::any LLVMCodegen::visitInferredVariableDecl(PrystParser::InferredVariableDeclContext* ctx) {
+    auto expr = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+    if (!expr) return nullptr;
+
+    auto typeInfo = getTypeInfo(expr);
+    if (!typeInfo) return nullptr;
+
+    auto alloca = builder->CreateAlloca(expr->getType(), nullptr, ctx->IDENTIFIER()->getText());
+    builder->CreateStore(expr, alloca);
+    return alloca;
 }
 
-std::any LLVMCodegen::visitModuleDecl(PrystParser::ModuleDeclContext *ctx) {
-    PRYST_DEBUG("Visiting module declaration");
-    return std::any();
+std::any LLVMCodegen::visitTypedVariableDecl(PrystParser::TypedVariableDeclContext* ctx) {
+    auto type = getLLVMType(ctx->type()->getText());
+    if (!type) return nullptr;
+
+    auto expr = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+    if (!expr) return nullptr;
+
+    if (expr->getType() != type && isConvertible(expr, ctx->type()->getText())) {
+        expr = convertType(expr, ctx->type()->getText());
+    }
+
+    auto alloca = builder->CreateAlloca(type, nullptr, ctx->IDENTIFIER()->getText());
+    builder->CreateStore(expr, alloca);
+    return alloca;
 }
 
-std::any LLVMCodegen::visitImportDecl(PrystParser::ImportDeclContext *ctx) {
-    PRYST_DEBUG("Visiting import declaration");
-    return std::any();
+std::any LLVMCodegen::visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext* ctx) {
+    auto type = getLLVMType(ctx->type()->getText());
+    if (!type) return nullptr;
+
+    auto alloca = builder->CreateAlloca(type, nullptr, ctx->IDENTIFIER()->getText());
+    return alloca;
 }
 
-std::any LLVMCodegen::visitImportPath(PrystParser::ImportPathContext *ctx) {
-    PRYST_DEBUG("Visiting import path");
-    return std::any();
+std::any LLVMCodegen::visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext* ctx) {
+    auto expr = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+    if (!expr) return nullptr;
+
+    auto typeInfo = getTypeInfo(expr);
+    if (!typeInfo) return nullptr;
+
+    auto alloca = builder->CreateAlloca(expr->getType(), nullptr, ctx->IDENTIFIER()->getText());
+    builder->CreateStore(expr, alloca);
+    return alloca;
 }
 
-llvm::AllocaInst* LLVMCodegen::createEntryBlockAlloca(llvm::Function* function,
-    const std::string& varName, llvm::Type* type) {
-    llvm::IRBuilder<> tmpBuilder(&function->getEntryBlock(),
-        function->getEntryBlock().begin());
-    return tmpBuilder.CreateAlloca(type, nullptr, varName);
+std::any LLVMCodegen::visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext* ctx) {
+    auto type = getLLVMType(ctx->type()->getText());
+    if (!type) return nullptr;
+
+    auto expr = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+    if (!expr) return nullptr;
+
+    if (expr->getType() != type && isConvertible(expr, ctx->type()->getText())) {
+        expr = convertType(expr, ctx->type()->getText());
+    }
+
+    auto alloca = builder->CreateAlloca(type, nullptr, ctx->IDENTIFIER()->getText());
+    builder->CreateStore(expr, alloca);
+    return alloca;
 }
 
-void LLVMCodegen::declarePrintFunctions() {
-    // Print function declarations will be implemented in subsequent updates
+std::any LLVMCodegen::visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext* ctx) {
+    auto expr = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+    if (!expr) return nullptr;
+
+    auto typeInfo = getTypeInfo(expr);
+    if (!typeInfo) return nullptr;
+
+    auto alloca = builder->CreateAlloca(expr->getType(), nullptr, ctx->IDENTIFIER()->getText());
+    builder->CreateStore(expr, alloca);
+    return alloca;
+}
+
+std::any LLVMCodegen::visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext* ctx) {
+    auto type = getLLVMType(ctx->type()->getText());
+    if (!type) return nullptr;
+
+    auto expr = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+    if (!expr) return nullptr;
+
+    if (expr->getType() != type && isConvertible(expr, ctx->type()->getText())) {
+        expr = convertType(expr, ctx->type()->getText());
+    }
+
+    auto alloca = builder->CreateAlloca(type, nullptr, ctx->IDENTIFIER()->getText());
+    builder->CreateStore(expr, alloca);
+    return alloca;
+}
+
+std::any LLVMCodegen::visitExpression(PrystParser::ExpressionContext* ctx) {
+    return visitChildren(ctx);
+}
+
+llvm::Type* LLVMCodegen::getLLVMType(const std::string& typeName) {
+    if (typeName == "int") {
+        return llvm::Type::getInt32Ty(context);
+    } else if (typeName == "float") {
+        return llvm::Type::getFloatTy(context);
+    } else if (typeName == "bool") {
+        return llvm::Type::getInt1Ty(context);
+    } else if (typeName == "string") {
+        return llvm::PointerType::get(context, 0);  // Use opaque pointers in LLVM 20.0.0
+    } else if (typeName == "void") {
+        return llvm::Type::getVoidTy(context);
+    }
+    return nullptr;
+}
+
+TypeInfoPtr LLVMCodegen::getTypeInfo(llvm::Value* value) {
+    if (!value) return nullptr;
+    llvm::Type* type = value->getType();
+
+    if (type->isIntegerTy(32)) {
+        return std::make_shared<BasicTypeInfo>(BasicTypeInfo::BasicKind::Int, "int", type);
+    } else if (type->isFloatTy()) {
+        return std::make_shared<BasicTypeInfo>(BasicTypeInfo::BasicKind::Float, "float", type);
+    } else if (type->isIntegerTy(1)) {
+        return std::make_shared<BasicTypeInfo>(BasicTypeInfo::BasicKind::Bool, "bool", type);
+    } else if (type->isPointerTy()) {
+        return std::make_shared<BasicTypeInfo>(BasicTypeInfo::BasicKind::String, "string", type);
+    }
+    return nullptr;
+}
+
+bool LLVMCodegen::isConvertible(llvm::Value* from, const std::string& toType) {
+    if (!from) return false;
+    llvm::Type* fromType = from->getType();
+    llvm::Type* targetType = getLLVMType(toType);
+
+    if (!targetType) return false;
+
+    // Allow numeric conversions
+    if (isNumericType(fromType) && isNumericType(targetType)) {
+        return true;
+    }
+
+    // Allow string conversions
+    if (isStringType(targetType) || isStringType(fromType)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool LLVMCodegen::isNumericType(llvm::Type* type) {
+    return type && (type->isIntegerTy(32) || type->isFloatTy());
+}
+
+bool LLVMCodegen::isStringType(llvm::Type* type) {
+    return type && type->isPointerTy();
 }
 
 } // namespace pryst

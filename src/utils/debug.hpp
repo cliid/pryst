@@ -1,12 +1,31 @@
 #pragma once
-#include "logger.hpp"
 
-#define PRYST_DEBUG(msg) \
-    if (pryst::Logger::getInstance().isDebugEnabled()) { \
-        pryst::Logger::getInstance().debug(msg); \
-    }
+#include <iostream>
+#include <string>
 
-#define PRYST_ERROR(msg) pryst::Logger::getInstance().error(msg)
-#define PRYST_INFO(msg) pryst::Logger::getInstance().info(msg)
-#define PRYST_DEBUG_FUNC_ENTRY() PRYST_DEBUG("Entering " + std::string(__FUNCTION__))
-#define PRYST_DEBUG_FUNC_EXIT() PRYST_DEBUG("Exiting " + std::string(__FUNCTION__))
+#ifdef NDEBUG
+#define PRYST_DEBUG(x)
+#else
+#define PRYST_DEBUG(x) std::cerr << "[DEBUG] " << x << std::endl
+#endif
+
+#define PRYST_ERROR(x) std::cerr << "[ERROR] " << x << std::endl
+#define PRYST_WARN(x) std::cerr << "[WARN] " << x << std::endl
+
+namespace pryst {
+namespace debug {
+
+inline void logError(const std::string& message) {
+    PRYST_ERROR(message);
+}
+
+inline void logWarning(const std::string& message) {
+    PRYST_WARN(message);
+}
+
+inline void logDebug(const std::string& message) {
+    PRYST_DEBUG(message);
+}
+
+} // namespace debug
+} // namespace pryst

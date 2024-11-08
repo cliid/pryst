@@ -10,7 +10,7 @@
 
 class ModuleLoader {
 public:
-    ModuleLoader(std::shared_ptr<SymbolTable> symbolTable);
+    explicit ModuleLoader(std::shared_ptr<SymbolTable> symbolTable);
     ~ModuleLoader() = default;
 
     // Load a module from a file path
@@ -37,6 +37,13 @@ public:
     // Get all available modules in search paths
     std::vector<std::string> discoverModules() const;
 
+    // Block-level scope management
+    void enterScope();
+    void exitScope();
+
+    // Using declarations
+    void addUsingDeclaration(const std::string& moduleName, bool isModule);
+
     // Get module exports
     std::unordered_map<std::string, VariableInfo> getModuleExports(const std::string& qualifiedName) const;
 
@@ -45,6 +52,13 @@ public:
 
     // Get module exported classes
     std::unordered_map<std::string, ClassInfo> getModuleExportedClasses(const std::string& qualifiedName) const;
+
+    // Interface compliance
+    bool verifyInterfaceCompliance(const std::string& implementation, const std::string& interface);
+
+    // Namespace resolution
+    std::string resolveQualifiedName(const std::string& name);
+    bool isNameVisible(const std::string& name);
 
 private:
     // Map of module paths to their loaded status
@@ -59,18 +73,14 @@ private:
     // Symbol table reference
     std::shared_ptr<SymbolTable> symbolTable;
 
-    // Convert file path to module qualified name
+    // Scope stack for block-level using declarations
+    std::vector<std::unordered_map<std::string, bool>> scopeStack;
+
+    // Helper methods
     std::string pathToQualifiedName(const std::string& path) const;
-
-    // Find module file in search paths
     std::string findModuleFile(const std::string& moduleName) const;
-
-    // Initialize default module search paths
     void initializeSearchPaths();
-
-    // Parse module file and extract exports
     ModuleInfo parseModuleFile(const std::string& modulePath);
-
-    // Validate module structure
     bool validateModuleStructure(const std::string& modulePath) const;
+    bool checkCircularDependency(const std::string& moduleName);
 };

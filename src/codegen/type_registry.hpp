@@ -1,74 +1,50 @@
 #pragma once
 
-#include <llvm/IR/Type.h>
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
 #include <memory>
 #include <string>
-#include <map>
+#include <unordered_map>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Value.h>
+#include <llvm/IR/LLVMContext.h>
+#include "../semantic/type_info.hpp"
 
 namespace pryst {
 
-class LLVMTypeRegistry {
+using TypeInfoPtr = std::shared_ptr<TypeInfo>;
+
+class TypeRegistry {
 public:
-    LLVMTypeRegistry(llvm::LLVMContext& context) : context(context) {}
+    explicit TypeRegistry(llvm::LLVMContext& context);
+    ~TypeRegistry() = default;
 
-    // Basic type getters
-    llvm::Type* getVoidType() { return llvm::Type::getVoidTy(context); }
-    llvm::Type* getIntType() { return llvm::Type::getInt32Ty(context); }
-    llvm::Type* getFloatType() { return llvm::Type::getDoubleTy(context); }
-    llvm::Type* getBoolType() { return llvm::Type::getInt1Ty(context); }
+    void registerType(const std::string& name, TypeInfoPtr typeInfo);
+    TypeInfoPtr getTypeInfo(const std::string& name) const;
+    llvm::Type* getLLVMType(const std::string& name) const;
 
-    // String type (opaque pointer to i8)
-    llvm::Type* getStrType() {
+    llvm::Type* getVoidType() const { return llvm::Type::getVoidTy(context); }
+    llvm::Type* getBoolType() const { return llvm::Type::getInt1Ty(context); }
+    llvm::Type* getInt8Type() const { return llvm::Type::getInt8Ty(context); }
+    llvm::Type* getInt32Type() const { return llvm::Type::getInt32Ty(context); }
+    llvm::Type* getInt64Type() const { return llvm::Type::getInt64Ty(context); }
+    llvm::Type* getFloatType() const { return llvm::Type::getDoubleTy(context); }
+    llvm::Type* getStringType() const { return getPointerType(getInt8Type()); }
+
+    llvm::Type* getPointerType(llvm::Type* elementType) const {
         return llvm::PointerType::get(context, 0);
     }
 
-    // Pointer type handling for LLVM 20.0.0 opaque pointers
-    llvm::Type* getPointerType() {
-        return llvm::PointerType::get(context, 0);
-    }
+    bool isPointerType(llvm::Type* type) const { return type && type->isPointerTy(); }
+    bool isStringType(llvm::Type* type) const { return type && type->isPointerTy(); }
+    bool isNumericType(llvm::Type* type) const;
+    bool isBoolType(llvm::Type* type) const { return type && type->isIntegerTy(1); }
 
-    // Function type creation
-    llvm::FunctionType* getFunctionType(llvm::Type* returnType,
-                                      llvm::ArrayRef<llvm::Type*> paramTypes,
-                                      bool isVarArg = false) {
-        return llvm::FunctionType::get(returnType, paramTypes, isVarArg);
-    }
-
-    // Array type creation
-    llvm::ArrayType* getArrayType(llvm::Type* elementType, uint64_t size) {
-        return llvm::ArrayType::get(elementType, size);
-    }
-
-    // Struct type creation
-    llvm::StructType* getStructType(llvm::ArrayRef<llvm::Type*> elements,
-                                   const std::string& name = "",
-                                   bool isPacked = false) {
-        if (name.empty()) {
-            return llvm::StructType::get(context, elements, isPacked);
-        }
-        auto* existingType = llvm::StructType::getTypeByName(context, name);
-        if (existingType) {
-            return existingType;
-        }
-        return llvm::StructType::create(context, elements, name, isPacked);
-    }
-
-    // Type registration and lookup
-    void registerType(const std::string& name, llvm::Type* type) {
-        typeMap[name] = type;
-    }
-
-    llvm::Type* lookupType(const std::string& name) {
-        auto it = typeMap.find(name);
-        return (it != typeMap.end()) ? it->second : nullptr;
-    }
+    llvm::Value* convertType(llvm::Value* value, const std::string& targetType) const;
 
 private:
     llvm::LLVMContext& context;
-    std::map<std::string, llvm::Type*> typeMap;
+    std::unordered_map<std::string, TypeInfoPtr> types;
+    void initializeBasicTypes();
 };
 
 } // namespace pryst

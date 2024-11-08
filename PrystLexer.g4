@@ -24,6 +24,8 @@ LET         : 'let' ;
 FN          : 'fn' ;
 CONST       : 'const' ;
 CONST_EXPR  : 'const!' ;
+TRY         : 'try' ;
+CATCH       : 'catch' ;
 
 // Types
 INT         : 'int' ;
