@@ -28,6 +28,9 @@ public:
     // Parse a format specifier string (e.g., ":>10.2f")
     std::optional<FormatSpecifier> parseFormatSpec(const std::string& spec);
 
+    // Process escape sequences in string literals
+    std::string processEscapeSequence(const std::string& sequence);
+
     // Generate LLVM IR for formatted value
     llvm::Value* generateFormattedValue(llvm::Value* value,
                                       const FormatSpecifier& format,

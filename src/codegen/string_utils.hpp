@@ -1,16 +1,10 @@
 #ifndef STRING_UTILS_HPP
 #define STRING_UTILS_HPP
 
-#include <llvm/IR/Function.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
 #include <string>
 #include <vector>
-
-namespace pryst {
-    class LLVMCodegen;  // Forward declaration
-    class LLVMTypeRegistry;  // Forward declaration
-}
+#include "llvm_codegen.hpp"
+#include "type_registry.hpp"
 
 namespace string_utils {
     // Basic string operations
@@ -37,8 +31,8 @@ namespace string_utils {
     FormatSpec parseFormatSpec(const std::string& spec);
     llvm::Value* formatValue(pryst::LLVMCodegen* codegen, llvm::Value* value, const FormatSpec& spec);
     llvm::Value* interpolateString(pryst::LLVMCodegen* codegen, const std::string& format,
-                                const std::vector<llvm::Value*>& values,
-                                const std::vector<FormatSpec>& specs);
+                                 const std::vector<llvm::Value*>& values,
+                                 const std::vector<FormatSpec>& specs);
 }
 
 #endif // STRING_UTILS_HPP
