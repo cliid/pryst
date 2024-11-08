@@ -8,19 +8,18 @@
 #include "type_registry.hpp"
 
 // String utility function declarations
-class LLVMCodegen;  // Forward declaration
 
 namespace string_utils {
     // Basic string operations
-    llvm::Function* declareStrlen(LLVMCodegen* codegen);
-    llvm::Function* declareStrcpy(LLVMCodegen* codegen);
-    llvm::Function* declareStrcat(LLVMCodegen* codegen);
-    llvm::Function* declareMemcpy(LLVMCodegen* codegen);
+    llvm::Function* declareStrlen(pryst::LLVMCodegen* codegen);
+    llvm::Function* declareStrcpy(pryst::LLVMCodegen* codegen);
+    llvm::Function* declareStrcat(pryst::LLVMCodegen* codegen);
+    llvm::Function* declareMemcpy(pryst::LLVMCodegen* codegen);
 
     // String interpolation
-    llvm::Function* declareFormatFloat(LLVMCodegen* codegen);  // For {value:.2f} style formatting
-    llvm::Function* declareFormatInt(LLVMCodegen* codegen);    // For {value:03d} style formatting
-    llvm::Function* declareFormatBool(LLVMCodegen* codegen);   // For {value} boolean formatting
+    llvm::Function* declareFormatFloat(pryst::LLVMCodegen* codegen);  // For {value:.2f} style formatting
+    llvm::Function* declareFormatInt(pryst::LLVMCodegen* codegen);    // For {value:03d} style formatting
+    llvm::Function* declareFormatBool(pryst::LLVMCodegen* codegen);   // For {value} boolean formatting
 
     // Format specifier parsing
     struct FormatSpec {
@@ -33,8 +32,8 @@ namespace string_utils {
 
     // Helper functions for string interpolation
     FormatSpec parseFormatSpec(const std::string& spec);
-    llvm::Value* formatValue(LLVMCodegen* codegen, llvm::Value* value, const FormatSpec& spec);
-    llvm::Value* interpolateString(LLVMCodegen* codegen, const std::string& format,
+    llvm::Value* formatValue(pryst::LLVMCodegen* codegen, llvm::Value* value, const FormatSpec& spec);
+    llvm::Value* interpolateString(pryst::LLVMCodegen* codegen, const std::string& format,
                                  const std::vector<llvm::Value*>& values,
                                  const std::vector<FormatSpec>& specs);
 }
