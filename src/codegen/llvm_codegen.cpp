@@ -14,14 +14,7 @@
 
 namespace pryst {
 
-LLVMCodegen::LLVMCodegen() {
-    context = std::make_unique<llvm::LLVMContext>();
-    module = std::make_unique<llvm::Module>("pryst_module", *context);
-    builder = std::make_unique<llvm::IRBuilder<>>(*context);
-    typeRegistry = std::make_unique<LLVMTypeRegistry>(*context, builder.get(), module.get());
-    stringInterp = std::make_unique<codegen::StringInterpolation>(builder.get(), module.get(), typeRegistry.get());
-    currentFunction = nullptr;
-}
+// Constructor is defined in header
 
 std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
     // Reset module for new generation
@@ -101,47 +94,29 @@ void LLVMCodegen::declarePrintFunctions() {
     // Print function declarations will be implemented in subsequent updates
 }
 
-std::any LLVMCodegen::visitStringInterpolation(PrystParser::StringInterpolationContext *ctx) {
-    PRYST_DEBUG("Visiting string interpolation");
+std::any LLVMCodegen::visitStringLiteralRule(PrystParser::StringLiteralRuleContext *ctx) {
+    PRYST_DEBUG("Visiting string literal");
 
-    // Get the format string
-    std::string formatStr = ctx->STRING_LITERAL()->getText();
-    // Remove quotes from string literal
-    formatStr = formatStr.substr(1, formatStr.length() - 2);
-
-    // Collect all expressions and their format specifiers
     std::vector<llvm::Value*> values;
-    for (size_t i = 0; i < ctx->expression().size(); i++) {
-        auto expr = ctx->expression(i);
-        auto formatSpec = ctx->formatSpecifier(i);
+    std::string formatStr;
 
-        // Visit expression to get LLVM value
-        auto exprValue = std::any_cast<llvm::Value*>(visit(expr));
-
-        // Parse format specifier if present
-        codegen::FormatSpecifier format;
-        if (formatSpec) {
-            std::string specStr = formatSpec->getText();
-            auto parsedFormat = stringInterp->parseFormatSpec(specStr);
-            if (parsedFormat) {
-                format = *parsedFormat;
-            }
+    // Process string parts
+    for (auto part : ctx->stringPart()) {
+        if (auto content = part->STRING_CONTENT()) {
+            formatStr += content->getText();
+        } else if (auto escape = part->ESCAPE_SEQ()) {
+            formatStr += stringInterp->processEscapeSequence(escape->getText());
+        } else if (auto interp = part->INTERP_START()) {
+            // Handle interpolation expression
+            auto expr = part->expression();
+            auto exprValue = std::any_cast<llvm::Value*>(visit(expr));
+            values.push_back(exprValue);
+            formatStr += "{}"; // Placeholder for interpolation
         }
-
-        // Generate formatted value
-        auto formattedValue = stringInterp->generateFormattedValue(
-            exprValue, format, expr->getText());
-        values.push_back(formattedValue);
     }
 
     // Generate final interpolated string
     return stringInterp->generateInterpolation(formatStr, values);
-}
-
-std::any LLVMCodegen::visitFormatSpecifier(PrystParser::FormatSpecifierContext *ctx) {
-    PRYST_DEBUG("Visiting format specifier");
-    // Format specifiers are handled within visitStringInterpolation
-    return std::any();
 }
 
 // Variable declaration visitors
