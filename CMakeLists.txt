@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
+enable_testing()
 project(PrystCompiler)
 
 # Use environment variables for compiler settings if available
@@ -197,7 +198,6 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/src/runtime)
 # Create executable target
 add_executable(pryst ${ANTLR_SOURCES})
 
-# Add dependencies
 add_dependencies(pryst GenerateParser)
 
 # Link against LLVM libraries
@@ -231,3 +231,6 @@ message(STATUS "  LLVM Directory: ${LLVM_DIR}")
 message(STATUS "  ANTLR4 Include Directory: ${ANTLR4_INCLUDE_DIR}")
 message(STATUS "  ANTLR4 Library Directory: ${ANTLR4_LIBRARY_DIR}")
 message(STATUS "  ANTLR4 Executable: ${ANTLR4_EXECUTABLE}")
+
+# Add test directory
+add_subdirectory(test)
