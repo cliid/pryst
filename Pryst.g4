@@ -69,11 +69,11 @@ classBody
     ;
 
 classMember
-    : type IDENTIFIER EQUAL expression SEMICOLON                    # classTypedVariableDecl
-    | LET IDENTIFIER EQUAL expression SEMICOLON                     # classInferredVariableDecl
-    | CONST IDENTIFIER EQUAL expression SEMICOLON                   # classConstInferredDecl
-    | CONST type IDENTIFIER EQUAL expression SEMICOLON             # classConstTypedDecl
-    | IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody  # classFunctionDecl
+    : type IDENTIFIER EQUAL expression SEMICOLON                    # ClassMemberDecl
+    | LET IDENTIFIER EQUAL expression SEMICOLON                     # ClassMemberInferredDecl
+    | CONST IDENTIFIER EQUAL expression SEMICOLON                   # ClassMemberConstInferredDecl
+    | CONST type IDENTIFIER EQUAL expression SEMICOLON             # ClassMemberConstTypedDecl
+    | IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody  # ClassMemberFunctionDecl
     ;
 
 paramList
@@ -109,8 +109,12 @@ statement
       expression? RPAREN statement                  # forStatement
     | RETURN expression? SEMICOLON                  # returnStatement
     | LBRACE statement* RBRACE                    # blockStatement
-    | tryCatchStatement                                # tryStatement
+    | tryStatement                                # tryStmtWrapper
     | PRINT LPAREN (expression (COMMA expression)*)? RPAREN SEMICOLON      # printStatement
+    ;
+
+tryStatement
+    : TRY statement (CATCH LPAREN type IDENTIFIER RPAREN statement)?
     ;
 
 expression
@@ -124,7 +128,7 @@ expression
     ;
 
 stringLiteral
-    : STRING                                           # simpleString
+    : STRING                                           # StringLiteralRule
     ;
 
 assignment
@@ -221,9 +225,7 @@ classConversionExpr
     : IDENTIFIER DOT CONVERT LPAREN expression RPAREN
     ;
 
-tryCatchStatement
-    : TRY statement (CATCH LPAREN IDENTIFIER RPAREN statement)?
-    ;
+
 
 // Lexer Rules
 
@@ -299,8 +301,32 @@ fragment ESCAPE_SEQ
     ;
 
 fragment INTERP_EXPR
-    : '${' .*? '}'
+    : '${' ExpressionContent '}'
+    | '{' (IDENTIFIER | QualifiedId) (':' FORMAT_SPEC)? '}'
     ;
+
+fragment ExpressionContent
+    : ~[{}]+
+    | '{' ExpressionContent '}'
+    | NESTED_BRACE
+    ;
+
+fragment QualifiedId
+    : IDENTIFIER (DOT IDENTIFIER)*
+    ;
+
+fragment NESTED_BRACE
+    : '{' (~[{}] | NESTED_BRACE)* '}'
+    ;
+
+fragment FORMAT_SPEC
+    : AlignmentSpec? WidthSpec? ('.' PrecisionSpec)? FormatTypeSpec?
+    ;
+
+fragment AlignmentSpec : '<' | '>' | '^' ;
+fragment WidthSpec : [0-9]+ ;
+fragment PrecisionSpec : [0-9]+ ;
+fragment FormatTypeSpec : [dxXfFeEgGsS] ;
 
 fragment StringCharacter
     : ~["\r\n\\$]

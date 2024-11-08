@@ -1,16 +1,19 @@
-#include "llvm_codegen.hpp"
-#include "type_registry.hpp"
+#include "reflection_api.hpp"
+#include "type_utils.hpp"
 #include "type_metadata.hpp"
+#include "type_registry.hpp"
 #include "../utils/debug.hpp"
-#include <stdexcept>
+#include <llvm/IR/Constants.h>
 #include <memory>
+
+namespace pryst {
 
 // Implementation of reflection API functions
 llvm::Value* LLVMCodegen::generateGetType(llvm::Value* value) {
     PRYST_DEBUG("Generating getType() call");
 
     // Get type info from type registry
-    auto typeInfo = typeMetadata->getTypeInfo(value);
+    auto typeInfo = getTypeInfo(value);
     if (!typeInfo) {
         PRYST_ERROR("No type info found for value");
         return nullptr;
@@ -20,61 +23,43 @@ llvm::Value* LLVMCodegen::generateGetType(llvm::Value* value) {
     std::string typeName = typeInfo->getName();
     auto& context = module->getContext();
     auto globalStr = builder->CreateGlobalString(typeName);
-    // Use opaque pointer type for string
-    auto& llvmTypeRegistry = LLVMTypeRegistry::getInstance();
-    auto charPtrTy = llvmTypeRegistry.getOpaquePointerType(context);
+    auto charPtrTy = typeRegistry->getPointerType(llvm::Type::getInt8Ty(context));
     return builder->CreateBitCast(globalStr, charPtrTy);
 }
 
 llvm::Value* LLVMCodegen::generateIsInstance(llvm::Value* value, const std::string& typeName) {
     PRYST_DEBUG("Generating isInstance() call for type '" + typeName + "'");
 
-    // Get type info from type registry
-    auto typeInfo = typeMetadata->getTypeInfo(value);
-    if (!typeInfo) {
+    // Get type info from type metadata
+    auto valueTypeInfo = typeMetadata->getTypeInfo(value);
+    if (!valueTypeInfo) {
         PRYST_ERROR("No type info found for value");
+        return llvm::ConstantInt::getFalse(getModule()->getContext());
+    }
+
+    // Get the target type info from registry
+    auto targetTypeInfo = typeRegistry->getTypeInfo(typeName);
+    if (!targetTypeInfo) {
+        PRYST_ERROR("Target type '" + typeName + "' not found in registry");
         return llvm::ConstantInt::getFalse(module->getContext());
     }
 
-    // Get the target class type info from registry
-    auto& registry = TypeRegistry::getInstance();
-    auto targetType = registry.lookupType(typeName);
-    if (!targetType || targetType->getKind() != TypeInfo::Kind::Class) {
-        return llvm::ConstantInt::getFalse(module->getContext());
-    }
-
-    auto targetClassType = std::dynamic_pointer_cast<ClassTypeInfo>(targetType);
-    if (!targetClassType) {
-        return llvm::ConstantInt::getFalse(module->getContext());
-    }
-
-    // Check if types match exactly
-    if (typeInfo->getName() == typeName) {
-        return llvm::ConstantInt::getTrue(module->getContext());
-    }
-
-    // Check inheritance chain if it's a class type
-    if (typeInfo->getKind() == TypeInfo::Kind::Class) {
-        auto currentClass = std::dynamic_pointer_cast<ClassTypeInfo>(typeInfo);
-        while (currentClass) {
-            if (currentClass->getName() == targetClassType->getName()) {
-                return llvm::ConstantInt::getTrue(module->getContext());
-            }
-            currentClass = currentClass->getParent();
-        }
-    }
-
-    return llvm::ConstantInt::getFalse(module->getContext());
+    // Check if value's type is convertible to target type
+    bool isInstance = valueTypeInfo->isConvertibleTo(targetTypeInfo);
+    return isInstance ? llvm::ConstantInt::getTrue(module->getContext())
+                     : llvm::ConstantInt::getFalse(module->getContext());
 }
 
 // Get type information from TypeRegistry and TypeMetadata
-TypeInfoPtr LLVMCodegen::getTypeInfo(llvm::Value* value) {
+pryst::TypeInfoPtr LLVMCodegen::getTypeInfo(llvm::Value* value) {
     if (!value) return nullptr;
-    return typeMetadata->getTypeInfo(value);
+    return typeMetadata.getTypeInfo(value);
 }
 
 // Attach type information using TypeRegistry and TypeMetadata
-void LLVMCodegen::attachTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo) {
+void LLVMCodegen::attachTypeInfo(llvm::Value* value, pryst::TypeInfoPtr typeInfo) {
     if (!value || !typeInfo) return;
-    typeMetadata->addTypeInfo(value, typeInfo);
+    typeMetadata.addTypeInfo(value, typeInfo);
 }
+
+} // namespace pryst

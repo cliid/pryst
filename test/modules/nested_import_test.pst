@@ -1,0 +1,37 @@
+// Test nested namespace imports
+import test::math::Vector;
+import test::utils::string;
+
+namespace test::app {
+    using module test::math;
+
+    fn<Vector> createVector(float x, float y, float z) -> Vector {
+        let v = new Vector();
+        v.x = x;
+        v.y = y;
+        v.z = z;
+        return v;
+    }
+
+    fn<void> main() -> void {
+        let v1 = createVector(1.0, 2.0, 3.0);
+        let v2 = createVector(4.0, 5.0, 6.0);
+
+        // Test dot product
+        let dotProduct = v1.dot(v2);
+        print(dotProduct);  // Expected: 32.0
+
+        // Test vector scaling
+        let v3 = v1.scale(2.0);
+        print(v3.x);  // Expected: 2.0
+        print(v3.y);  // Expected: 4.0
+        print(v3.z);  // Expected: 6.0
+
+        // Test math functions
+        let sum = add(10, 5);
+        print(sum);  // Expected: 15
+
+        let quotient = divide(10, 3);
+        print(quotient);  // Expected: 3.333...
+    }
+}

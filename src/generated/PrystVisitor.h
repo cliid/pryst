@@ -55,15 +55,15 @@ public:
 
     virtual std::any visitClassBody(PrystParser::ClassBodyContext *context) = 0;
 
-    virtual std::any visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext *context) = 0;
+    virtual std::any visitClassMemberDecl(PrystParser::ClassMemberDeclContext *context) = 0;
 
-    virtual std::any visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext *context) = 0;
+    virtual std::any visitClassMemberInferredDecl(PrystParser::ClassMemberInferredDeclContext *context) = 0;
 
-    virtual std::any visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext *context) = 0;
+    virtual std::any visitClassMemberConstInferredDecl(PrystParser::ClassMemberConstInferredDeclContext *context) = 0;
 
-    virtual std::any visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext *context) = 0;
+    virtual std::any visitClassMemberConstTypedDecl(PrystParser::ClassMemberConstTypedDeclContext *context) = 0;
 
-    virtual std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *context) = 0;
+    virtual std::any visitClassMemberFunctionDecl(PrystParser::ClassMemberFunctionDeclContext *context) = 0;
 
     virtual std::any visitParamList(PrystParser::ParamListContext *context) = 0;
 
@@ -99,13 +99,15 @@ public:
 
     virtual std::any visitBlockStatement(PrystParser::BlockStatementContext *context) = 0;
 
-    virtual std::any visitTryStatement(PrystParser::TryStatementContext *context) = 0;
+    virtual std::any visitTryStmtWrapper(PrystParser::TryStmtWrapperContext *context) = 0;
 
     virtual std::any visitPrintStatement(PrystParser::PrintStatementContext *context) = 0;
 
+    virtual std::any visitTryStatement(PrystParser::TryStatementContext *context) = 0;
+
     virtual std::any visitExpression(PrystParser::ExpressionContext *context) = 0;
 
-    virtual std::any visitSimpleString(PrystParser::SimpleStringContext *context) = 0;
+    virtual std::any visitStringLiteralRule(PrystParser::StringLiteralRuleContext *context) = 0;
 
     virtual std::any visitAssignment(PrystParser::AssignmentContext *context) = 0;
 
@@ -146,8 +148,6 @@ public:
     virtual std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext *context) = 0;
 
     virtual std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext *context) = 0;
-
-    virtual std::any visitTryCatchStatement(PrystParser::TryCatchStatementContext *context) = 0;
 
 
 };
