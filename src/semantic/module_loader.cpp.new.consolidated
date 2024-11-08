@@ -1,0 +1,460 @@
+#include "module_loader.hpp"
+#include "../utils/logger.hpp"
+#include "../utils/debug.hpp"
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <stdexcept>
+#include <iostream>
+
+ModuleLoader::ModuleLoader(std::shared_ptr<SymbolTable> symbolTable)
+    : symbolTable(symbolTable) {
+    initializeModuleSystem();
+}
+
+void ModuleLoader::initializeModuleSystem() {
+    namespace fs = std::filesystem;
+
+    // Create src/modules directory if it doesn't exist
+    fs::path modulesDir = fs::path("src") / "modules";
+    if (!fs::exists(modulesDir)) {
+        fs::create_directories(modulesDir);
+    }
+
+    // Add src/modules to search paths
+    addModuleSearchPath(modulesDir.string());
+
+    // Initialize default search paths
+    initializeSearchPaths();
+}
+
+void ModuleLoader::initializeSearchPaths() {
+    // Add current directory
+    searchPaths.push_back(".");
+
+    // Add src/modules directory
+    searchPaths.push_back("src/modules");
+
+    // Add standard library path if exists
+    if (std::filesystem::exists("lib/pryst")) {
+        searchPaths.push_back("lib/pryst");
+    }
+}
+
+ModuleInfo ModuleLoader::loadModule(const std::string& modulePath) {
+    PRYST_DEBUG("Attempting to load module: " + modulePath);
+
+    // Check cache first
+    if (isModuleLoaded(modulePath)) {
+        PRYST_DEBUG("Module already loaded, retrieving from cache: " + modulePath);
+        auto it = moduleCache.find(modulePath);
+        if (it != moduleCache.end()) {
+            return it->second;
+        }
+    }
+
+    try {
+        // Convert module path to filesystem path
+        PRYST_DEBUG("Resolving module path: " + modulePath);
+        std::string resolvedPath = resolveModulePath(modulePath, "");
+        PRYST_DEBUG("Resolved path: " + resolvedPath);
+
+        // Validate module structure
+        if (!validateModuleStructure(resolvedPath)) {
+            throw std::runtime_error("Invalid module structure in: " + resolvedPath);
+        }
+
+        // Mark as loaded to prevent circular imports
+        loadedModules[modulePath] = true;
+        PRYST_DEBUG("Marked module as loaded: " + modulePath);
+
+        // Parse the module file and get its info
+        PRYST_DEBUG("Parsing module file: " + resolvedPath);
+        ModuleInfo moduleInfo = parseModuleFile(resolvedPath);
+        PRYST_DEBUG("Module file parsed successfully");
+
+        // Set the qualified name based on the original module path
+        moduleInfo.qualifiedName = modulePath;
+        PRYST_DEBUG("Set qualified name: " + moduleInfo.qualifiedName);
+
+        // Process nested namespaces
+        processNamespaces(moduleInfo);
+
+        // Register module functions with symbol table
+        PRYST_DEBUG("Registering module functions with symbol table");
+        registerModuleFunctions(moduleInfo);
+
+        // Register module exports
+        PRYST_DEBUG("Registering module exports");
+        registerModuleExports(moduleInfo);
+
+        // Store module info in cache
+        PRYST_DEBUG("Storing module info in cache: " + modulePath);
+        moduleCache[modulePath] = moduleInfo;
+
+        return moduleInfo;
+    } catch (const std::exception& e) {
+        // Remove from loaded modules on failure
+        loadedModules.erase(modulePath);
+        PRYST_DEBUG("Failed to load module: " + modulePath + " - " + e.what());
+        throw std::runtime_error("Failed to load module '" + modulePath + "': " + e.what());
+    }
+}
+
+void ModuleLoader::processNamespaces(ModuleInfo& moduleInfo) {
+    PRYST_DEBUG("Processing namespaces for module: " + moduleInfo.qualifiedName);
+
+    // Split qualified name into namespace parts
+    std::vector<std::string> parts;
+    std::string current;
+    std::istringstream ss(moduleInfo.qualifiedName);
+    while (std::getline(ss, current, ':')) {
+        if (!current.empty()) {
+            parts.push_back(current);
+        }
+    }
+
+    // Create namespace hierarchy
+    std::shared_ptr<NamespaceInfo> currentNs = nullptr;
+    std::string fullPath;
+
+    for (size_t i = 0; i < parts.size() - 1; ++i) {
+        fullPath += (i > 0 ? "::" : "") + parts[i];
+
+        if (!currentNs) {
+            // Check if namespace already exists in symbol table
+            if (auto existing = symbolTable->findNamespace(fullPath)) {
+                currentNs = existing;
+            } else {
+                currentNs = std::make_shared<NamespaceInfo>();
+                currentNs->qualifiedName = fullPath;
+                symbolTable->addNamespace(fullPath, currentNs);
+            }
+        } else {
+            auto subNs = currentNs->subNamespaces.find(parts[i]);
+            if (subNs == currentNs->subNamespaces.end()) {
+                auto newNs = std::make_shared<NamespaceInfo>();
+                newNs->qualifiedName = fullPath;
+                currentNs->subNamespaces[parts[i]] = newNs;
+                currentNs = newNs;
+            } else {
+                currentNs = subNs->second;
+            }
+        }
+    }
+
+    // Set parent namespace for module
+    moduleInfo.parentNamespace = currentNs;
+}
+
+void ModuleLoader::registerModuleFunctions(const ModuleInfo& moduleInfo) {
+    PRYST_DEBUG("Registering functions for module: " + moduleInfo.qualifiedName);
+
+    for (const auto& [funcName, funcInfos] : moduleInfo.exportedFunctions) {
+        std::string qualifiedFuncName = moduleInfo.qualifiedName + "::" + funcName;
+        PRYST_DEBUG("Registering function: " + qualifiedFuncName);
+
+        for (const auto& funcInfo : funcInfos) {
+            symbolTable->addFunction(qualifiedFuncName, funcInfo);
+        }
+    }
+}
+
+void ModuleLoader::registerModuleExports(const ModuleInfo& moduleInfo) {
+    PRYST_DEBUG("Registering exports for module: " + moduleInfo.qualifiedName);
+
+    // Register exported variables
+    for (const auto& [name, varInfo] : moduleInfo.exports) {
+        std::string qualifiedName = moduleInfo.qualifiedName + "::" + name;
+        symbolTable->addVariable(qualifiedName, varInfo);
+    }
+
+    // Register exported classes
+    for (const auto& [name, classInfo] : moduleInfo.exportedClasses) {
+        std::string qualifiedName = moduleInfo.qualifiedName + "::" + name;
+        symbolTable->addClass(qualifiedName, classInfo);
+    }
+}
+
+ModuleInfo ModuleLoader::parseModuleFile(const std::string& modulePath) {
+    ModuleInfo moduleInfo;
+    moduleInfo.qualifiedName = pathToQualifiedName(modulePath);
+
+    // Read the module file
+    std::ifstream file(modulePath);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open module file: " + modulePath);
+    }
+
+    std::string line;
+    bool inModuleBlock = false;
+    std::string currentModuleName;
+    std::string currentFunctionName;
+    std::string currentFunctionReturnType;
+    bool inFunctionBlock = false;
+    int braceCount = 0;
+
+    while (std::getline(file, line)) {
+        // Skip empty lines and comments
+        if (line.empty() || line.find("//") == 0) continue;
+
+        // Check for module declaration
+        if (line.find("module") == 0) {
+            size_t nameStart = line.find_first_not_of(" \t", 6);
+            size_t nameEnd = line.find("{");
+            if (nameStart != std::string::npos && nameEnd != std::string::npos) {
+                currentModuleName = line.substr(nameStart, nameEnd - nameStart);
+                // Trim whitespace
+                currentModuleName.erase(0, currentModuleName.find_first_not_of(" \t"));
+                currentModuleName.erase(currentModuleName.find_last_not_of(" \t") + 1);
+                inModuleBlock = true;
+                braceCount++;
+            }
+        }
+        // Check for function declaration inside module
+        else if (inModuleBlock && (line.find("fn") == 0 || line.find("export fn") == 0)) {
+            bool isExported = line.find("export") == 0;
+            size_t fnPos = line.find("fn");
+            size_t nameStart = line.find_first_not_of(" \t", fnPos + 2);
+            size_t paramStart = line.find("(");
+
+            if (nameStart != std::string::npos && paramStart != std::string::npos) {
+                currentFunctionName = line.substr(nameStart, paramStart - nameStart);
+                // Trim whitespace
+                currentFunctionName.erase(0, currentFunctionName.find_first_not_of(" \t"));
+                currentFunctionName.erase(currentFunctionName.find_last_not_of(" \t") + 1);
+
+                // Extract return type
+                size_t arrowPos = line.find("->");
+                if (arrowPos != std::string::npos) {
+                    size_t returnTypeStart = line.find_first_not_of(" \t", arrowPos + 2);
+                    size_t returnTypeEnd = line.find_first_of(" \t{", returnTypeStart);
+                    currentFunctionReturnType = line.substr(returnTypeStart, returnTypeEnd - returnTypeStart);
+                } else {
+                    currentFunctionReturnType = "void"; // Default return type
+                }
+
+                // Create function info
+                auto funcInfo = std::make_shared<FunctionInfo>();
+                funcInfo->returnType = currentFunctionReturnType;
+                funcInfo->paramTypes = {}; // TODO: Parse parameter types
+                funcInfo->hasExplicitReturnType = true;
+                funcInfo->isAnonymous = false;
+                funcInfo->scopeLevel = 0;
+
+                // Add to appropriate collection based on export status
+                if (isExported) {
+                    moduleInfo.exportedFunctions[currentFunctionName].push_back(funcInfo);
+                } else {
+                    moduleInfo.functions[currentFunctionName].push_back(funcInfo);
+                }
+
+                inFunctionBlock = true;
+                if (line.find("{") != std::string::npos) braceCount++;
+            }
+        }
+        // Track braces for block scope
+        else {
+            size_t openBrace = line.find("{");
+            size_t closeBrace = line.find("}");
+            if (openBrace != std::string::npos) braceCount++;
+            if (closeBrace != std::string::npos) {
+                braceCount--;
+                if (braceCount == 0) inModuleBlock = false;
+                else if (braceCount == 1) inFunctionBlock = false;
+            }
+        }
+    }
+
+    return moduleInfo;
+}
+
+std::string ModuleLoader::resolveModulePath(const std::string& importPath, const std::string& currentModulePath) {
+    namespace fs = std::filesystem;
+
+    // Convert namespace-qualified path (e.g., pryst::web) to filesystem path
+    std::string pathName = importPath;
+    size_t pos = 0;
+    while ((pos = pathName.find("::")) != std::string::npos) {
+        pathName.replace(pos, 2, std::string(1, fs::path::preferred_separator));
+    }
+
+    // If the import path is absolute, try to load directly
+    if (fs::path(pathName).is_absolute()) {
+        if (fs::exists(pathName + ".pst")) {
+            return fs::absolute(pathName + ".pst").string();
+        }
+        throw std::runtime_error("Module not found: " + importPath);
+    }
+
+    // Get the directory of the current module
+    fs::path currentDir = fs::path(currentModulePath).parent_path();
+
+    // First, try relative to current module
+    fs::path relativePath = currentDir / pathName;
+    // Try direct .pst file
+    if (fs::exists(relativePath.string() + ".pst")) {
+        return fs::absolute(relativePath.string() + ".pst").string();
+    }
+    // Try module directory with module.pst
+    if (fs::exists(relativePath.string() + "/module.pst")) {
+        return fs::absolute(relativePath.string() + "/module.pst").string();
+    }
+
+    // Then try search paths
+    for (const auto& searchPath : searchPaths) {
+        fs::path fullPath = fs::path(searchPath) / pathName;
+        // Try direct .pst file
+        if (fs::exists(fullPath.string() + ".pst")) {
+            return fs::absolute(fullPath.string() + ".pst").string();
+        }
+        // Try module directory with module.pst
+        if (fs::exists(fullPath.string() + "/module.pst")) {
+            return fs::absolute(fullPath.string() + "/module.pst").string();
+        }
+    }
+
+    throw std::runtime_error("Module not found: " + importPath);
+}
+
+bool ModuleLoader::isModuleLoaded(const std::string& modulePath) const {
+    return loadedModules.find(modulePath) != loadedModules.end();
+}
+
+void ModuleLoader::addModuleSearchPath(const std::string& searchPath) {
+    if (std::find(searchPaths.begin(), searchPaths.end(), searchPath) == searchPaths.end()) {
+        searchPaths.push_back(searchPath);
+    }
+}
+
+std::string ModuleLoader::pathToQualifiedName(const std::string& path) const {
+    namespace fs = std::filesystem;
+    fs::path fsPath(path);
+
+    // Remove extension and convert to qualified name
+    std::string name = fsPath.stem().string();
+    std::string dir = fsPath.parent_path().string();
+
+    // Replace directory separators with ::
+    size_t pos = dir.find("src/modules/");
+    if (pos != std::string::npos) {
+        dir = dir.substr(pos + 11); // Skip "src/modules/"
+        std::replace(dir.begin(), dir.end(), '/', ':');
+        return dir.empty() ? name : dir + "::" + name;
+    }
+
+    return name;
+}
+
+bool ModuleLoader::validateModuleStructure(const std::string& modulePath) const {
+    namespace fs = std::filesystem;
+    PRYST_DEBUG("Validating module structure for: " + modulePath);
+
+    // Check if file exists
+    if (!fs::exists(modulePath)) {
+        PRYST_DEBUG("Module file does not exist: " + modulePath);
+        return false;
+    }
+
+    // Check if file is readable
+    std::ifstream file(modulePath);
+    if (!file.is_open()) {
+        PRYST_DEBUG("Cannot open module file: " + modulePath);
+        return false;
+    }
+
+    std::string line;
+    bool hasModuleDeclaration = false;
+    bool inModuleBlock = false;
+    int braceCount = 0;
+
+    while (std::getline(file, line)) {
+        // Skip empty lines and comments
+        if (line.empty() || line.find("//") == 0) continue;
+
+        // Check for module declaration
+        if (line.find("module") == 0) {
+            if (hasModuleDeclaration) {
+                PRYST_DEBUG("Multiple module declarations found in: " + modulePath);
+                return false;
+            }
+            hasModuleDeclaration = true;
+            inModuleBlock = true;
+            braceCount++;
+        }
+
+        // Track braces for block scope
+        size_t openBrace = line.find("{");
+        size_t closeBrace = line.find("}");
+        if (openBrace != std::string::npos) braceCount++;
+        if (closeBrace != std::string::npos) {
+            braceCount--;
+            if (braceCount == 0) inModuleBlock = false;
+        }
+    }
+
+    // Check if module structure is valid
+    bool isValid = hasModuleDeclaration && braceCount == 0;
+    PRYST_DEBUG("Module structure validation result for " + modulePath + ": " + (isValid ? "valid" : "invalid"));
+    return isValid;
+}
+
+std::vector<std::string> ModuleLoader::discoverModules() const {
+    namespace fs = std::filesystem;
+    std::vector<std::string> modules;
+
+    for (const auto& searchPath : searchPaths) {
+        if (!fs::exists(searchPath)) continue;
+
+
+        for (const auto& entry : fs::recursive_directory_iterator(searchPath)) {
+            if (entry.path().extension() == ".pst") {
+                std::string modulePath = entry.path().string();
+                if (validateModuleStructure(modulePath)) {
+                    modules.push_back(pathToQualifiedName(modulePath));
+                }
+            }
+        }
+    }
+
+    return modules;
+}
+
+ModuleInfo ModuleLoader::getModuleInfo(const std::string& qualifiedName) const {
+    auto it = moduleCache.find(qualifiedName);
+    if (it != moduleCache.end()) {
+        return it->second;
+    }
+    throw std::runtime_error("Module not found in cache: " + qualifiedName);
+}
+
+std::unordered_map<std::string, VariableInfo> ModuleLoader::getModuleExports(const std::string& qualifiedName) const {
+    auto it = moduleCache.find(qualifiedName);
+    if (it != moduleCache.end()) {
+        return it->second.exports;
+    }
+    throw std::runtime_error("Module not found in cache: " + qualifiedName);
+}
+
+std::unordered_map<std::string, FunctionInfo> ModuleLoader::getModuleExportedFunctions(const std::string& qualifiedName) const {
+    auto it = moduleCache.find(qualifiedName);
+    if (it != moduleCache.end()) {
+        std::unordered_map<std::string, FunctionInfo> result;
+        for (const auto& [name, funcInfos] : it->second.exportedFunctions) {
+            if (!funcInfos.empty()) {
+                result[name] = *funcInfos[0];  // Use first overload as representative
+            }
+        }
+        return result;
+    }
+    throw std::runtime_error("Module not found in cache: " + qualifiedName);
+}
+
+std::unordered_map<std::string, ClassInfo> ModuleLoader::getModuleExportedClasses(const std::string& qualifiedName) const {
+    auto it = moduleCache.find(qualifiedName);
+    if (it != moduleCache.end()) {
+        return it->second.exportedClasses;
+    }
+    throw std::runtime_error("Module not found in cache: " + qualifiedName);
+}
