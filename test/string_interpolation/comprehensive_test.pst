@@ -1,0 +1,56 @@
+// Test basic string interpolation
+fn test_basic_interpolation() {
+    let x = 42;
+    let y = 3.14;
+    let z = true;
+
+    print("Integer: {x}");  // Basic integer
+    print("Float: {y:.2f}");  // Float with precision
+    print("Boolean: {z}");  // Boolean value
+}
+
+// Test width and alignment
+fn test_width_alignment() {
+    let num = 123;
+    print("{num:5d}");     // Right-aligned, width 5
+    print("{num:<5d}");    // Left-aligned, width 5
+    print("{num:05d}");    // Zero-padded
+}
+
+// Test float formatting
+fn test_float_formatting() {
+    let pi = 3.14159;
+    print("{pi:.2f}");     // 2 decimal places
+    print("{pi:8.3f}");    // Width 8, 3 decimal places
+    print("{pi:<10.4f}");  // Left-aligned, width 10, 4 decimal places
+}
+
+// Test multiple values
+fn test_multiple_values() {
+    let x = 10;
+    let y = 20.5;
+    let z = "test";
+    print("Values: {x}, {y:.1f}, {z}");
+}
+
+// Test edge cases
+fn test_edge_cases() {
+    let large_num = 1000000;
+    let small_float = 0.0000001;
+    let empty_str = "";
+
+    print("Large: {large_num:10d}");
+    print("Small: {small_float:.8f}");
+    print("Empty: '{empty_str}'");
+}
+
+// Run all tests
+fn main() {
+    print("=== String Interpolation Tests ===");
+    test_basic_interpolation();
+    test_width_alignment();
+    test_float_formatting();
+    test_multiple_values();
+    test_edge_cases();
+    print("=== Tests Complete ===");
+}
