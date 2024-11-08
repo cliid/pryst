@@ -8,6 +8,10 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
 
 // Standard library headers
 #include <unordered_map>
@@ -18,7 +22,8 @@ namespace pryst {
 
 class LLVMTypeRegistry {
 public:
-    LLVMTypeRegistry(llvm::LLVMContext& context) : context(&context) {
+    LLVMTypeRegistry(llvm::LLVMContext& context, llvm::IRBuilder<>& builder, llvm::Module& module)
+        : context(&context), builder(builder), module(module) {
         PRYST_DEBUG("Initializing LLVMTypeRegistry");
         initialize();
     }
@@ -245,12 +250,12 @@ public:
 
         // Integer to floating point
         if (sourceType->isIntegerTy() && targetType->isFloatingPointTy()) {
-            return builder->CreateSIToFP(value, targetType, "int2float");
+            return builder.CreateSIToFP(value, targetType, "int2float");
         }
 
         // Floating point to integer
         if (sourceType->isFloatingPointTy() && targetType->isIntegerTy()) {
-            return builder->CreateFPToSI(value, targetType, "float2int");
+            return builder.CreateFPToSI(value, targetType, "float2int");
         }
 
         // Integer or float to string
@@ -259,9 +264,9 @@ public:
             // Call runtime conversion function
             std::vector<llvm::Value*> args = {value};
             if (sourceType->isIntegerTy()) {
-                return builder->CreateCall(module->getFunction("int_to_string"), args, "int2str");
+                return builder.CreateCall(module.getFunction("int_to_string"), args, "int2str");
             } else {
-                return builder->CreateCall(module->getFunction("float_to_string"), args, "float2str");
+                return builder.CreateCall(module.getFunction("float_to_string"), args, "float2str");
             }
         }
 
@@ -284,7 +289,7 @@ public:
         }
         if (type == getStringType()) {
             // Return empty string
-            return builder->CreateCall(module->getFunction("create_empty_string"), {}, "empty_str");
+            return builder.CreateCall(module.getFunction("create_empty_string"), {}, "empty_str");
         }
         if (type->isPointerTy()) {
             return llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(type));
@@ -297,16 +302,8 @@ public:
 private:
     llvm::LLVMContext* context;
     std::unordered_map<std::string, llvm::Type*> typeCache;
-    llvm::IRBuilder<>* builder;
-    llvm::Module* module;
-
-public:
-    // Updated constructor to include builder and module
-    LLVMTypeRegistry(llvm::LLVMContext& context, llvm::IRBuilder<>* builder, llvm::Module* module)
-        : context(&context), builder(builder), module(module) {
-        PRYST_DEBUG("Initializing LLVMTypeRegistry");
-        initialize();
-    }
+    llvm::IRBuilder<>& builder;
+    llvm::Module& module;
 };
 
 } // namespace pryst

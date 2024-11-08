@@ -22,7 +22,12 @@ namespace pryst {
 
 class LLVMCodegen : public PrystBaseVisitor {
 public:
-    LLVMCodegen() : typeRegistry(nullptr), stringInterp(nullptr) {}
+    LLVMCodegen() : context(std::make_unique<llvm::LLVMContext>()) {
+        module = std::make_unique<llvm::Module>("pryst", *context);
+        builder = std::make_unique<llvm::IRBuilder<>>(*context);
+        typeRegistry = std::make_unique<LLVMTypeRegistry>(*context, *builder, *module);
+        stringInterp = std::make_unique<codegen::StringInterpolation>();
+    }
     virtual ~LLVMCodegen() = default;
 
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* ctx);
