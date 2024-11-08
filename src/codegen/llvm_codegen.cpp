@@ -14,13 +14,21 @@
 
 namespace pryst {
 
-
+LLVMCodegen::LLVMCodegen() {
+    context = std::make_unique<llvm::LLVMContext>();
+    module = std::make_unique<llvm::Module>("pryst_module", *context);
+    builder = std::make_unique<llvm::IRBuilder<>>(*context);
+    typeRegistry = std::make_unique<LLVMTypeRegistry>(*context, builder.get(), module.get());
+    stringInterp = std::make_unique<codegen::StringInterpolation>(builder.get(), module.get(), typeRegistry.get());
+    currentFunction = nullptr;
+}
 
 std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
     // Reset module for new generation
     module = std::make_unique<llvm::Module>("pryst_module", *context);
-    builder->SetInsertPoint(llvm::BasicBlock::Create(*context));
-
+    builder = std::make_unique<llvm::IRBuilder<>>(*context);
+    typeRegistry = std::make_unique<LLVMTypeRegistry>(*context, builder.get(), module.get());
+    stringInterp = std::make_unique<codegen::StringInterpolation>(builder.get(), module.get(), typeRegistry.get());
     declarePrintFunctions();
     visitProgram(ctx);
 
@@ -93,166 +101,118 @@ void LLVMCodegen::declarePrintFunctions() {
     // Print function declarations will be implemented in subsequent updates
 }
 
-// Type system implementations
-llvm::Type* LLVMCodegen::getPointerType(llvm::Type* elementType) {
-    // In LLVM 20.0.0, all pointers are opaque i8*
-    return llvm::Type::getInt8Ty(*context);
-}
+std::any LLVMCodegen::visitStringInterpolation(PrystParser::StringInterpolationContext *ctx) {
+    PRYST_DEBUG("Visiting string interpolation");
 
-llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) {
-    if (!typeInfo) {
-        throw std::runtime_error("Invalid type info");
-    }
-    return ::pryst::getLLVMTypeFromTypeInfo(typeInfo, *context);
-}
+    // Get the format string
+    std::string formatStr = ctx->STRING_LITERAL()->getText();
+    // Remove quotes from string literal
+    formatStr = formatStr.substr(1, formatStr.length() - 2);
 
-// Class member visitor implementations
-std::any LLVMCodegen::visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext *ctx) {
-    PRYST_DEBUG("Visiting class typed variable declaration");
-    // Get the type
-    auto typeCtx = ctx->type();
-    llvm::Type* varType = std::any_cast<llvm::Type*>(visit(typeCtx));
+    // Collect all expressions and their format specifiers
+    std::vector<llvm::Value*> values;
+    for (size_t i = 0; i < ctx->expression().size(); i++) {
+        auto expr = ctx->expression(i);
+        auto formatSpec = ctx->formatSpecifier(i);
 
-    // Get the variable name
-    std::string varName = ctx->IDENTIFIER()->getText();
+        // Visit expression to get LLVM value
+        auto exprValue = std::any_cast<llvm::Value*>(visit(expr));
 
-    // Get the initialization value
-    llvm::Value* initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
-
-    // Create alloca for the class member
-    llvm::AllocaInst* alloca = createEntryBlockAlloca(currentFunction, varName, varType);
-
-    // Store the initial value
-    builder->CreateStore(initValue, alloca);
-
-    // Add to symbol table
-    namedValues[varName] = alloca;
-
-    return std::any();
-}
-
-std::any LLVMCodegen::visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext *ctx) {
-    PRYST_DEBUG("Visiting class inferred variable declaration");
-    // Get the variable name
-    std::string varName = ctx->IDENTIFIER()->getText();
-
-    // Get the initialization value and infer type
-    llvm::Value* initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
-    llvm::Type* varType = initValue->getType();
-
-    // Create alloca for the class member
-    llvm::AllocaInst* alloca = createEntryBlockAlloca(currentFunction, varName, varType);
-
-    // Store the initial value
-    builder->CreateStore(initValue, alloca);
-
-    // Add to symbol table
-    namedValues[varName] = alloca;
-
-    return std::any();
-}
-
-std::any LLVMCodegen::visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext *ctx) {
-    PRYST_DEBUG("Visiting class const inferred declaration");
-    // Get the variable name
-    std::string varName = ctx->IDENTIFIER()->getText();
-
-    // Get the initialization value and infer type
-    llvm::Value* initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
-    llvm::Type* varType = initValue->getType();
-
-    // Create constant value
-    llvm::GlobalVariable* constVar = new llvm::GlobalVariable(
-        *module,
-        varType,
-        true, // isConstant
-        llvm::GlobalValue::PrivateLinkage,
-        llvm::dyn_cast<llvm::Constant>(initValue),
-        varName
-    );
-
-    // Add to symbol table
-    namedValues[varName] = constVar;
-
-    return std::any();
-}
-
-std::any LLVMCodegen::visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext *ctx) {
-    PRYST_DEBUG("Visiting class const typed declaration");
-    // Get the type
-    auto typeCtx = ctx->type();
-    llvm::Type* varType = std::any_cast<llvm::Type*>(visit(typeCtx));
-
-    // Get the variable name
-    std::string varName = ctx->IDENTIFIER()->getText();
-
-    // Get the initialization value
-    llvm::Value* initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
-
-    // Create constant value
-    llvm::GlobalVariable* constVar = new llvm::GlobalVariable(
-        *module,
-        varType,
-        true, // isConstant
-        llvm::GlobalValue::PrivateLinkage,
-        llvm::dyn_cast<llvm::Constant>(initValue),
-        varName
-    );
-
-    // Add to symbol table
-    namedValues[varName] = constVar;
-
-    return std::any();
-}
-
-std::any LLVMCodegen::visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *ctx) {
-    PRYST_DEBUG("Visiting class function declaration");
-    // Get function name
-    std::string funcName = ctx->IDENTIFIER()->getText();
-
-    // Get return type
-    auto returnTypeCtx = ctx->type();
-    llvm::Type* returnType = std::any_cast<llvm::Type*>(visit(returnTypeCtx));
-
-    // Get parameter types
-    std::vector<llvm::Type*> paramTypes;
-    if (ctx->paramList()) {
-        for (auto param : ctx->paramList()->param()) {
-            auto paramType = std::any_cast<llvm::Type*>(visit(param->type()));
-            paramTypes.push_back(paramType);
+        // Parse format specifier if present
+        codegen::FormatSpecifier format;
+        if (formatSpec) {
+            std::string specStr = formatSpec->getText();
+            auto parsedFormat = stringInterp->parseFormatSpec(specStr);
+            if (parsedFormat) {
+                format = *parsedFormat;
+            }
         }
+
+        // Generate formatted value
+        auto formattedValue = stringInterp->generateFormattedValue(
+            exprValue, format, expr->getText());
+        values.push_back(formattedValue);
     }
 
-    // Create function type
-    llvm::FunctionType* funcType = llvm::FunctionType::get(
-        returnType,
-        paramTypes,
-        false // isVarArg
-    );
+    // Generate final interpolated string
+    return stringInterp->generateInterpolation(formatStr, values);
+}
 
-    // Create function
-    llvm::Function* function = llvm::Function::Create(
-        funcType,
-        llvm::Function::ExternalLinkage,
-        funcName,
-        module.get()
-    );
-
-    // Create basic block
-    llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", function);
-    builder->SetInsertPoint(bb);
-
-    // Save the current function
-    llvm::Function* parentFunction = currentFunction;
-    currentFunction = function;
-
-    // Visit function body
-    visit(ctx->functionBody());
-
-    // Restore the parent function
-    currentFunction = parentFunction;
-
+std::any LLVMCodegen::visitFormatSpecifier(PrystParser::FormatSpecifierContext *ctx) {
+    PRYST_DEBUG("Visiting format specifier");
+    // Format specifiers are handled within visitStringInterpolation
     return std::any();
+}
+
+// Variable declaration visitors
+std::any LLVMCodegen::visitInferredVariableDecl(PrystParser::InferredVariableDeclContext *ctx) {
+    PRYST_DEBUG("Visiting inferred variable declaration");
+
+    // Get variable name
+    std::string varName = ctx->IDENTIFIER()->getText();
+
+    // Visit the initializer expression
+    auto initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+
+    // Infer type from the initializer
+    llvm::Type* varType = initValue->getType();
+
+    // Create allocation for the variable
+    llvm::AllocaInst* alloca = createEntryBlockAlloca(currentFunction, varName, varType);
+
+    // Store the initial value
+    builder->CreateStore(initValue, alloca);
+
+    // Add to symbol table
+    namedValues[varName] = alloca;
+
+    return alloca;
+}
+
+std::any LLVMCodegen::visitTypedVariableDecl(PrystParser::TypedVariableDeclContext *ctx) {
+    PRYST_DEBUG("Visiting typed variable declaration");
+
+    // Get variable name and type
+    std::string varName = ctx->IDENTIFIER()->getText();
+    llvm::Type* varType = std::any_cast<llvm::Type*>(visit(ctx->type()));
+
+    // Create allocation
+    llvm::AllocaInst* alloca = createEntryBlockAlloca(currentFunction, varName, varType);
+
+    // If there's an initializer, handle it
+    if (ctx->expression()) {
+        auto initValue = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+        // Convert the initializer to the declared type if needed
+        if (initValue->getType() != varType) {
+            initValue = typeRegistry->convertValue(initValue, varType);
+        }
+        builder->CreateStore(initValue, alloca);
+    }
+
+    // Add to symbol table
+    namedValues[varName] = alloca;
+
+    return alloca;
+}
+
+std::any LLVMCodegen::visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext *ctx) {
+    PRYST_DEBUG("Visiting uninitialized variable declaration");
+
+    // Get variable name and type
+    std::string varName = ctx->IDENTIFIER()->getText();
+    llvm::Type* varType = std::any_cast<llvm::Type*>(visit(ctx->type()));
+
+    // Create allocation
+    llvm::AllocaInst* alloca = createEntryBlockAlloca(currentFunction, varName, varType);
+
+    // Store a default value based on type
+    auto defaultValue = typeRegistry->getDefaultValue(varType);
+    builder->CreateStore(defaultValue, alloca);
+
+    // Add to symbol table
+    namedValues[varName] = alloca;
+
+    return alloca;
 }
 
 } // namespace pryst

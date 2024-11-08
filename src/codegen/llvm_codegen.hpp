@@ -7,6 +7,7 @@
 #include "type_utils.hpp"
 #include "reflection_api.hpp"
 #include "class_info.hpp"
+#include "string_interpolation.hpp"
 #include "utils/debug.hpp"
 #include <memory>
 #include <string>
@@ -24,12 +25,7 @@ namespace pryst {
 
 class LLVMCodegen : public PrystBaseVisitor, public ReflectionAPI {
 public:
-    LLVMCodegen() : context(std::make_unique<llvm::LLVMContext>()),
-                    module(std::make_unique<llvm::Module>("pryst_module", *context)),
-                    builder(std::make_unique<llvm::IRBuilder<>>(*context)),
-                    typeRegistry(std::make_unique<LLVMTypeRegistry>(*context)),
-                    typeMetadata(*context.get(), *module.get()),
-                    currentFunction(nullptr) {}
+    LLVMCodegen() : typeRegistry(nullptr), stringInterp(nullptr) {}
     virtual ~LLVMCodegen() = default;
 
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* ctx);
@@ -72,13 +68,20 @@ public:
     std::any visitParamList(PrystParser::ParamListContext *ctx) override;
     std::any visitParam(PrystParser::ParamContext *ctx) override;
     std::any visitParamTypeList(PrystParser::ParamTypeListContext *ctx) override;
+
+    // Variable declarations
+    std::any visitInferredVariableDecl(PrystParser::InferredVariableDeclContext *ctx) override;
+    std::any visitTypedVariableDecl(PrystParser::TypedVariableDeclContext *ctx) override;
+    std::any visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext *ctx) override;
+
+    // Class members
     std::any visitClassDeclaration(PrystParser::ClassDeclarationContext *ctx) override;
     std::any visitClassBody(PrystParser::ClassBodyContext *ctx) override;
-    std::any visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext *ctx) override;
-    std::any visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext *ctx) override;
-    std::any visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext *ctx) override;
-    std::any visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext *ctx) override;
-    std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *ctx) override;
+    std::any visitClassMemberDecl(PrystParser::ClassMemberDeclContext *ctx) override;
+    std::any visitClassMemberInferredDecl(PrystParser::ClassMemberInferredDeclContext *ctx) override;
+    std::any visitClassMemberConstInferredDecl(PrystParser::ClassMemberConstInferredDeclContext *ctx) override;
+    std::any visitClassMemberConstTypedDecl(PrystParser::ClassMemberConstTypedDeclContext *ctx) override;
+    std::any visitClassMemberFunctionDecl(PrystParser::ClassMemberFunctionDeclContext *ctx) override;
 
     // Expressions
     std::any visitExpression(PrystParser::ExpressionContext *ctx) override;
@@ -93,6 +96,7 @@ public:
     std::any visitPostfix(PrystParser::PostfixContext *ctx) override;
     std::any visitCall(PrystParser::CallContext *ctx) override;
     std::any visitPrimary(PrystParser::PrimaryContext *ctx) override;
+    std::any visitStringLiteralRule(PrystParser::StringLiteralRuleContext *ctx) override;
 
     // Statements
     std::any visitBlockStatement(PrystParser::BlockStatementContext *ctx) override;
@@ -101,7 +105,7 @@ public:
     std::any visitWhileStatement(PrystParser::WhileStatementContext *ctx) override;
     std::any visitForStatement(PrystParser::ForStatementContext *ctx) override;
     std::any visitReturnStatement(PrystParser::ReturnStatementContext *ctx) override;
-    std::any visitTryStatement(PrystParser::TryStatementContext *ctx) override;
+    std::any visitTryStmtWrapper(PrystParser::TryStmtWrapperContext *ctx) override;
     std::any visitPrintStatement(PrystParser::PrintStatementContext *ctx) override;
 
 private:
@@ -124,7 +128,7 @@ private:
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<llvm::IRBuilder<>> builder;
     std::unique_ptr<LLVMTypeRegistry> typeRegistry;
-    TypeMetadata typeMetadata;
+    std::unique_ptr<codegen::StringInterpolation> stringInterp;
     std::map<std::string, llvm::Value*> namedValues;
     llvm::Function* currentFunction;
 };
