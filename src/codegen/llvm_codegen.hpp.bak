@@ -1,0 +1,123 @@
+#pragma once
+
+// Include ANTLR headers first
+#include "../generated/PrystBaseVisitor.h"
+#include "../generated/PrystParser.h"
+#include "../generated/PrystLexer.h"
+
+// Then include LLVM headers
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Value.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/raw_ostream.h>
+
+// Include project headers
+#include "type_registry.hpp"
+#include "class_info.hpp"
+#include "utils/debug.hpp"
+#include <memory>
+#include <string>
+#include <map>
+
+namespace pryst {
+
+class LLVMCodegen : public PrystBaseVisitor {
+public:
+    LLVMCodegen();
+    virtual ~LLVMCodegen() = default;
+
+    // Module generation
+    std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* ctx);
+
+    // Visitor methods - Part 1 (Declaration-related)
+    antlrcpp::Any visitProgram(PrystParser::ProgramContext* ctx) override;
+    antlrcpp::Any visitDeclaration(PrystParser::DeclarationContext* ctx) override;
+    antlrcpp::Any visitGlobalUsingDecl(PrystParser::GlobalUsingDeclContext* ctx) override;
+    antlrcpp::Any visitBlockScopedNamespaceDecl(PrystParser::BlockScopedNamespaceDeclContext* ctx) override;
+    antlrcpp::Any visitBlockScopedModuleDecl(PrystParser::BlockScopedModuleDeclContext* ctx) override;
+    antlrcpp::Any visitNamespaceDecl(PrystParser::NamespaceDeclContext* ctx) override;
+    antlrcpp::Any visitModuleDecl(PrystParser::ModuleDeclContext* ctx) override;
+    antlrcpp::Any visitImportDecl(PrystParser::ImportDeclContext* ctx) override;
+    antlrcpp::Any visitImportPath(PrystParser::ImportPathContext* ctx) override;
+    antlrcpp::Any visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) override;
+    antlrcpp::Any visitNamedFunction(PrystParser::NamedFunctionContext* ctx) override;
+    antlrcpp::Any visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) override;
+    antlrcpp::Any visitFunctionBody(PrystParser::FunctionBodyContext* ctx) override;
+    antlrcpp::Any visitVariableDecl(PrystParser::VariableDeclContext* ctx) override;
+    antlrcpp::Any visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) override;
+    antlrcpp::Any visitClassBody(PrystParser::ClassBodyContext* ctx) override;
+    antlrcpp::Any visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) override;
+    antlrcpp::Any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) override;
+    antlrcpp::Any visitParamList(PrystParser::ParamListContext* ctx) override;
+    antlrcpp::Any visitParam(PrystParser::ParamContext* ctx) override;
+    antlrcpp::Any visitParamTypeList(PrystParser::ParamTypeListContext* ctx) override;
+    antlrcpp::Any visitFloatType(PrystParser::FloatTypeContext* ctx) override;
+    antlrcpp::Any visitLambdaType(PrystParser::LambdaTypeContext* ctx) override;
+    antlrcpp::Any visitArrayType(PrystParser::ArrayTypeContext* ctx) override;
+    antlrcpp::Any visitStrType(PrystParser::StrTypeContext* ctx) override;
+    antlrcpp::Any visitIntType(PrystParser::IntTypeContext* ctx) override;
+    antlrcpp::Any visitVoidType(PrystParser::VoidTypeContext* ctx) override;
+    antlrcpp::Any visitIdentifierType(PrystParser::IdentifierTypeContext* ctx) override;
+    antlrcpp::Any visitFunctionType(PrystParser::FunctionTypeContext* ctx) override;
+    antlrcpp::Any visitBoolType(PrystParser::BoolTypeContext* ctx) override;
+
+    // Visitor methods - Part 2 (Statement-related)
+    antlrcpp::Any visitWhileStatement(PrystParser::WhileStatementContext* ctx) override;
+    antlrcpp::Any visitPrintStatement(PrystParser::PrintStatementContext* ctx) override;
+    antlrcpp::Any visitBlockStatement(PrystParser::BlockStatementContext* ctx) override;
+    antlrcpp::Any visitExprStatement(PrystParser::ExprStatementContext* ctx) override;
+    antlrcpp::Any visitForStatement(PrystParser::ForStatementContext* ctx) override;
+    antlrcpp::Any visitIfStatement(PrystParser::IfStatementContext* ctx) override;
+    antlrcpp::Any visitReturnStatement(PrystParser::ReturnStatementContext* ctx) override;
+
+    // Visitor methods - Part 3 (Expression-related)
+    antlrcpp::Any visitExpression(PrystParser::ExpressionContext* ctx) override;
+    antlrcpp::Any visitAssignment(PrystParser::AssignmentContext* ctx) override;
+    antlrcpp::Any visitLogicOr(PrystParser::LogicOrContext* ctx) override;
+    antlrcpp::Any visitLogicAnd(PrystParser::LogicAndContext* ctx) override;
+    antlrcpp::Any visitEquality(PrystParser::EqualityContext* ctx) override;
+    antlrcpp::Any visitComparison(PrystParser::ComparisonContext* ctx) override;
+    antlrcpp::Any visitAddition(PrystParser::AdditionContext* ctx) override;
+    antlrcpp::Any visitMultiplication(PrystParser::MultiplicationContext* ctx) override;
+    antlrcpp::Any visitUnary(PrystParser::UnaryContext* ctx) override;
+    antlrcpp::Any visitPostfix(PrystParser::PostfixContext* ctx) override;
+    antlrcpp::Any visitSuffix(PrystParser::SuffixContext* ctx) override;
+    antlrcpp::Any visitCallSuffix(PrystParser::CallSuffixContext* ctx) override;
+    antlrcpp::Any visitMemberSuffix(PrystParser::MemberSuffixContext* ctx) override;
+    antlrcpp::Any visitCall(PrystParser::CallContext* ctx) override;
+    antlrcpp::Any visitPrimary(PrystParser::PrimaryContext* ctx) override;
+    antlrcpp::Any visitQualifiedIdentifier(PrystParser::QualifiedIdentifierContext* ctx) override;
+    antlrcpp::Any visitNewExpression(PrystParser::NewExpressionContext* ctx) override;
+    antlrcpp::Any visitTypeCastExpr(PrystParser::TypeCastExprContext* ctx) override;
+    antlrcpp::Any visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) override;
+    antlrcpp::Any visitClassConversionExpr(PrystParser::ClassConversionExprContext* ctx) override;
+private:
+    // Helper methods
+    void declarePrintFunctions();
+    llvm::Function* getFunctionProto(const std::string& name, llvm::FunctionType* type);
+    llvm::Value* getVariableValue(const std::string& name);
+    llvm::AllocaInst* createEntryBlockAlloca(llvm::Function* function, const std::string& varName, llvm::Type* type);
+    void createBasicBlock(const std::string& name);
+    llvm::Value* createCastInstruction(llvm::Value* value, llvm::Type* destType, bool isSigned = true);
+    llvm::Function* declareToString();
+    llvm::Value* concatenateStrings(llvm::Value* left, llvm::Value* right);
+    llvm::Value* handleNullValue(llvm::Type* type);
+    antlrcpp::Any visitTryStatement(PrystParser::TryStatementContext* ctx);
+
+    // Member variables
+    std::unique_ptr<llvm::LLVMContext> context;
+    std::unique_ptr<llvm::Module> module;
+    std::unique_ptr<llvm::IRBuilder<>> builder;
+    LLVMTypeRegistry typeRegistry;
+    std::map<std::string, llvm::Value*> namedValues;
+    llvm::Function* currentFunction;
+    std::map<std::string, llvm::Function*> printFunctions;
+    std::vector<std::string> currentNamespace;
+    std::string currentModule;
+};
+
+} // namespace pryst

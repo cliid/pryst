@@ -52,11 +52,10 @@ llvm::Function* LLVMCodegen::declareToString() {
     );
 
     // Declare sprintf using our type system
-    std::vector<llvm::Type*> sprintfArgs = {
-        llvmStrType,  // buffer
-        llvmStrType,  // format
-        llvmStrType   // value
-    };
+    std::vector<llvm::Type*> sprintfArgs;
+    sprintfArgs.push_back(llvmStrType);  // buffer
+    sprintfArgs.push_back(llvmStrType);  // format
+    sprintfArgs.push_back(llvmStrType);  // value
     auto* sprintfType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(*context),
         sprintfArgs,
@@ -80,27 +79,39 @@ llvm::Function* LLVMCodegen::declareToString() {
 
     // Int case: Convert int to string
     builder->SetInsertPoint(intCase);
+    auto& llvmTypeRegistry = LLVMTypeRegistry::getInstance();
+    auto charPtrTy = llvmTypeRegistry.getOpaquePointerType(*context);
     auto* intFormat = builder->CreateGlobalString("%d", "int_format");
-    builder->CreateCall(sprintfCallee, {buffer, intFormat, value});
+    auto* intFormatPtr = builder->CreateBitCast(intFormat, charPtrTy);
+    std::vector<llvm::Value*> intCallArgs = {buffer, intFormatPtr, value};
+    builder->CreateCall(sprintfCallee, llvm::ArrayRef<llvm::Value*>(intCallArgs));
     builder->CreateRet(buffer);
 
     // Float case: Convert float to string
     builder->SetInsertPoint(floatCase);
     auto* floatFormat = builder->CreateGlobalString("%.6f", "float_format");
-    builder->CreateCall(sprintfCallee, {buffer, floatFormat, value});
+    auto* floatFormatPtr = builder->CreateBitCast(floatFormat, charPtrTy);
+    std::vector<llvm::Value*> floatCallArgs = {buffer, floatFormatPtr, value};
+    builder->CreateCall(sprintfCallee, llvm::ArrayRef<llvm::Value*>(floatCallArgs));
     builder->CreateRet(buffer);
 
     // Bool case: Convert bool to string
     builder->SetInsertPoint(boolCase);
     auto* trueStr = builder->CreateGlobalString("true", "true_str");
     auto* falseStr = builder->CreateGlobalString("false", "false_str");
-    auto* boolStr = builder->CreateSelect(value, trueStr, falseStr, "bool_str");
-    builder->CreateRet(boolStr);
+    auto* boolFormat = builder->CreateGlobalString("%s", "bool_format");
+    auto* boolFormatPtr = builder->CreateBitCast(boolFormat, charPtrTy);
+    auto* selectedStr = builder->CreateSelect(value, trueStr, falseStr, "bool_str");
+    auto* selectedStrPtr = builder->CreateBitCast(selectedStr, charPtrTy);
+    std::vector<llvm::Value*> boolCallArgs = {buffer, boolFormatPtr, selectedStrPtr};
+    builder->CreateCall(sprintfCallee, llvm::ArrayRef<llvm::Value*>(boolCallArgs));
+    builder->CreateRet(buffer);
 
     // Default case: Return empty string
     builder->SetInsertPoint(defaultCase);
     auto* emptyStr = builder->CreateGlobalString("", "empty_str");
-    builder->CreateRet(emptyStr);
+    auto* emptyStrPtr = builder->CreateBitCast(emptyStr, charPtrTy);
+    builder->CreateRet(emptyStrPtr);
 
     functions["toString"] = toStrFunc;
     return toStrFunc;

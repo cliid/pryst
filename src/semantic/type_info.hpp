@@ -1,25 +1,18 @@
 #pragma once
 
 #include <string>
-#include <vector>
 #include <memory>
-#include <unordered_map>
-#include <optional>
-#include <iostream>
-#include <mutex>
-#include <stdexcept>
+#include <vector>
+#include <map>
 
-// Forward declarations
+namespace pryst {
+
+// Forward declare TypeInfo class
 class TypeInfo;
-class FunctionTypeInfo;
-class ClassTypeInfo;
-class TypeRegistry;
 
+// Define TypeInfoPtr type alias
 using TypeInfoPtr = std::shared_ptr<TypeInfo>;
-using FunctionTypeInfoPtr = std::shared_ptr<FunctionTypeInfo>;
-using ClassTypeInfoPtr = std::shared_ptr<ClassTypeInfo>;
 
-// Base class for all type information
 class TypeInfo {
 public:
     enum class Kind {
@@ -27,232 +20,142 @@ public:
         Function,
         Class,
         Array,
-        Pointer
+        Pointer,
+        Module
     };
 
-    TypeInfo(Kind kind, const std::string& name) : kind_(kind), name_(name) {}
+    TypeInfo(Kind kind, const std::string& name) : kind(kind), name(name) {}
     virtual ~TypeInfo() = default;
 
-    Kind getKind() const { return kind_; }
-    const std::string& getName() const { return name_; }
-
-    // Type conversion and checking
+    Kind getKind() const { return kind; }
+    const std::string& getName() const { return name; }
+    virtual std::string toString() const { return name; }
     virtual bool isConvertibleTo(const TypeInfoPtr& other) const = 0;
-    virtual std::string toString() const = 0;
-
-    // Reflection support
-    virtual bool hasMethod(const std::string& name) const { return false; }
-    virtual bool hasField(const std::string& name) const { return false; }
-    virtual TypeInfoPtr getMethodType(const std::string& name) const { return nullptr; }
-    virtual TypeInfoPtr getFieldType(const std::string& name) const { return nullptr; }
-
-    // Helper functions for type checking
-    static bool isNumericType(const TypeInfoPtr& type);
-    static TypeInfoPtr getCommonNumericType(const TypeInfoPtr& t1, const TypeInfoPtr& t2);
 
 protected:
-    Kind kind_;
-    std::string name_;
+    Kind kind;
+    std::string name;
+
+    // Helper functions for type conversion
+    static bool isNumericType(const TypeInfoPtr& type);
+    static TypeInfoPtr getCommonNumericType(const TypeInfoPtr& t1, const TypeInfoPtr& t2);
 };
 
-// Basic types (int, float, bool, str)
+// Basic types (int, float, bool, etc.)
 class BasicTypeInfo : public TypeInfo {
 public:
     BasicTypeInfo(const std::string& name) : TypeInfo(Kind::Basic, name) {}
-
     bool isConvertibleTo(const TypeInfoPtr& other) const override;
-    std::string toString() const override;
 };
 
-// Function type information
+// Function types (for both named functions and lambdas)
 class FunctionTypeInfo : public TypeInfo {
 public:
-    FunctionTypeInfo(TypeInfoPtr returnType,
-                    std::vector<TypeInfoPtr> paramTypes)
-        : TypeInfo(Kind::Function, "fn"),
-          returnType_(returnType),
-          paramTypes_(std::move(paramTypes)) {}
+    FunctionTypeInfo(const std::string& name, TypeInfoPtr returnType, std::vector<TypeInfoPtr> paramTypes)
+        : TypeInfo(Kind::Function, name), returnType(returnType), paramTypes(paramTypes) {}
 
-    const TypeInfoPtr& getReturnType() const { return returnType_; }
-    const std::vector<TypeInfoPtr>& getParamTypes() const { return paramTypes_; }
-
+    TypeInfoPtr getReturnType() const { return returnType; }
+    const std::vector<TypeInfoPtr>& getParamTypes() const { return paramTypes; }
     bool isConvertibleTo(const TypeInfoPtr& other) const override;
-    std::string toString() const override;
 
 private:
-    TypeInfoPtr returnType_;
-    std::vector<TypeInfoPtr> paramTypes_;
+    TypeInfoPtr returnType;
+    std::vector<TypeInfoPtr> paramTypes;
 };
 
-// Class type information
+// Class types with methods and fields
 class ClassTypeInfo : public TypeInfo {
 public:
-    ClassTypeInfo(const std::string& name,
-                 ClassTypeInfoPtr parent = nullptr)
-        : TypeInfo(Kind::Class, name),
-          parent_(parent) {}
+    ClassTypeInfo(const std::string& name) : TypeInfo(Kind::Class, name) {}
 
-    const ClassTypeInfoPtr& getParent() const { return parent_; }
-
-    void addMethod(const std::string& name, FunctionTypeInfoPtr type) {
-        methods_[name] = type;
+    void addMethod(const std::string& name, TypeInfoPtr methodType) {
+        methods[name] = methodType;
     }
 
-    void addField(const std::string& name, TypeInfoPtr type) {
-        fields_[name] = type;
+    void addField(const std::string& name, TypeInfoPtr fieldType) {
+        fields[name] = fieldType;
     }
 
-    bool hasMethod(const std::string& name) const override {
-        return methods_.find(name) != methods_.end() ||
-               (parent_ && parent_->hasMethod(name));
+    const std::map<std::string, TypeInfoPtr>& getMethods() const { return methods; }
+    const std::map<std::string, TypeInfoPtr>& getFields() const { return fields; }
+
+    // Add getMembers method to return all fields as a vector of pairs
+    std::vector<std::pair<std::string, TypeInfoPtr>> getMembers() const {
+        std::vector<std::pair<std::string, TypeInfoPtr>> result;
+        for (const auto& [name, type] : fields) {
+            result.push_back({name, type});
+        }
+        return result;
     }
 
-    bool hasField(const std::string& name) const override {
-        return fields_.find(name) != fields_.end() ||
-               (parent_ && parent_->hasField(name));
+    std::string toString() const override {
+        return "class " + name;
     }
-
-    TypeInfoPtr getMethodType(const std::string& name) const override {
-        auto it = methods_.find(name);
-        if (it != methods_.end()) return it->second;
-        return parent_ ? parent_->getMethodType(name) : nullptr;
-    }
-
-    FunctionTypeInfoPtr getMethod(const std::string& name) const {
-        auto it = methods_.find(name);
-        if (it != methods_.end()) return it->second;
-        return parent_ ? parent_->getMethod(name) : nullptr;
-    }
-
-    TypeInfoPtr getFieldType(const std::string& name) const override {
-        auto it = fields_.find(name);
-        if (it != fields_.end()) return it->second;
-        return parent_ ? parent_->getFieldType(name) : nullptr;
-    }
-
-    bool isConvertibleTo(const TypeInfoPtr& other) const override;
-    std::string toString() const override;
 
 private:
-    ClassTypeInfoPtr parent_;
-    std::unordered_map<std::string, FunctionTypeInfoPtr> methods_;
-    std::unordered_map<std::string, TypeInfoPtr> fields_;
+    std::map<std::string, TypeInfoPtr> methods;
+    std::map<std::string, TypeInfoPtr> fields;
 };
 
-// Type registry for managing type information
-class TypeRegistry {
+// Module types for handling module-level type information
+class ModuleTypeInfo : public TypeInfo {
 public:
-    static TypeRegistry& getInstance() {
-        static std::mutex initMutex;
-        std::lock_guard<std::mutex> lock(initMutex);
+    ModuleTypeInfo(const std::string& name) : TypeInfo(Kind::Module, name) {}
 
-        std::cerr << "DEBUG: Getting TypeRegistry instance - START" << std::endl;
-        static TypeRegistry* instance = nullptr;
-        static bool initializing = false;
-
-        if (!instance) {
-            if (initializing) {
-                throw std::runtime_error("Recursive TypeRegistry initialization detected");
-            }
-
-            initializing = true;
-            std::cerr << "DEBUG: First time initialization of TypeRegistry instance" << std::endl;
-
-            instance = new TypeRegistry();
-            // Initialize basic types in a specific order
-            instance->getOrCreateBasicType("int");
-            std::cerr << "DEBUG: Int type initialized" << std::endl;
-
-            instance->getOrCreateBasicType("float");
-            std::cerr << "DEBUG: Float type initialized" << std::endl;
-
-            instance->getOrCreateBasicType("bool");
-            std::cerr << "DEBUG: Bool type initialized" << std::endl;
-
-            instance->getOrCreateBasicType("str");
-            std::cerr << "DEBUG: String type initialized" << std::endl;
-
-            instance->getOrCreateBasicType("pointer");
-            std::cerr << "DEBUG: Pointer type initialized" << std::endl;
-
-            initializing = false;
-            std::cerr << "DEBUG: Basic types initialization complete" << std::endl;
-        } else {
-            std::cerr << "DEBUG: Returning existing TypeRegistry instance" << std::endl;
-        }
-
-        std::cerr << "DEBUG: Getting TypeRegistry instance - END" << std::endl;
-        return *instance;
+    void addType(const std::string& name, TypeInfoPtr type) {
+        types[name] = type;
     }
 
-    // Basic types
-    TypeInfoPtr getIntType() {
-        std::cerr << "DEBUG: Getting int type - START" << std::endl;
-        auto result = getOrCreateBasicType("int");
-        std::cerr << "DEBUG: Getting int type - END" << std::endl;
-        return result;
+    TypeInfoPtr getType(const std::string& name) const {
+        auto it = types.find(name);
+        return it != types.end() ? it->second : nullptr;
     }
 
-    TypeInfoPtr getFloatType() {
-        std::cerr << "DEBUG: Getting float type - START" << std::endl;
-        auto result = getOrCreateBasicType("float");
-        std::cerr << "DEBUG: Getting float type - END" << std::endl;
-        return result;
-    }
+    const std::map<std::string, TypeInfoPtr>& getTypes() const { return types; }
+    bool isConvertibleTo(const TypeInfoPtr& other) const override;
 
-    TypeInfoPtr getBoolType() {
-        std::cerr << "DEBUG: Getting bool type - START" << std::endl;
-        auto result = getOrCreateBasicType("bool");
-        std::cerr << "DEBUG: Getting bool type - END" << std::endl;
-        return result;
-    }
-
-    TypeInfoPtr getStrType() {
-        std::cerr << "DEBUG: Getting str type - START" << std::endl;
-        auto result = getOrCreateBasicType("str");
-        std::cerr << "DEBUG: Getting str type - END" << std::endl;
-        return result;
-    }
-
-    TypeInfoPtr getPointerType() {
-        std::cerr << "DEBUG: Getting pointer type - START" << std::endl;
-        auto result = getOrCreateBasicType("pointer");
-        std::cerr << "DEBUG: Getting pointer type - END" << std::endl;
-        return result;
-    }
-
-    // Function types
-    TypeInfoPtr getFunctionType(TypeInfoPtr returnType,
-                              const std::vector<TypeInfoPtr>& paramTypes);
-
-    // Class types
-    ClassTypeInfoPtr createClassType(const std::string& name,
-                                   ClassTypeInfoPtr parent = nullptr);
-
-    TypeInfoPtr lookupType(const std::string& name) {
-        auto it = types_.find(name);
-        return it != types_.end() ? it->second : nullptr;
+    std::string toString() const override {
+        return "module " + name;
     }
 
 private:
-    TypeRegistry() {
-        std::cerr << "DEBUG: TypeRegistry constructor - START" << std::endl;
-        std::cerr << "DEBUG: TypeRegistry constructor - END" << std::endl;
-    }
-
-    TypeInfoPtr getOrCreateBasicType(const std::string& name) {
-        std::cerr << "DEBUG: getOrCreateBasicType called for: " << name << std::endl;
-        auto it = types_.find(name);
-        if (it != types_.end()) {
-            std::cerr << "DEBUG: Returning existing basic type: " << name << std::endl;
-            return it->second;
-        }
-        std::cerr << "DEBUG: Creating new basic type: " << name << std::endl;
-        auto type = std::make_shared<BasicTypeInfo>(name);
-        types_[name] = type;
-        std::cerr << "DEBUG: Successfully created basic type: " << name << std::endl;
-        return type;
-    }
-
-    std::unordered_map<std::string, TypeInfoPtr> types_;
+    std::map<std::string, TypeInfoPtr> types;
 };
+
+// Array types with size and element type information
+class ArrayTypeInfo : public TypeInfo {
+public:
+    ArrayTypeInfo(const std::string& name, TypeInfoPtr elementType, size_t size)
+        : TypeInfo(Kind::Array, name), elementType(elementType), size(size) {}
+
+    TypeInfoPtr getElementType() const { return elementType; }
+    size_t getSize() const { return size; }
+    bool isConvertibleTo(const TypeInfoPtr& other) const override;
+
+    std::string toString() const override {
+        return elementType->toString() + "[" + std::to_string(size) + "]";
+    }
+
+private:
+    TypeInfoPtr elementType;
+    size_t size;
+};
+
+// Pointer types with pointee type information
+class PointerTypeInfo : public TypeInfo {
+public:
+    PointerTypeInfo(const std::string& name, TypeInfoPtr pointeeType)
+        : TypeInfo(Kind::Pointer, name), pointeeType(pointeeType) {}
+
+    TypeInfoPtr getPointeeType() const { return pointeeType; }
+    bool isConvertibleTo(const TypeInfoPtr& other) const override;
+
+    std::string toString() const override {
+        return pointeeType->toString() + "*";
+    }
+
+private:
+    TypeInfoPtr pointeeType;
+};
+
+} // namespace pryst

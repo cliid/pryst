@@ -1,0 +1,139 @@
+// Test all lambda function features comprehensively
+
+// 1. Basic lambda declarations with explicit return types
+fn testBasicLambdas() -> void {
+    // Test explicit return type
+    let add = (int x, int y) -> int {
+        return x + y;
+    };
+
+    // Test type inference with int
+    let multiply = (int x, int y) -> {
+        return x * y;
+    };
+
+    // Test type inference with float
+    let divide = (float x, float y) -> {
+        return x / y;
+    };
+
+    // Test void return
+    let printSum = (int x, int y) -> void {
+        print(x + y);
+    };
+
+    // Test mixed types with casting
+    let mixed = (int x, float y) -> float {
+        return float(x) + y;
+    };
+
+    // Test results
+    print("Basic lambda tests:");
+    print("add(5, 3) = " + add(5, 3).toString());
+    print("multiply(4, 2) = " + multiply(4, 2).toString());
+    print("divide(9.0, 3.0) = " + divide(9.0, 3.0).toString());
+    printSum(10, 5);
+    print("mixed(5, 2.5) = " + mixed(5, 2.5).toString());
+}
+
+// 2. Lambda captures and const parameters
+fn testLambdaCaptures() -> void {
+    let x = 10;
+    let y = 20;
+
+    // Capture by value
+    let addX = (int a) -> int {
+        return a + x;  // Captures x by value
+    };
+
+    // Capture multiple variables
+    let addBoth = (int a) -> int {
+        return a + x + y;  // Captures both x and y
+    };
+
+    // Test const parameters
+    let constParam = (const int a) -> int {
+        return a * 2;  // Cannot modify a
+    };
+
+    // Test results with captures
+    print("\nLambda capture tests:");
+    print("addX(5) = " + addX(5).toString());
+    print("addBoth(3) = " + addBoth(3).toString());
+    print("constParam(7) = " + constParam(7).toString());
+
+    // Modify captured variables
+    x = 30;
+    print("After modifying x:");
+    print("addX(5) = " + addX(5).toString());  // Should use original value
+}
+
+// 3. Lambda as parameters and return values
+fn applyOperation(fn<int>(int, int) op, int a, int b) -> int {
+    return op(a, b);
+}
+
+fn getOperation(str type) -> fn<int>(int, int) {
+    if (type == "add") {
+        return (int x, int y) -> int { return x + y; };
+    } else {
+        return (int x, int y) -> int { return x * y; };
+    }
+}
+
+// 4. Test error handling for lambdas
+fn testLambdaErrors() -> void {
+    print("\nTesting lambda errors:");
+
+    // Test modifying const parameter
+    try {
+        let modifyConst = (const int x) -> void {
+            x = 42;  // Should throw error
+        };
+        modifyConst(10);
+    } catch (ConstError e) {
+        print("Caught const parameter error: " + e.message);
+    }
+
+    // Test type mismatch in lambda return
+    try {
+        let wrongReturn = (int x) -> int {
+            return float(x);  // Should throw error - type mismatch
+        };
+        wrongReturn(10);
+    } catch (TypeError e) {
+        print("Caught return type error: " + e.message);
+    }
+
+    // Test capturing const variable
+    try {
+        const int constVal = 42;
+        let captureConst = () -> void {
+            constVal = 43;  // Should throw error - modifying const capture
+        };
+        captureConst();
+    } catch (ConstError e) {
+        print("Caught const capture error: " + e.message);
+    }
+}
+
+fn main() -> void {
+    // Test basic lambda functionality
+    testBasicLambdas();
+
+    // Test lambda captures
+    testLambdaCaptures();
+
+    // Test lambda as parameters and return values
+    print("\nTesting lambda as parameters:");
+    let result1 = applyOperation((int x, int y) -> { return x + y; }, 5, 3);
+    print("applyOperation(add, 5, 3) = " + result1.toString());
+
+    let addOp = getOperation("add");
+    let mulOp = getOperation("multiply");
+    print("getOperation('add')(4, 2) = " + addOp(4, 2).toString());
+    print("getOperation('multiply')(4, 2) = " + mulOp(4, 2).toString());
+
+    // Test error handling
+    testLambdaErrors();
+}

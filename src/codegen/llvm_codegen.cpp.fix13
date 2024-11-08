@@ -1,0 +1,612 @@
+#include "llvm_codegen.hpp"
+#include "../generated/PrystBaseVisitor.h"
+#include "../generated/PrystParser.h"
+#include "../generated/PrystLexer.h"
+#include "utils/debug.hpp"
+#include <antlr4-runtime.h>
+#include <vector>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/CallingConv.h>
+#include <llvm/Support/raw_ostream.h>
+
+namespace pryst {
+
+LLVMCodegen::LLVMCodegen()
+    : context(std::make_unique<llvm::LLVMContext>()),
+      module(std::make_unique<llvm::Module>("pryst", *context)),
+      builder(std::make_unique<llvm::IRBuilder<>>(*context)),
+      typeRegistry(*context),
+      currentFunction(nullptr) {
+    PRYST_DEBUG("Initializing LLVMCodegen");
+    declarePrintFunctions();
+}
+
+void LLVMCodegen::declarePrintFunctions() {
+    PRYST_DEBUG("Declaring print functions");
+
+    // Get necessary types
+    auto voidType = typeRegistry.getVoidType();
+    auto int32Type = typeRegistry.getIntType(32);
+    auto floatType = typeRegistry.getFloatType();
+    auto boolType = typeRegistry.getBoolType();
+    auto strType = typeRegistry.getStringType();
+
+    // Declare print functions for different types
+    std::vector<llvm::Type*> printIntArgs = {int32Type};
+    auto printIntType = llvm::FunctionType::get(voidType, printIntArgs, false);
+    auto printIntFunc = llvm::Function::Create(printIntType, llvm::Function::ExternalLinkage, "pryst_print_int", module.get());
+    printFunctions["int"] = printIntFunc;
+
+    std::vector<llvm::Type*> printFloatArgs = {floatType};
+    auto printFloatType = llvm::FunctionType::get(voidType, printFloatArgs, false);
+    auto printFloatFunc = llvm::Function::Create(printFloatType, llvm::Function::ExternalLinkage, "pryst_print_float", module.get());
+    printFunctions["float"] = printFloatFunc;
+
+    std::vector<llvm::Type*> printBoolArgs = {boolType};
+    auto printBoolType = llvm::FunctionType::get(voidType, printBoolArgs, false);
+    auto printBoolFunc = llvm::Function::Create(printBoolType, llvm::Function::ExternalLinkage, "pryst_print_bool", module.get());
+    printFunctions["bool"] = printBoolFunc;
+
+    std::vector<llvm::Type*> printStrArgs = {strType};
+    auto printStrType = llvm::FunctionType::get(voidType, printStrArgs, false);
+    auto printStrFunc = llvm::Function::Create(printStrType, llvm::Function::ExternalLinkage, "pryst_print_str", module.get());
+    printFunctions["str"] = printStrFunc;
+}
+
+std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
+    if (!ctx) {
+        PRYST_ERROR("Null program context");
+        return nullptr;
+    }
+
+    // Visit the program to generate IR
+    visit(ctx);
+
+    // Verify the module
+    std::string errorInfo;
+    llvm::raw_string_ostream errorStream(errorInfo);
+    if (llvm::verifyModule(*module, &errorStream)) {
+        PRYST_ERROR("Module verification failed: " + errorInfo);
+        return nullptr;
+    }
+
+    return std::move(module);
+}
+
+std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
+    PRYST_DEBUG("Visiting program");
+
+    // Process all declarations in the program
+    for (auto* decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    return std::any();
+}
+
+std::any LLVMCodegen::visitPrintStatement(PrystParser::PrintStatementContext* ctx) {
+    PRYST_DEBUG("Visiting print statement");
+
+    // Handle empty print statement (just prints newline)
+    if (ctx->expression().empty()) {
+        auto printFunc = printFunctions["str"];
+        std::vector<llvm::Value*> args;
+        args.push_back(builder->CreateGlobalString("\n"));
+        builder->CreateCall(printFunc, args);
+        return std::any();
+    }
+
+    // Handle multiple arguments
+    auto expressions = ctx->expression();
+    for (size_t i = 0; i < expressions.size(); ++i) {
+        auto expr = expressions[i];
+        auto value = std::any_cast<llvm::Value*>(visit(expr));
+
+        // Get type from LLVM Value
+        auto type = value->getType();
+        std::string typeName;
+
+        if (type->isIntegerTy()) {
+            typeName = "int";
+        } else if (type->isFloatingPointTy()) {
+            typeName = "float";
+        } else if (type->isPointerTy()) {
+            typeName = "str";
+        } else {
+            PRYST_ERROR("Unsupported type for print statement");
+            return std::any();
+        }
+
+        // Add space between arguments if not the first argument
+        if (i > 0) {
+            auto printFunc = printFunctions["str"];
+            std::vector<llvm::Value*> args;
+            args.push_back(builder->CreateGlobalString(" "));
+            builder->CreateCall(printFunc, args);
+        }
+
+        // Print the value
+        auto printFunc = printFunctions[typeName];
+        if (!printFunc) {
+            PRYST_ERROR("No print function found for type: " + typeName);
+            return std::any();
+        }
+        std::vector<llvm::Value*> args;
+        args.push_back(value);
+        builder->CreateCall(printFunc, args);
+    }
+
+    // Print newline at the end
+    auto printFunc = printFunctions["str"];
+    std::vector<llvm::Value*> args;
+    args.push_back(builder->CreateGlobalString("\n"));
+    builder->CreateCall(printFunc, args);
+
+    return std::any();
+}
+
+std::any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
+    PRYST_DEBUG("Visiting logic OR expression");
+    auto left = std::any_cast<llvm::Value*>(visit(ctx->logicAnd(0)));
+    if (!left) {
+        PRYST_ERROR("Failed to evaluate left operand of OR expression");
+        return std::any();
+    }
+
+    // Create basic blocks for short-circuit evaluation
+    auto orBB = llvm::BasicBlock::Create(*context, "or", currentFunction);
+    auto mergeBB = llvm::BasicBlock::Create(*context, "merge", currentFunction);
+
+    // If left is true, skip right operand evaluation
+    builder->CreateCondBr(left, mergeBB, orBB);
+
+    // Evaluate right operand only if left is false
+    builder->SetInsertPoint(orBB);
+    auto right = std::any_cast<llvm::Value*>(visit(ctx->logicAnd(1)));
+    if (!right) {
+        PRYST_ERROR("Failed to evaluate right operand of OR expression");
+        return std::any();
+    }
+    builder->CreateBr(mergeBB);
+
+    // Create phi node to select the result
+    builder->SetInsertPoint(mergeBB);
+    auto phi = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2);
+    phi->addIncoming(llvm::ConstantInt::getTrue(*context), builder->GetInsertBlock());
+    phi->addIncoming(right, orBB);
+
+    return std::any(phi);
+}
+
+std::any LLVMCodegen::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
+    PRYST_DEBUG("Visiting logic AND expression");
+    auto left = std::any_cast<llvm::Value*>(visit(ctx->equality(0)));
+    if (!left) {
+        PRYST_ERROR("Failed to evaluate left operand of AND expression");
+        return std::any();
+    }
+
+    // Create basic blocks for short-circuit evaluation
+    auto andBB = llvm::BasicBlock::Create(*context, "and", currentFunction);
+    auto mergeBB = llvm::BasicBlock::Create(*context, "merge", currentFunction);
+
+    // If left is false, skip right operand evaluation
+    builder->CreateCondBr(left, andBB, mergeBB);
+
+    // Evaluate right operand only if left is true
+    builder->SetInsertPoint(andBB);
+    auto right = std::any_cast<llvm::Value*>(visit(ctx->equality(1)));
+    if (!right) {
+        PRYST_ERROR("Failed to evaluate right operand of AND expression");
+        return std::any();
+    }
+    builder->CreateBr(mergeBB);
+
+    // Create phi node to select the result
+    builder->SetInsertPoint(mergeBB);
+    auto phi = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2);
+    phi->addIncoming(llvm::ConstantInt::getFalse(*context), builder->GetInsertBlock());
+    phi->addIncoming(right, andBB);
+
+    return std::any(phi);
+}
+
+std::any LLVMCodegen::visitEquality(PrystParser::EqualityContext* ctx) {
+    PRYST_DEBUG("Visiting equality expression");
+    auto left = std::any_cast<llvm::Value*>(visit(ctx->comparison(0)));
+    if (!left) {
+        PRYST_ERROR("Failed to evaluate left operand of equality expression");
+        return std::any();
+    }
+
+    // If no operator, just return left
+    if (ctx->comparison().size() == 1) {
+        return std::any(left);
+    }
+
+    auto right = std::any_cast<llvm::Value*>(visit(ctx->comparison(1)));
+    if (!right) {
+        PRYST_ERROR("Failed to evaluate right operand of equality expression");
+        return std::any();
+    }
+
+    // Get operator
+    std::string op = ctx->children[1]->getText();
+    llvm::Value* result = nullptr;
+
+    // Get types directly from LLVM Values
+    auto leftType = left->getType();
+    auto rightType = right->getType();
+
+    // Handle string equality separately
+    if (leftType->isPointerTy() && rightType->isPointerTy()) {
+        // TODO: Implement string comparison
+        PRYST_ERROR("String comparison not yet implemented");
+        return std::any();
+    }
+
+    // Ensure operands have the same type
+    if (leftType != rightType) {
+        right = createCastInstruction(right, leftType);
+    }
+
+    if (leftType->isIntegerTy()) {
+        if (op == "==") {
+            result = builder->CreateICmpEQ(left, right, "eqtmp");
+        } else if (op == "!=") {
+            result = builder->CreateICmpNE(left, right, "neqtmp");
+        }
+    } else if (leftType->isFloatingPointTy()) {
+        if (op == "==") {
+            result = builder->CreateFCmpOEQ(left, right, "feqtmp");
+        } else if (op == "!=") {
+            result = builder->CreateFCmpONE(left, right, "fneqtmp");
+        }
+    }
+
+    return std::any(result);
+}
+
+std::any LLVMCodegen::visitComparison(PrystParser::ComparisonContext* ctx) {
+    PRYST_DEBUG("Visiting comparison expression");
+    auto left = std::any_cast<llvm::Value*>(visit(ctx->addition(0)));
+    if (!left) {
+        PRYST_ERROR("Failed to evaluate left operand of comparison");
+        return std::any();
+    }
+
+    // If no operator, just return left
+    if (ctx->addition().size() == 1) {
+        return std::any(left);
+    }
+
+    auto right = std::any_cast<llvm::Value*>(visit(ctx->addition(1)));
+    if (!right) {
+        PRYST_ERROR("Failed to evaluate right operand of comparison");
+        return std::any();
+    }
+
+    // Get operator
+    std::string op = ctx->children[1]->getText();
+    llvm::Value* result = nullptr;
+
+    // Get types directly from LLVM Values
+    auto leftType = left->getType();
+    auto rightType = right->getType();
+
+    // Ensure operands have the same type
+    if (leftType != rightType) {
+        right = createCastInstruction(right, leftType);
+    }
+
+    if (leftType->isIntegerTy()) {
+        if (op == "<") {
+            result = builder->CreateICmpSLT(left, right, "cmptmp");
+        } else if (op == "<=") {
+            result = builder->CreateICmpSLE(left, right, "cmptmp");
+        } else if (op == ">") {
+            result = builder->CreateICmpSGT(left, right, "cmptmp");
+        } else if (op == ">=") {
+            result = builder->CreateICmpSGE(left, right, "cmptmp");
+        }
+    } else if (leftType->isFloatingPointTy()) {
+        if (op == "<") {
+            result = builder->CreateFCmpOLT(left, right, "fcmptmp");
+        } else if (op == "<=") {
+            result = builder->CreateFCmpOLE(left, right, "fcmptmp");
+        } else if (op == ">") {
+            result = builder->CreateFCmpOGT(left, right, "fcmptmp");
+        } else if (op == ">=") {
+            result = builder->CreateFCmpOGE(left, right, "fcmptmp");
+        }
+    }
+
+    return std::any(result);
+}
+
+std::any LLVMCodegen::visitAddition(PrystParser::AdditionContext* ctx) {
+    PRYST_DEBUG("Visiting addition expression");
+    auto left = std::any_cast<llvm::Value*>(visit(ctx->multiplication(0)));
+    if (!left) {
+        PRYST_ERROR("Failed to evaluate left operand of addition");
+        return std::any();
+    }
+
+    // If no operator, just return left
+    if (ctx->multiplication().size() == 1) {
+        return std::any(left);
+    }
+
+    auto right = std::any_cast<llvm::Value*>(visit(ctx->multiplication(1)));
+    if (!right) {
+        PRYST_ERROR("Failed to evaluate right operand of addition");
+        return std::any();
+    }
+
+    // Get operator
+    std::string op = ctx->children[1]->getText();
+    llvm::Value* result = nullptr;
+
+    // Get types directly from LLVM Values
+    auto leftType = left->getType();
+    auto rightType = right->getType();
+
+    // Handle string concatenation
+    if (leftType->isPointerTy() && rightType->isPointerTy()) {
+        return std::any(concatenateStrings(left, right));
+    }
+
+    // Ensure operands have the same type
+    if (leftType != rightType) {
+        right = createCastInstruction(right, leftType);
+    }
+
+    if (leftType->isIntegerTy()) {
+        if (op == "+") {
+            result = builder->CreateAdd(left, right, "addtmp");
+        } else if (op == "-") {
+            result = builder->CreateSub(left, right, "subtmp");
+        }
+    } else if (leftType->isFloatingPointTy()) {
+        if (op == "+") {
+            result = builder->CreateFAdd(left, right, "faddtmp");
+        } else if (op == "-") {
+            result = builder->CreateFSub(left, right, "fsubtmp");
+        }
+    }
+
+    return std::any(result);
+}
+
+std::any LLVMCodegen::visitMultiplication(PrystParser::MultiplicationContext* ctx) {
+    PRYST_DEBUG("Visiting multiplication expression");
+    auto left = std::any_cast<llvm::Value*>(visit(ctx->unary(0)));
+    if (!left) {
+        PRYST_ERROR("Failed to evaluate left operand of multiplication");
+        return std::any();
+    }
+
+    // If no operator, just return left
+    if (ctx->unary().size() == 1) {
+        return std::any(left);
+    }
+
+    auto right = std::any_cast<llvm::Value*>(visit(ctx->unary(1)));
+    if (!right) {
+        PRYST_ERROR("Failed to evaluate right operand of multiplication");
+        return std::any();
+    }
+
+    // Get operator
+    std::string op = ctx->children[1]->getText();
+    llvm::Value* result = nullptr;
+
+    // Get types directly from LLVM Values
+    auto leftType = left->getType();
+    auto rightType = right->getType();
+
+    // Ensure operands have the same type
+    if (leftType != rightType) {
+        right = createCastInstruction(right, leftType);
+    }
+
+    if (leftType->isIntegerTy()) {
+        if (op == "*") {
+            result = builder->CreateMul(left, right, "multmp");
+        } else if (op == "/") {
+            result = builder->CreateSDiv(left, right, "divtmp");
+        } else if (op == "%") {
+            result = builder->CreateSRem(left, right, "modtmp");
+        }
+    } else if (leftType->isFloatingPointTy()) {
+        if (op == "*") {
+            result = builder->CreateFMul(left, right, "fmultmp");
+        } else if (op == "/") {
+            result = builder->CreateFDiv(left, right, "fdivtmp");
+        }
+    }
+
+    return std::any(result);
+}
+
+std::any LLVMCodegen::visitUnary(PrystParser::UnaryContext* ctx) {
+    PRYST_DEBUG("Visiting unary expression");
+
+    // Handle postfix expression if no unary operator
+    if (!ctx->BANG() && !ctx->MINUS() && !ctx->INCREMENT() && !ctx->DECREMENT()) {
+        return visit(ctx->postfix());
+    }
+
+    // Handle nested unary expression
+    auto operand = std::any_cast<llvm::Value*>(visit(ctx->unary()));
+    if (!operand) {
+        PRYST_ERROR("Failed to evaluate unary operand");
+        return std::any();
+    }
+
+    llvm::Value* result = nullptr;
+    auto operandType = operand->getType();
+
+    if (ctx->MINUS()) {
+        if (operandType->isIntegerTy()) {
+            result = builder->CreateNeg(operand, "negtmp");
+        } else if (operandType->isFloatingPointTy()) {
+            result = builder->CreateFNeg(operand, "fnegtmp");
+        } else {
+            PRYST_ERROR("Invalid type for negation operator");
+            return std::any();
+        }
+    } else if (ctx->BANG()) {
+        if (operandType->isIntegerTy(1)) {
+            result = builder->CreateNot(operand, "nottmp");
+        } else {
+            // Convert to boolean first
+            auto boolValue = builder->CreateICmpNE(
+                operand,
+                llvm::Constant::getNullValue(operand->getType()),
+                "booltmp"
+            );
+            result = builder->CreateNot(boolValue, "nottmp");
+        }
+    } else if (ctx->INCREMENT()) {
+        if (operandType->isIntegerTy()) {
+            result = builder->CreateAdd(
+                operand,
+                llvm::ConstantInt::get(operand->getType(), 1),
+                "inctmp"
+            );
+        } else {
+            PRYST_ERROR("Invalid type for increment operator");
+            return std::any();
+        }
+    } else if (ctx->DECREMENT()) {
+        if (operandType->isIntegerTy()) {
+            result = builder->CreateSub(
+                operand,
+                llvm::ConstantInt::get(operand->getType(), 1),
+                "dectmp"
+            );
+        } else {
+            PRYST_ERROR("Invalid type for decrement operator");
+            return std::any();
+        }
+    }
+
+    return std::any(result);
+}
+
+std::any LLVMCodegen::visitLiteral(PrystParser::LiteralContext* ctx) {
+    PRYST_DEBUG("Visiting literal");
+
+    if (ctx->INTEGER()) {
+        int value = std::stoi(ctx->INTEGER()->getText());
+        return std::any(builder->CreateIntCast(
+            llvm::ConstantInt::get(typeRegistry.getIntType(64), value),
+            typeRegistry.getIntType(32),
+            true
+        ));
+    }
+
+    if (ctx->FLOAT()) {
+        float value = std::stof(ctx->FLOAT()->getText());
+        return std::any(llvm::ConstantFP::get(typeRegistry.getFloatType(), value));
+    }
+
+    if (ctx->BOOLEAN()) {
+        bool value = ctx->BOOLEAN()->getText() == "true";
+        return std::any(llvm::ConstantInt::get(typeRegistry.getBoolType(), value));
+    }
+
+    if (ctx->STRING()) {
+        std::string str = ctx->STRING()->getText();
+        str = str.substr(1, str.length() - 2); // Remove quotes
+        return std::any(builder->CreateGlobalString(str));
+    }
+
+    PRYST_ERROR("Unknown literal type");
+    return std::any();
+}
+
+std::any LLVMCodegen::visitNamespace(PrystParser::NamespaceContext* ctx) {
+    PRYST_DEBUG("Visiting namespace");
+
+    // Push namespace onto stack
+    currentNamespace.push_back(ctx->IDENTIFIER()->getText());
+
+    // Visit all declarations in namespace
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    // Pop namespace from stack
+    currentNamespace.pop_back();
+
+    return std::any();
+}
+
+
+std::any LLVMCodegen::visitModule(PrystParser::ModuleContext* ctx) {
+    PRYST_DEBUG("Visiting module");
+
+    // Save current module name
+    std::string previousModule = currentModule;
+    currentModule = ctx->IDENTIFIER()->getText();
+
+    // Visit all declarations in module
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    // Restore previous module name
+    currentModule = previousModule;
+
+    return std::any();
+}
+
+std::any LLVMCodegen::visitImport(PrystParser::ImportContext* ctx) {
+    PRYST_DEBUG("Visiting import");
+
+    // Import handling is primarily done in semantic analysis phase
+    // Here we just need to ensure the module's symbols are available
+    std::string modulePath;
+    for (auto* id : ctx->qualifiedIdentifier()->IDENTIFIER()) {
+        if (!modulePath.empty()) {
+            modulePath += "::";
+        }
+        modulePath += id->getText();
+    }
+
+    PRYST_DEBUG("Importing module: " + modulePath);
+    return std::any();
+}
+
+std::any LLVMCodegen::visitUsingDecl(PrystParser::UsingDeclContext* ctx) {
+    PRYST_DEBUG("Visiting using declaration");
+
+    // Using declarations are primarily handled in semantic analysis
+    // Here we just need to ensure the namespace's symbols are available
+    std::string path;
+    if (ctx->NAMESPACE()) {
+        path = "namespace ";
+    } else if (ctx->MODULE()) {
+        path = "module ";
+    }
+
+    for (auto* id : ctx->qualifiedIdentifier()->IDENTIFIER()) {
+        if (!path.empty() && path.back() != ' ') {
+            path += "::";
+        }
+        path += id->getText();
+    }
+
+    PRYST_DEBUG("Using declaration: " + path);
+    return std::any();
+}
+
+} // namespace pryst

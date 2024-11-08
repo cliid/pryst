@@ -1,0 +1,60 @@
+std::any LLVMCodegen::visitPrintStatement(PrystParser::PrintStatementContext* ctx) {
+    PRYST_DEBUG("Visiting print statement");
+
+    // Handle empty print statement (just prints newline)
+    if (!ctx->expression()) {
+        auto printFunc = printFunctions["str"];
+        std::vector<llvm::Value*> args;
+        args.push_back(builder->CreateGlobalString("\n"));
+        builder->CreateCall(llvm::FunctionCallee(printFunc), args);
+        return nullptr;
+    }
+
+    // Handle multiple arguments
+    auto expressions = ctx->expression();
+    for (size_t i = 0; i < expressions.size(); ++i) {
+        auto expr = expressions[i];
+        auto value = std::any_cast<llvm::Value*>(visit(expr));
+
+        // Get the type of the expression
+        auto typeInfo = typeRegistry.getType(expr->getText());
+        std::string typeName = typeInfo ? typeInfo->getName() : "str";
+
+        // Convert value to string if needed
+        if (typeName != "str") {
+            auto toStringFunc = module->getFunction("toString");
+            if (!toStringFunc) {
+                toStringFunc = declareToString();
+            }
+            std::vector<llvm::Value*> toStringArgs;
+            toStringArgs.push_back(value);
+            value = builder->CreateCall(llvm::FunctionCallee(toStringFunc), toStringArgs);
+        }
+
+        // Add space between arguments if not the first argument
+        if (i > 0) {
+            auto printFunc = printFunctions["str"];
+            std::vector<llvm::Value*> args;
+            args.push_back(builder->CreateGlobalString(" "));
+            builder->CreateCall(llvm::FunctionCallee(printFunc), args);
+        }
+
+        // Print the value
+        auto printFunc = printFunctions[typeName];
+        if (!printFunc) {
+            PRYST_ERROR("No print function found for type: " + typeName);
+            return nullptr;
+        }
+        std::vector<llvm::Value*> args;
+        args.push_back(value);
+        builder->CreateCall(llvm::FunctionCallee(printFunc), args);
+    }
+
+    // Print newline at the end
+    auto printFunc = printFunctions["str"];
+    std::vector<llvm::Value*> args;
+    args.push_back(builder->CreateGlobalString("\n"));
+    builder->CreateCall(llvm::FunctionCallee(printFunc), args);
+
+    return nullptr;
+}

@@ -1,0 +1,132 @@
+// Define a test module
+module test {
+    void printTest(str msg) {
+        print("Test: " + msg);
+    }
+}
+
+class CustomClass {
+    str name;
+    const float PI = 3.14159;  // Test const member
+
+    // Test explicit constructor
+    void init(str n) {
+        this.name = n;
+
+        // Nested function declaration within method
+        fn<void> (str prefix) printWithPrefix = (str prefix) -> void {
+            print(prefix + this.name);
+        };
+
+        printWithPrefix("Hello, ");
+    }
+
+    // Test const method
+    const str getName() {
+        return this.name;
+    }
+
+    // Test method overloading
+    CustomClass setName(str newName) {
+        this.name = newName;
+        return this;  // Enable method chaining
+    }
+
+    CustomClass setName(int id) {
+        this.name = "User" + str(id);
+        return this;
+    }
+
+    // Test virtual method
+    virtual void display() {
+        print("CustomClass: " + this.name);
+    }
+
+    void run() {
+        // Test block-level using declaration
+        {
+            using module test;
+            printTest("Inside block");  // Should work
+        }
+        // printTest("Outside block");  // Should fail - uncomment to verify
+
+        // Anonymous function within method
+        let printer = (str msg) -> void {
+            print("Running " + msg);
+        };
+
+        printer(this.getName());
+
+        // Test nested block with different using declaration
+        {
+            using module test;
+            {
+                // Test nested block scoping
+                fn<void> (str x) localPrint = (str x) -> void {
+                    printTest("Nested: " + x);  // Should work
+                };
+                localPrint(this.name);
+            }
+        }
+    }
+
+    // Test private method
+    private void internalHelper() {
+        print("Internal helper called");
+    }
+}
+
+// Test inheritance and method overriding
+class DerivedClass : CustomClass {
+    override void display() {
+        print("DerivedClass: " + this.name);
+    }
+
+    void testInheritance() {
+        this.setName("Derived");  // Test inherited method
+        this.display();           // Test overridden method
+    }
+}
+
+void main() {
+    // Test Java-style object creation and method calls
+    let c = new CustomClass();
+    c.init("Test");
+
+    // Test method chaining
+    c.setName("NewTest").run();
+
+    // Test method overloading
+    c.setName(42);  // Should set name to "User42"
+    let name = c.getName();
+    print(name);
+
+    // Test const method and member
+    print(c.PI);  // Should work
+    // c.PI = 3.14;  // Should fail - uncomment to verify
+
+    // Test inheritance
+    let d = new DerivedClass();
+    d.init("Derived");
+    d.testInheritance();
+
+    // Test nested function in block scope
+    {
+        fn<void> (str x) localPrint = (str x) -> void {
+            print("Local: " + x);
+        };
+        localPrint(name);
+    }
+
+    // Test that using declaration from previous blocks is not accessible
+    {
+        using module test;
+        printTest("Final test");  // Should work
+    }
+    // printTest("Should fail");  // Should fail - uncomment to verify
+
+    // Test error cases
+    // let invalid = new InvalidClass();  // Should fail - uncomment to verify
+    // c.undefinedMethod();              // Should fail - uncomment to verify
+    // c.internalHelper();               // Should fail - private method
+}

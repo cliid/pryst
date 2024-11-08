@@ -1,0 +1,113 @@
+// Test all const-related features comprehensively
+
+// 1. Basic const declarations
+const PI = 3.14159;  // Type inference
+const int MAX_VALUE = 100;  // Explicit typing
+const! COMPILE_TIME_CONST = 42;  // Constexpr
+
+// 2. Class with const members and methods
+class Rectangle {
+    const float width;
+    const float height;
+
+    fn init(float w, float h) -> void {
+        this.width = w;
+        this.height = h;
+    }
+
+    const fn getArea() -> float {
+        return width * height;
+    }
+
+    const fn getPerimeter() -> float {
+        return 2 * (width + height);
+    }
+}
+
+// 3. Template class with const methods
+class Container<T> {
+    T value;
+
+    fn init(T v) -> void {
+        this.value = v;
+    }
+
+    const fn getValue() -> T {
+        return this.value;
+    }
+
+    fn setValue(const T v) -> void {  // Const parameter
+        this.value = v;
+    }
+}
+
+// 4. Function with const parameters
+fn processValue(const int value) -> int {
+    return value * 2;
+}
+
+// 5. Test function for const violations
+fn testConstViolations() -> void {
+    // Test modifying const variable
+    try {
+        const x = 42;
+        x = 43;  // Should throw error
+    } catch (ConstError e) {
+        print("Caught const error: " + e.message);
+    }
+
+    // Test modifying const parameter
+    try {
+        let y = 10;
+        fn modifyConst(const int val) -> void {
+            val = 20;  // Should throw error
+        }
+        modifyConst(y);
+    } catch (ConstError e) {
+        print("Caught const parameter error: " + e.message);
+    }
+
+    // Test modifying const method return
+    try {
+        let rect = new Rectangle(5.0, 3.0);
+        let area = rect.getArea();
+        area = 0.0;  // Should throw error - modifying const method return
+    } catch (ConstError e) {
+        print("Caught const return error: " + e.message);
+    }
+}
+
+fn main() -> void {
+    // Test basic const declarations
+    print("PI = " + PI.toString());
+    print("MAX_VALUE = " + MAX_VALUE.toString());
+    print("COMPILE_TIME_CONST = " + COMPILE_TIME_CONST.toString());
+
+    // Test const in nested scope
+    {
+        const msg = "Hello";
+        print(msg);
+        const str greeting = "World";
+        print(greeting);
+        const! pi = 3.14159;
+        print("pi = " + pi.toString());
+    }
+
+    // Test const class members and methods
+    let rect = new Rectangle(10.0, 5.0);
+    print("Rectangle area: " + rect.getArea().toString());
+    print("Rectangle perimeter: " + rect.getPerimeter().toString());
+
+    // Test const with templates
+    let container = new Container<int>(42);
+    print("Container value: " + container.getValue().toString());
+    container.setValue(84);
+    print("Updated container value: " + container.getValue().toString());
+
+    // Test const parameters
+    let result = processValue(123);
+    print("Processed value: " + result.toString());
+
+    // Test const violations
+    testConstViolations();
+}

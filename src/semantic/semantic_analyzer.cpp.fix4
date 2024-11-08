@@ -1,0 +1,47 @@
+#include "semantic_analyzer.hpp"
+#include "type_registry.hpp"
+#include "../utils/debug.hpp"
+#include <stdexcept>
+
+namespace pryst {
+
+std::any SemanticAnalyzer::visitImportDecl(PrystParser::ImportDeclContext* ctx) {
+    try {
+        std::string importPath = ctx->qualifiedIdentifier()->getText();
+        PRYST_DEBUG("Processing import declaration: " + importPath);
+
+        if (!moduleLoader.loadModule(importPath)) {
+            PRYST_ERROR("Failed to load module: " + importPath);
+            return nullptr;
+        }
+
+        return nullptr;
+    } catch (const std::exception& ex) {
+        PRYST_ERROR("Failed to load module - " + std::string(ex.what()));
+        return nullptr;
+    }
+}
+
+std::string SemanticAnalyzer::getExpressionType(PrystParser::ExpressionContext* ctx) {
+    try {
+        if (!ctx) {
+            PRYST_ERROR("Null expression context in getExpressionType");
+            return "error";
+        }
+
+        auto result = visit(ctx);
+        if (result.type() == typeid(std::string)) {
+            return std::any_cast<std::string>(result);
+        }
+
+        PRYST_ERROR("Invalid expression type result");
+        return "error";
+    } catch (const std::exception& ex) {
+        PRYST_ERROR("Error in getExpressionType: " + std::string(ex.what()));
+        return "error";
+    }
+}
+
+// ... rest of the implementation remains the same ...
+
+} // namespace pryst
