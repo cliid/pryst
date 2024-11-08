@@ -1,0 +1,217 @@
+// Include LLVM headers first
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/Support/Error.h>
+#include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
+
+// Then include project headers
+#include "llvm_codegen.hpp"
+#include "utils/logger.hpp"
+#include <memory>
+#include <stdexcept>
+
+namespace pryst {
+
+LLVMCodegen::LLVMCodegen()
+    : context(std::make_unique<llvm::LLVMContext>()),
+      typeRegistry(*context) {
+    PRYST_DEBUG("Initializing LLVMCodegen");
+}
+
+std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
+    if (!ctx) {
+        PRYST_ERROR("Null program context provided to generateModule");
+        return nullptr;
+    }
+
+    PRYST_DEBUG("Generating LLVM IR module");
+    module = std::make_unique<llvm::Module>("pryst_module", *context);
+    builder = std::make_unique<llvm::IRBuilder<>>(*context);
+
+    // Initialize built-in types
+    typeRegistry.initialize();
+
+    // Declare external functions (print, etc.)
+    declarePrintFunctions();
+    declareToStringFunctions();
+
+    // Visit all top-level declarations
+    try {
+        visitProgram(ctx);
+    } catch (const std::exception& e) {
+        PRYST_ERROR("Error during code generation: " + std::string(e.what()));
+        return nullptr;
+    }
+
+    // Verify the module
+    std::string errorInfo;
+    llvm::raw_string_ostream errorStream(errorInfo);
+    if (llvm::verifyModule(*module, &errorStream)) {
+        PRYST_ERROR("Module verification failed: " + errorInfo);
+        return nullptr;
+    }
+
+    PRYST_DEBUG("Module generation completed successfully");
+    return std::move(module);
+}
+
+std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
+    PRYST_DEBUG("Visiting program");
+
+    // Visit all declarations in the program
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitNamespaceDecl(PrystParser::NamespaceDeclContext* ctx) {
+    PRYST_DEBUG("Visiting namespace declaration");
+
+    // Push namespace onto stack
+    std::string namespaceName = ctx->IDENTIFIER()->getText();
+    currentNamespace.push_back(namespaceName);
+
+    // Visit all declarations in the namespace
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    // Pop namespace from stack
+    currentNamespace.pop_back();
+
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitModuleDecl(PrystParser::ModuleDeclContext* ctx) {
+    PRYST_DEBUG("Visiting module declaration");
+
+    // Set current module
+    std::string moduleName = ctx->IDENTIFIER()->getText();
+    currentModule = moduleName;
+
+    // Visit all declarations in the module
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    // Clear current module
+    currentModule = "";
+
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitImportDecl(PrystParser::ImportDeclContext* ctx) {
+    PRYST_DEBUG("Visiting import declaration");
+
+    // Build import path
+    std::string importPath;
+    for (auto id : ctx->importPath()->IDENTIFIER()) {
+        if (!importPath.empty()) {
+            importPath += "::";
+        }
+        importPath += id->getText();
+    }
+
+    // Import symbols from module
+    // Note: Actual symbol importing is handled by semantic analyzer
+    PRYST_DEBUG("Imported module: " + importPath);
+
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitUsingDecl(PrystParser::UsingDeclContext* ctx) {
+    PRYST_DEBUG("Visiting using declaration");
+
+    // Handle using namespace
+    if (ctx->NAMESPACE()) {
+        std::string namespaceName = ctx->IDENTIFIER()->getText();
+        PRYST_DEBUG("Using namespace: " + namespaceName);
+    }
+    // Handle using module
+    else if (ctx->MODULE()) {
+        std::string moduleName = ctx->IDENTIFIER()->getText();
+        PRYST_DEBUG("Using module: " + moduleName);
+    }
+
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitStringInterpolation(PrystParser::StringInterpolationContext* ctx) {
+    PRYST_DEBUG("Visiting string interpolation");
+
+    // Create a string builder for concatenating parts
+    llvm::Value* result = builder->CreateGlobalStringPtr("", "empty_str");
+
+    // Process each part of the string
+    for (auto part : ctx->stringPart()) {
+        if (auto textPart = dynamic_cast<PrystParser::TextPartContext*>(part)) {
+            // Add literal text part
+            llvm::Value* text = builder->CreateGlobalStringPtr(textPart->getText(), "text_part");
+            result = generateMethodCall(result, "concat", {text});
+        } else if (auto exprPart = dynamic_cast<PrystParser::ExprPartContext*>(part)) {
+            // Evaluate expression and convert to string
+            std::any exprResult = visit(exprPart->expression());
+            llvm::Value* exprValue = std::any_cast<llvm::Value*>(exprResult);
+            llvm::Value* strValue = convertToString(exprValue);
+            result = generateMethodCall(result, "concat", {strValue});
+        }
+    }
+
+    return result;
+}
+
+void LLVMCodegen::declarePrintFunctions() {
+    PRYST_DEBUG("Declaring print functions");
+
+    // Get necessary types
+    auto voidType = typeRegistry.getVoidType();
+    auto int32Type = typeRegistry.getIntType(32);
+    auto floatType = typeRegistry.getFloatType();
+    auto boolType = typeRegistry.getBoolType();
+    auto strType = typeRegistry.getStringType();
+
+    // Declare print functions for different types
+    std::vector<llvm::Type*> printIntArgs = {int32Type};
+    auto printIntType = llvm::FunctionType::get(voidType, printIntArgs, false);
+    printFunctions["int"] = module->getOrInsertFunction("pryst_print_int", printIntType).getCallee();
+
+    std::vector<llvm::Type*> printFloatArgs = {floatType};
+    auto printFloatType = llvm::FunctionType::get(voidType, printFloatArgs, false);
+    printFunctions["float"] = module->getOrInsertFunction("pryst_print_float", printFloatType).getCallee();
+
+    std::vector<llvm::Type*> printBoolArgs = {boolType};
+    auto printBoolType = llvm::FunctionType::get(voidType, printBoolArgs, false);
+    printFunctions["bool"] = module->getOrInsertFunction("pryst_print_bool", printBoolType).getCallee();
+
+    std::vector<llvm::Type*> printStrArgs = {strType};
+    auto printStrType = llvm::FunctionType::get(voidType, printStrArgs, false);
+    printFunctions["str"] = module->getOrInsertFunction("pryst_print_str", printStrType).getCallee();
+}
+
+void LLVMCodegen::declareToStringFunctions() {
+    PRYST_DEBUG("Declaring toString functions");
+
+    // Get necessary types
+    auto strType = typeRegistry.getStringType();
+    auto int32Type = typeRegistry.getIntType(32);
+    auto floatType = typeRegistry.getFloatType();
+    auto boolType = typeRegistry.getBoolType();
+
+    // Declare toString functions for different types
+    std::vector<llvm::Type*> intToStringArgs = {int32Type};
+    auto intToStringType = llvm::FunctionType::get(strType, intToStringArgs, false);
+    functions["int_toString"] = module->getOrInsertFunction("int_toString", intToStringType).getCallee();
+
+    std::vector<llvm::Type*> floatToStringArgs = {floatType};
+    auto floatToStringType = llvm::FunctionType::get(strType, floatToStringArgs, false);
+    functions["float_toString"] = module->getOrInsertFunction("float_toString", floatToStringType).getCallee();
+
+    std::vector<llvm::Type*> boolToStringArgs = {boolType};
+    auto boolToStringType = llvm::FunctionType::get(strType, boolToStringArgs, false);
+    functions["bool_toString"] = module->getOrInsertFunction("bool_toString", boolToStringType).getCallee();
+}
+
+} // namespace pryst

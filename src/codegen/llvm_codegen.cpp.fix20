@@ -1,0 +1,197 @@
+#include "llvm_codegen.hpp"
+#include "utils/debug.hpp"
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/raw_ostream.h>
+#include <sstream>
+
+namespace pryst {
+
+LLVMCodegen::LLVMCodegen()
+    : context(std::make_unique<llvm::LLVMContext>()),
+      module(std::make_unique<llvm::Module>("pryst_module", *context)),
+      builder(std::make_unique<llvm::IRBuilder<>>(*context)),
+      typeRegistry(*context),
+      currentFunction(nullptr) {
+    declarePrintFunctions();
+    declareBuiltinFunctions();
+}
+
+std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
+    PRYST_DEBUG("Generating module");
+    visitProgram(ctx);
+    return std::move(module);
+}
+
+void LLVMCodegen::declarePrintFunctions() {
+    PRYST_DEBUG("Declaring print functions");
+
+    // Get types from type registry
+    auto intType = typeRegistry.getIntType();
+    auto floatType = typeRegistry.getFloatType();
+    auto boolType = typeRegistry.getBoolType();
+    auto strType = typeRegistry.getStringType();
+    auto voidType = typeRegistry.getVoidType();
+
+    // Create print function for each type
+    std::vector<std::pair<std::string, llvm::Type*>> printFuncTypes = {
+        {"print_int", typeRegistry.getLLVMType(intType)},
+        {"print_float", typeRegistry.getLLVMType(floatType)},
+        {"print_bool", typeRegistry.getLLVMType(boolType)},
+        {"print_str", typeRegistry.getLLVMType(strType)}
+    };
+
+    for (const auto& [name, argType] : printFuncTypes) {
+        std::vector<llvm::Type*> argTypes = {argType};
+        auto funcType = llvm::FunctionType::get(typeRegistry.getLLVMType(voidType), argTypes, false);
+        auto func = llvm::Function::Create(
+            funcType,
+            llvm::Function::ExternalLinkage,
+            name,
+            module.get()
+        );
+        printFunctions[name] = func;
+    }
+}
+
+void LLVMCodegen::declareBuiltinFunctions() {
+    PRYST_DEBUG("Declaring builtin functions");
+    declareBoolToStr();
+    declareIntToStr();
+    declareFloatToStr();
+    declareStrConcat();
+    declareMathFunctions();
+}
+
+llvm::Function* LLVMCodegen::declareBoolToStr() {
+    PRYST_DEBUG("Declaring bool_to_str function");
+    auto boolType = typeRegistry.getBoolType();
+    auto strType = typeRegistry.getStringType();
+
+    std::vector<llvm::Type*> argTypes = {typeRegistry.getLLVMType(boolType)};
+    auto funcType = llvm::FunctionType::get(typeRegistry.getLLVMType(strType), argTypes, false);
+
+    auto func = llvm::Function::Create(
+        funcType,
+        llvm::Function::ExternalLinkage,
+        "bool_to_str",
+        module.get()
+    );
+
+    auto entryBlock = llvm::BasicBlock::Create(*context, "entry", func);
+    builder->SetInsertPoint(entryBlock);
+
+    auto arg = func->arg_begin();
+    auto trueStr = builder->CreateGlobalString("true", "true_str");
+    auto falseStr = builder->CreateGlobalString("false", "false_str");
+
+    auto result = builder->CreateSelect(arg, trueStr, falseStr);
+    builder->CreateRet(result);
+
+    return func;
+}
+
+llvm::Function* LLVMCodegen::declareIntToStr() {
+    PRYST_DEBUG("Declaring int_to_str function");
+    auto intType = typeRegistry.getIntType();
+    auto strType = typeRegistry.getStringType();
+
+    std::vector<llvm::Type*> argTypes = {typeRegistry.getLLVMType(intType)};
+    auto funcType = llvm::FunctionType::get(typeRegistry.getLLVMType(strType), argTypes, false);
+
+    return llvm::Function::Create(
+        funcType,
+        llvm::Function::ExternalLinkage,
+        "int_to_str",
+        module.get()
+    );
+}
+
+llvm::Function* LLVMCodegen::declareFloatToStr() {
+    PRYST_DEBUG("Declaring float_to_str function");
+    auto floatType = typeRegistry.getFloatType();
+    auto strType = typeRegistry.getStringType();
+
+    std::vector<llvm::Type*> argTypes = {typeRegistry.getLLVMType(floatType)};
+    auto funcType = llvm::FunctionType::get(typeRegistry.getLLVMType(strType), argTypes, false);
+
+    return llvm::Function::Create(
+        funcType,
+        llvm::Function::ExternalLinkage,
+        "float_to_str",
+        module.get()
+    );
+}
+
+llvm::Function* LLVMCodegen::declareStrConcat() {
+    PRYST_DEBUG("Declaring str_concat function");
+    auto strType = typeRegistry.getStringType();
+    auto llvmStrType = typeRegistry.getLLVMType(strType);
+
+    std::vector<llvm::Type*> argTypes = {llvmStrType, llvmStrType};
+    auto funcType = llvm::FunctionType::get(llvmStrType, argTypes, false);
+
+    return llvm::Function::Create(
+        funcType,
+        llvm::Function::ExternalLinkage,
+        "str_concat",
+        module.get()
+    );
+}
+
+llvm::Function* LLVMCodegen::declareMathFunctions() {
+    PRYST_DEBUG("Declaring math functions");
+    auto floatType = typeRegistry.getFloatType();
+    auto llvmFloatType = typeRegistry.getLLVMType(floatType);
+
+    // sqrt(float) -> float
+    std::vector<llvm::Type*> singleArgTypes = {llvmFloatType};
+    auto sqrtType = llvm::FunctionType::get(llvmFloatType, singleArgTypes, false);
+    auto sqrtFunc = llvm::Function::Create(
+        sqrtType,
+        llvm::Function::ExternalLinkage,
+        "sqrt",
+        module.get()
+    );
+
+    // pow(float, float) -> float
+    std::vector<llvm::Type*> doubleArgTypes = {llvmFloatType, llvmFloatType};
+    auto powType = llvm::FunctionType::get(llvmFloatType, doubleArgTypes, false);
+    auto powFunc = llvm::Function::Create(
+        powType,
+        llvm::Function::ExternalLinkage,
+        "pow",
+        module.get()
+    );
+
+    // abs(float) -> float
+    auto absType = llvm::FunctionType::get(llvmFloatType, singleArgTypes, false);
+    auto absFunc = llvm::Function::Create(
+        absType,
+        llvm::Function::ExternalLinkage,
+        "abs",
+        module.get()
+    );
+
+    return sqrtFunc;
+}
+
+std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext *ctx) {
+    PRYST_DEBUG("Visiting program");
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+    for (auto ns : ctx->namespaceDecl()) {
+        visit(ns);
+    }
+    for (auto mod : ctx->moduleDecl()) {
+        visit(mod);
+    }
+    for (auto imp : ctx->importDecl()) {
+        visit(imp);
+    }
+    return nullptr;
+}
+
+// ... Continue implementing other visitor methods following the same pattern ...
+
+} // namespace pryst

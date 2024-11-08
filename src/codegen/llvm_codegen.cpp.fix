@@ -1,0 +1,73 @@
+#include "llvm_codegen.hpp"
+#include "../semantic/type_info.hpp"
+#include "type_registry.hpp"
+#include "string_utils.hpp"
+#include "../utils/logger.hpp"
+#include <sstream>
+
+namespace pryst {
+
+LLVMCodegen::LLVMCodegen()
+    : typeRegistry(TypeRegistry::getInstance()),
+      typeMetadata(std::make_shared<TypeMetadata>()),
+      semanticAnalyzer(std::make_shared<SemanticAnalyzer>()),
+      symbolTable(std::make_shared<SymbolTable>()),
+      moduleLoader(std::make_shared<ModuleLoader>(symbolTable)),
+      context(std::make_unique<llvm::LLVMContext>()),
+      module(std::make_unique<llvm::Module>("pryst", *context)),
+      builder(std::make_unique<llvm::IRBuilder<>>(*context)),
+      lastValue(nullptr),
+      currentFunction(nullptr) {
+    // ... [Previous constructor implementation remains the same]
+}
+
+std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* programCtx) {
+    // ... [Previous implementation remains the same]
+}
+
+// Add namespace qualifiers to all visitor methods
+std::any LLVMCodegen::visitPrimary(PrystParser::PrimaryContext* ctx) {
+    PRYST_DEBUG("Visiting primary expression");
+
+    if (ctx->TRUE()) {
+        return llvm::ConstantInt::get(llvm::Type::getInt1Ty(*context), 1);
+    }
+    if (ctx->FALSE()) {
+        return llvm::ConstantInt::get(llvm::Type::getInt1Ty(*context), 0);
+    }
+    if (ctx->NULL_()) {
+        return llvm::ConstantPointerNull::get(llvm::PointerType::get(*context, 0));
+    }
+    if (ctx->NUMBER()) {
+        std::string numStr = ctx->NUMBER()->getText();
+        if (numStr.find('.') != std::string::npos) {
+            double value = std::stod(numStr);
+            return llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), value);
+        } else {
+            int value = std::stoi(numStr);
+            return llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), value);
+        }
+    }
+    if (ctx->STRING()) {
+        std::string str = ctx->STRING()->getText();
+        // Remove quotes
+        str = str.substr(1, str.length() - 2);
+        return stringBuilder->createStringConstant(str);
+    }
+    if (ctx->IDENTIFIER()) {
+        std::string name = ctx->IDENTIFIER()->getText();
+        llvm::Value* value = lookupVariable(name);
+        if (!value) {
+            PRYST_ERROR("Variable not found: " + name);
+            throw std::runtime_error("Variable not found: " + name);
+        }
+        return value;
+    }
+
+    PRYST_ERROR("Unsupported primary expression");
+    throw std::runtime_error("Unsupported primary expression");
+}
+
+// ... [Add all other visitor method implementations with proper namespace qualifiers]
+
+} // namespace pryst

@@ -1,0 +1,167 @@
+// Add toString() implementation
+llvm::Function* LLVMCodegen::declareToString() {
+    PRYST_DEBUG("Declaring toString function");
+
+    // Get necessary types
+    auto voidType = typeRegistry.getVoidType();
+    auto int32Type = typeRegistry.getIntType(32);
+    auto floatType = typeRegistry.getFloatType();
+    auto boolType = typeRegistry.getBoolType();
+    auto strType = typeRegistry.getStringType();
+
+    // Create function type for toString(value)
+    std::vector<llvm::Type*> argTypes = {llvm::Type::getInt8PtrTy(*context)};
+    auto funcType = llvm::FunctionType::get(strType, argTypes, false);
+
+    // Create function
+    auto func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, "toString", module.get());
+
+    // Create entry block
+    auto entryBlock = llvm::BasicBlock::Create(*context, "entry", func);
+    builder->SetInsertPoint(entryBlock);
+
+    // Get argument
+    auto arg = func->arg_begin();
+    arg->setName("value");
+
+    // Create result variable
+    auto resultAlloca = builder->CreateAlloca(strType, nullptr, "result");
+
+    // Create basic blocks for type checking
+    auto isIntBlock = llvm::BasicBlock::Create(*context, "isInt", func);
+    auto isFloatBlock = llvm::BasicBlock::Create(*context, "isFloat", func);
+    auto isBoolBlock = llvm::BasicBlock::Create(*context, "isBool", func);
+    auto isStrBlock = llvm::BasicBlock::Create(*context, "isStr", func);
+    auto mergeBlock = llvm::BasicBlock::Create(*context, "merge", func);
+
+    // Check value type and branch accordingly
+    auto valueType = arg->getType();
+    if (valueType->isIntegerTy()) {
+        builder->CreateBr(isIntBlock);
+    } else if (valueType->isFloatingPointTy()) {
+        builder->CreateBr(isFloatBlock);
+    } else if (valueType == boolType) {
+        builder->CreateBr(isBoolBlock);
+    } else if (valueType == strType) {
+        builder->CreateBr(isStrBlock);
+    }
+
+    // Handle integer conversion
+    builder->SetInsertPoint(isIntBlock);
+    auto intToStr = module->getFunction("pryst_int_to_str");
+    if (!intToStr) {
+        // Declare int to string conversion function
+        std::vector<llvm::Type*> intToStrArgs = {int32Type};
+        auto intToStrType = llvm::FunctionType::get(strType, intToStrArgs, false);
+        intToStr = llvm::Function::Create(intToStrType, llvm::Function::ExternalLinkage, "pryst_int_to_str", module.get());
+    }
+    auto intResult = builder->CreateCall(intToStr, {arg});
+    builder->CreateStore(intResult, resultAlloca);
+    builder->CreateBr(mergeBlock);
+
+    // Handle float conversion
+    builder->SetInsertPoint(isFloatBlock);
+    auto floatToStr = module->getFunction("pryst_float_to_str");
+    if (!floatToStr) {
+        // Declare float to string conversion function
+        std::vector<llvm::Type*> floatToStrArgs = {floatType};
+        auto floatToStrType = llvm::FunctionType::get(strType, floatToStrArgs, false);
+        floatToStr = llvm::Function::Create(floatToStrType, llvm::Function::ExternalLinkage, "pryst_float_to_str", module.get());
+    }
+    auto floatResult = builder->CreateCall(floatToStr, {arg});
+    builder->CreateStore(floatResult, resultAlloca);
+    builder->CreateBr(mergeBlock);
+
+    // Handle boolean conversion
+    builder->SetInsertPoint(isBoolBlock);
+    auto boolToStr = module->getFunction("pryst_bool_to_str");
+    if (!boolToStr) {
+        // Declare bool to string conversion function
+        std::vector<llvm::Type*> boolToStrArgs = {boolType};
+        auto boolToStrType = llvm::FunctionType::get(strType, boolToStrArgs, false);
+        boolToStr = llvm::Function::Create(boolToStrType, llvm::Function::ExternalLinkage, "pryst_bool_to_str", module.get());
+    }
+    auto boolResult = builder->CreateCall(boolToStr, {arg});
+    builder->CreateStore(boolResult, resultAlloca);
+    builder->CreateBr(mergeBlock);
+
+    // Handle string (just return as is)
+    builder->SetInsertPoint(isStrBlock);
+    builder->CreateStore(arg, resultAlloca);
+    builder->CreateBr(mergeBlock);
+
+    // Merge block
+    builder->SetInsertPoint(mergeBlock);
+    auto result = builder->CreateLoad(strType, resultAlloca);
+    builder->CreateRet(result);
+
+    return func;
+}
+
+// Add string concatenation implementation
+llvm::Value* LLVMCodegen::concatenateStrings(llvm::Value* left, llvm::Value* right) {
+    PRYST_DEBUG("Concatenating strings");
+
+    // Get string type
+    auto strType = typeRegistry.getStringType();
+
+    // Declare strcat if not already declared
+    auto strcat = module->getFunction("pryst_strcat");
+    if (!strcat) {
+        std::vector<llvm::Type*> strcatArgs = {strType, strType};
+        auto strcatType = llvm::FunctionType::get(strType, strcatArgs, false);
+        strcat = llvm::Function::Create(strcatType, llvm::Function::ExternalLinkage, "pryst_strcat", module.get());
+    }
+
+    // Call strcat
+    return builder->CreateCall(strcat, {left, right});
+}
+
+// Add try-catch block handling
+antlrcpp::Any LLVMCodegen::visitTryStatement(PrystParser::TryStatementContext* ctx) {
+    PRYST_DEBUG("Visiting try statement");
+
+    // Create basic blocks for try-catch
+    auto tryBlock = llvm::BasicBlock::Create(*context, "try", currentFunction);
+    auto catchBlock = llvm::BasicBlock::Create(*context, "catch", currentFunction);
+    auto continueBlock = llvm::BasicBlock::Create(*context, "continue", currentFunction);
+
+    // Set up exception handling
+    auto ehPtr = builder->CreateAlloca(typeRegistry.getStringType(), nullptr, "exception");
+    builder->CreateStore(llvm::ConstantPointerNull::get(llvm::Type::getInt8PtrTy(*context)), ehPtr);
+
+    // Generate try block code
+    builder->CreateBr(tryBlock);
+    builder->SetInsertPoint(tryBlock);
+    visit(ctx->block());
+    builder->CreateBr(continueBlock);
+
+    // Generate catch block code
+    builder->SetInsertPoint(catchBlock);
+    auto exception = builder->CreateLoad(typeRegistry.getStringType(), ehPtr);
+    if (ctx->catchClause()) {
+        visit(ctx->catchClause());
+    }
+    builder->CreateBr(continueBlock);
+
+    // Continue block
+    builder->SetInsertPoint(continueBlock);
+
+    return antlrcpp::Any();
+}
+
+// Add null value handling
+llvm::Value* LLVMCodegen::handleNullValue(llvm::Type* type) {
+    PRYST_DEBUG("Handling null value");
+
+    if (type->isIntegerTy()) {
+        return llvm::ConstantInt::get(type, 0);
+    } else if (type->isFloatingPointTy()) {
+        return llvm::ConstantFP::get(type, 0.0);
+    } else if (type->isPointerTy()) {
+        return llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(type));
+    }
+
+    PRYST_ERROR("Unsupported type for null value");
+    return nullptr;
+}

@@ -23,6 +23,34 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitGlobalUsingDecl(PrystParser::GlobalUsingDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBlockScopedNamespaceDecl(PrystParser::BlockScopedNamespaceDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBlockScopedModuleDecl(PrystParser::BlockScopedModuleDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitNamespaceDecl(PrystParser::NamespaceDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitModuleDecl(PrystParser::ModuleDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitImportDecl(PrystParser::ImportDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitImportPath(PrystParser::ImportPathContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitFunctionDecl(PrystParser::FunctionDeclContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -35,7 +63,19 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitVariableDecl(PrystParser::VariableDeclContext *ctx) override {
+  virtual std::any visitFunctionBody(PrystParser::FunctionBodyContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitInferredVariableDecl(PrystParser::InferredVariableDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitTypedVariableDecl(PrystParser::TypedVariableDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -47,7 +87,19 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext *ctx) override {
+  virtual std::any visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -63,7 +115,39 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitType(PrystParser::TypeContext *ctx) override {
+  virtual std::any visitParamTypeList(PrystParser::ParamTypeListContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitFloatType(PrystParser::FloatTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitArrayType(PrystParser::ArrayTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitStrType(PrystParser::StrTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitIntType(PrystParser::IntTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitVoidType(PrystParser::VoidTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitIdentifierType(PrystParser::IdentifierTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitFunctionType(PrystParser::FunctionTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBoolType(PrystParser::BoolTypeContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -91,7 +175,19 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitTryStatement(PrystParser::TryStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitPrintStatement(PrystParser::PrintStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitExpression(PrystParser::ExpressionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitSimpleString(PrystParser::SimpleStringContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -151,6 +247,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitQualifiedIdentifier(PrystParser::QualifiedIdentifierContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitNewExpression(PrystParser::NewExpressionContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -168,6 +268,10 @@ public:
   }
 
   virtual std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitTryCatchStatement(PrystParser::TryCatchStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 

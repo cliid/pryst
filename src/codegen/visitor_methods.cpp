@@ -6,64 +6,127 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Constants.h>
 
-std::any LLVMCodegen::visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) {
-    // Create a unique name for the lambda function
-    static int lambdaCounter = 0;
-    std::string lambdaName = "lambda_" + std::to_string(lambdaCounter++);
+namespace pryst {
 
-    // Get return type and parameter types
-    std::string returnType = ctx->type() ? ctx->type()->getText() : "void";
-    std::vector<std::string> paramTypes;
-    std::vector<std::string> paramNames;
+std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
+    PRYST_DEBUG("Visiting program");
 
-    if (ctx->paramList()) {
-        for (auto param : ctx->paramList()->param()) {
-            paramTypes.push_back(param->type()->getText());
-            paramNames.push_back(param->IDENTIFIER()->getText());
+    // Process all declarations in the program
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext* ctx) {
+    PRYST_DEBUG("Visiting declaration");
+    return visitChildren(ctx);
+}
+
+std::any LLVMCodegen::visitBlockStatement(PrystParser::BlockStatementContext* ctx) {
+    PRYST_DEBUG("Visiting block statement");
+
+    // Create a new scope for the block
+    builder->CreateAlloca(llvm::Type::getInt32Ty(*context), nullptr, "block_scope");
+
+    // Visit all statements in the block
+    for (auto stmt : ctx->statement()) {
+        visit(stmt);
+    }
+
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitStatement(PrystParser::StatementContext* ctx) {
+    PRYST_DEBUG("Visiting statement");
+    return visitChildren(ctx);
+}
+
+std::any LLVMCodegen::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
+    PRYST_DEBUG("Visiting expression statement");
+    return visit(ctx->expression());
+}
+
+std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
+    PRYST_DEBUG("Visiting function call");
+
+    // Get callee name
+    std::string calleeName = ctx->callee->getText();
+
+    // Handle print function specially
+    if (calleeName == "print") {
+        std::vector<llvm::Value*> args;
+
+        // If no arguments, call empty print
+        if (ctx->arguments.empty()) {
+            auto printEmptyFn = printFunctions["empty"];
+            if (!printEmptyFn) {
+                throw std::runtime_error("Print function for empty call not found");
+            }
+            return builder->CreateCall(printEmptyFn);
         }
-    }
 
-    // Create function type
-    llvm::Type* llvmReturnType = getLLVMType(returnType);
-    std::vector<llvm::Type*> llvmParamTypes;
-    for (const auto& paramType : paramTypes) {
-        llvmParamTypes.push_back(getLLVMType(paramType));
-    }
+        // Process all arguments
+        for (auto arg : ctx->arguments) {
+            std::any argResult = visit(arg);
+            llvm::Value* argValue = std::any_cast<llvm::Value*>(argResult);
 
-    llvm::FunctionType* functionType = llvm::FunctionType::get(llvmReturnType, llvmParamTypes, false);
-    llvm::Function* function = llvm::Function::Create(
-        functionType, llvm::Function::ExternalLinkage, lambdaName, module.get());
+            // Get argument type
+            llvm::Type* argType = argValue->getType();
+            std::string typeName;
 
-    // Create entry block
-    llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create(*context, "entry", function);
-    builder->SetInsertPoint(entryBlock);
+            if (argType->isIntegerTy(32)) typeName = "int";
+            else if (argType->isDoubleTy()) typeName = "float";
+            else if (argType->isPointerTy()) typeName = "str";
+            else if (argType->isIntegerTy(1)) typeName = "bool";
+            else throw std::runtime_error("Unsupported type for print");
 
-    // Set parameter names and create allocas for parameters
-    size_t idx = 0;
-    for (auto& arg : function->args()) {
-        arg.setName(paramNames[idx]);
-        // Create alloca for parameter
-        llvm::AllocaInst* alloca = builder->CreateAlloca(arg.getType(), nullptr, paramNames[idx]);
-        builder->CreateStore(&arg, alloca);
-        namedValues[paramNames[idx]] = alloca;
-        idx++;
-    }
+            // Get corresponding print function
+            auto printFn = printFunctions[typeName];
+            if (!printFn) {
+                throw std::runtime_error("Print function for type " + typeName + " not found");
+            }
 
-    // Generate code for function body
-    visit(ctx->statement());
-
-    // Add return instruction if needed
-    if (!builder->GetInsertBlock()->getTerminator()) {
-        if (returnType == "void") {
-            builder->CreateRetVoid();
-        } else {
-            // Return a default value for non-void functions
-            llvm::Value* defaultValue = getDefaultValue(llvmReturnType);
-            builder->CreateRet(defaultValue);
+            // Create the call
+            builder->CreateCall(printFn, {argValue});
         }
+
+        return nullptr;
     }
 
-    return function;
+    // Handle normal function calls
+    auto callee = functions.find(calleeName);
+    if (callee == functions.end()) {
+        throw std::runtime_error("Unknown function: " + calleeName);
+    }
+
+    llvm::Function* function = callee->second;
+
+    // Verify argument count
+    if (function->arg_size() != ctx->arguments.size()) {
+        throw std::runtime_error("Incorrect number of arguments for function " + calleeName);
+    }
+
+    // Process arguments
+    std::vector<llvm::Value*> args;
+    auto argIt = function->arg_begin();
+
+    for (size_t i = 0; i < ctx->arguments.size(); i++, argIt++) {
+        std::any argResult = visit(ctx->arguments[i]);
+        llvm::Value* argValue = std::any_cast<llvm::Value*>(argResult);
+
+        // Perform type conversion if needed
+        llvm::Type* expectedType = argIt->getType();
+        if (argValue->getType() != expectedType) {
+            argValue = createCastInstruction(argValue, expectedType);
+        }
+
+        args.push_back(argValue);
+    }
+
+    // Create the function call
+    return builder->CreateCall(function, args, "calltmp");
 }
 
 std::any LLVMCodegen::visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) {
@@ -174,3 +237,369 @@ llvm::Value* LLVMCodegen::generateMethodCall(llvm::Value* object, const std::str
     llvm::FunctionType* funcType = method->getFunctionType();
     return builder->CreateCall(funcType, method, callArgs, "method_call");
 }
+
+// Expression-related visitor methods
+std::any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
+    PRYST_DEBUG("Visiting logic OR");
+
+    // Create basic blocks for the right operand and merge
+    llvm::Function* function = builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock* rightBB = llvm::BasicBlock::Create(*context, "or.right", function);
+    llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(*context, "or.merge", function);
+
+    // Visit left operand
+    std::any leftResult = visit(ctx->expression(0));
+    llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
+
+    // Short circuit: if left is true, skip right operand
+    builder->CreateCondBr(leftValue, mergeBB, rightBB);
+
+    // Right operand
+    builder->SetInsertPoint(rightBB);
+    std::any rightResult = visit(ctx->expression(1));
+    llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
+    builder->CreateBr(mergeBB);
+
+    // Merge block
+    builder->SetInsertPoint(mergeBB);
+    llvm::PHINode* phi = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2, "or.result");
+    phi->addIncoming(leftValue, builder->GetInsertBlock()->getParent()->getEntryBlock());
+    phi->addIncoming(rightValue, rightBB);
+
+    return phi;
+}
+
+std::any LLVMCodegen::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
+    PRYST_DEBUG("Visiting logic AND");
+
+    // Create basic blocks for the right operand and merge
+    llvm::Function* function = builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock* rightBB = llvm::BasicBlock::Create(*context, "and.right", function);
+    llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(*context, "and.merge", function);
+
+    // Visit left operand
+    std::any leftResult = visit(ctx->expression(0));
+    llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
+
+    // Short circuit: if left is false, skip right operand
+    builder->CreateCondBr(leftValue, rightBB, mergeBB);
+
+    // Right operand
+    builder->SetInsertPoint(rightBB);
+    std::any rightResult = visit(ctx->expression(1));
+    llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
+    builder->CreateBr(mergeBB);
+
+    // Merge block
+    builder->SetInsertPoint(mergeBB);
+    llvm::PHINode* phi = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2, "and.result");
+    phi->addIncoming(llvm::ConstantInt::getFalse(*context), builder->GetInsertBlock()->getParent()->getEntryBlock());
+    phi->addIncoming(rightValue, rightBB);
+
+    return phi;
+}
+
+// Arithmetic operation visitor methods
+std::any LLVMCodegen::visitAddition(PrystParser::AdditionContext* ctx) {
+    PRYST_DEBUG("Visiting addition");
+
+    std::any leftResult = visit(ctx->expression(0));
+    std::any rightResult = visit(ctx->expression(1));
+
+    llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
+    llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
+
+    // Get types
+    llvm::Type* leftType = leftValue->getType();
+    llvm::Type* rightType = rightValue->getType();
+
+    // Handle string concatenation
+    if (leftType->isPointerTy() || rightType->isPointerTy()) {
+        if (!leftType->isPointerTy()) {
+            leftValue = convertToString(leftValue);
+        }
+        if (!rightType->isPointerTy()) {
+            rightValue = convertToString(rightValue);
+        }
+        return generateMethodCall(leftValue, "concat", {rightValue});
+    }
+
+    // Handle numeric addition
+    if (leftType->isDoubleTy() || rightType->isDoubleTy()) {
+        if (!leftType->isDoubleTy()) {
+            leftValue = builder->CreateSIToFP(leftValue, llvm::Type::getDoubleTy(*context));
+        }
+        if (!rightType->isDoubleTy()) {
+            rightValue = builder->CreateSIToFP(rightValue, llvm::Type::getDoubleTy(*context));
+        }
+        return builder->CreateFAdd(leftValue, rightValue, "addtmp");
+    }
+
+    // Integer addition
+    return builder->CreateAdd(leftValue, rightValue, "addtmp");
+}
+
+std::any LLVMCodegen::visitMultiplication(PrystParser::MultiplicationContext* ctx) {
+    PRYST_DEBUG("Visiting multiplication");
+
+    std::any leftResult = visit(ctx->expression(0));
+    std::any rightResult = visit(ctx->expression(1));
+
+    llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
+    llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
+
+    // Get types
+    llvm::Type* leftType = leftValue->getType();
+    llvm::Type* rightType = rightValue->getType();
+
+    // Handle floating-point multiplication
+    if (leftType->isDoubleTy() || rightType->isDoubleTy()) {
+        if (!leftType->isDoubleTy()) {
+            leftValue = builder->CreateSIToFP(leftValue, llvm::Type::getDoubleTy(*context));
+        }
+        if (!rightType->isDoubleTy()) {
+            rightValue = builder->CreateSIToFP(rightValue, llvm::Type::getDoubleTy(*context));
+        }
+        return builder->CreateFMul(leftValue, rightValue, "multmp");
+    }
+
+    // Integer multiplication
+    return builder->CreateMul(leftValue, rightValue, "multmp");
+}
+
+std::any LLVMCodegen::visitTryCatchStatement(PrystParser::TryCatchStatementContext* ctx) {
+    PRYST_DEBUG("Visiting try-catch statement");
+
+    // Create basic blocks for try, catch, and continue
+    llvm::Function* function = builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock* tryBlock = llvm::BasicBlock::Create(*context, "try", function);
+    llvm::BasicBlock* catchBlock = llvm::BasicBlock::Create(*context, "catch", function);
+    llvm::BasicBlock* continueBlock = llvm::BasicBlock::Create(*context, "continue", function);
+
+    // Create landing pad for exception handling
+    builder->CreateBr(tryBlock);
+    builder->SetInsertPoint(tryBlock);
+
+    // Visit try block
+    visit(ctx->statement(0));
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        builder->CreateBr(continueBlock);
+    }
+
+    // Set up catch block
+    builder->SetInsertPoint(catchBlock);
+    if (ctx->IDENTIFIER()) {
+        std::string errorVar = ctx->IDENTIFIER()->getText();
+        llvm::AllocaInst* errorAlloca = builder->CreateAlloca(
+            llvm::Type::getInt8PtrTy(*context),
+            nullptr,
+            errorVar
+        );
+        namedValues[errorVar] = errorAlloca;
+    }
+
+    // Visit catch block if it exists
+    if (ctx->statement(1)) {
+        visit(ctx->statement(1));
+    }
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        builder->CreateBr(continueBlock);
+    }
+
+    // Continue block
+    builder->SetInsertPoint(continueBlock);
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitStringInterpolation(PrystParser::StringInterpolationContext* ctx) {
+    PRYST_DEBUG("Visiting string interpolation");
+
+    std::vector<llvm::Value*> parts;
+
+    // Process string parts and expressions
+    for (size_t i = 0; i < ctx->stringPart().size(); i++) {
+        // Add string part
+        parts.push_back(builder->CreateGlobalStringPtr(
+            ctx->stringPart(i)->getText(),
+            "str_part"
+        ));
+
+        // Add interpolated expression if exists
+        if (i < ctx->expression().size()) {
+            std::any exprResult = visit(ctx->expression(i));
+            llvm::Value* exprValue = std::any_cast<llvm::Value*>(exprResult);
+            parts.push_back(convertToString(exprValue));
+        }
+    }
+
+    // Concatenate all parts
+    llvm::Value* result = parts[0];
+    for (size_t i = 1; i < parts.size(); i++) {
+        result = generateMethodCall(result, "concat", {parts[i]});
+    }
+
+    return result;
+}
+
+std::any LLVMCodegen::visitNamespaceDecl(PrystParser::NamespaceDeclContext* ctx) {
+    PRYST_DEBUG("Visiting namespace declaration");
+
+    std::string namespaceName = ctx->IDENTIFIER()->getText();
+    currentNamespace = namespaceName;
+
+    // Visit all declarations in namespace
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    currentNamespace.clear();
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitModuleDecl(PrystParser::ModuleDeclContext* ctx) {
+    PRYST_DEBUG("Visiting module declaration");
+
+    std::string moduleName = ctx->IDENTIFIER()->getText();
+    currentModule = moduleName;
+
+    // Visit all declarations in module
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    currentModule.clear();
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitImportDecl(PrystParser::ImportDeclContext* ctx) {
+    PRYST_DEBUG("Visiting import declaration");
+
+    std::string importPath;
+    for (auto id : ctx->IDENTIFIER()) {
+        if (!importPath.empty()) importPath += "::";
+        importPath += id->getText();
+    }
+
+    // Register imported module
+    importedModules.insert(importPath);
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitUsingDecl(PrystParser::UsingDeclContext* ctx) {
+    PRYST_DEBUG("Visiting using declaration");
+
+    std::string target = ctx->IDENTIFIER()->getText();
+    if (ctx->MODULE()) {
+        // Using module declaration
+        activeModules.insert(target);
+    } else {
+        // Using namespace declaration
+        activeNamespaces.insert(target);
+    }
+
+    return nullptr;
+}
+
+// Comparison operation visitor methods
+std::any LLVMCodegen::visitEquality(PrystParser::EqualityContext* ctx) {
+    PRYST_DEBUG("Visiting equality");
+
+    std::any leftResult = visit(ctx->expression(0));
+    std::any rightResult = visit(ctx->expression(1));
+
+    llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
+    llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
+
+    // Get types
+    llvm::Type* leftType = leftValue->getType();
+    llvm::Type* rightType = rightValue->getType();
+
+    // Handle string comparison
+    if (leftType->isPointerTy() || rightType->isPointerTy()) {
+        if (!leftType->isPointerTy()) {
+            leftValue = convertToString(leftValue);
+        }
+        if (!rightType->isPointerTy()) {
+            rightValue = convertToString(rightValue);
+        }
+        // Call string comparison method
+        auto result = generateMethodCall(leftValue, "equals", {rightValue});
+        return ctx->op->getType() == PrystParser::NOT_EQUAL ?
+            builder->CreateNot(result) : result;
+    }
+
+    // Handle floating-point comparison
+    if (leftType->isDoubleTy() || rightType->isDoubleTy()) {
+        if (!leftType->isDoubleTy()) {
+            leftValue = builder->CreateSIToFP(leftValue, llvm::Type::getDoubleTy(*context));
+        }
+        if (!rightType->isDoubleTy()) {
+            rightValue = builder->CreateSIToFP(rightValue, llvm::Type::getDoubleTy(*context));
+        }
+        if (ctx->op->getType() == PrystParser::EQUAL) {
+            return builder->CreateFCmpOEQ(leftValue, rightValue, "eqtmp");
+        } else {
+            return builder->CreateFCmpONE(leftValue, rightValue, "netmp");
+        }
+    }
+
+    // Integer comparison
+    if (ctx->op->getType() == PrystParser::EQUAL) {
+        return builder->CreateICmpEQ(leftValue, rightValue, "eqtmp");
+    } else {
+        return builder->CreateICmpNE(leftValue, rightValue, "netmp");
+    }
+}
+
+std::any LLVMCodegen::visitComparison(PrystParser::ComparisonContext* ctx) {
+    PRYST_DEBUG("Visiting comparison");
+
+    std::any leftResult = visit(ctx->expression(0));
+    std::any rightResult = visit(ctx->expression(1));
+
+    llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
+    llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
+
+    // Get types
+    llvm::Type* leftType = leftValue->getType();
+    llvm::Type* rightType = rightValue->getType();
+
+    // Handle floating-point comparison
+    if (leftType->isDoubleTy() || rightType->isDoubleTy()) {
+        if (!leftType->isDoubleTy()) {
+            leftValue = builder->CreateSIToFP(leftValue, llvm::Type::getDoubleTy(*context));
+        }
+        if (!rightType->isDoubleTy()) {
+            rightValue = builder->CreateSIToFP(rightValue, llvm::Type::getDoubleTy(*context));
+        }
+
+        switch (ctx->op->getType()) {
+            case PrystParser::LESS:
+                return builder->CreateFCmpOLT(leftValue, rightValue, "lttmp");
+            case PrystParser::LESS_EQUAL:
+                return builder->CreateFCmpOLE(leftValue, rightValue, "letmp");
+            case PrystParser::GREATER:
+                return builder->CreateFCmpOGT(leftValue, rightValue, "gttmp");
+            case PrystParser::GREATER_EQUAL:
+                return builder->CreateFCmpOGE(leftValue, rightValue, "getmp");
+            default:
+                throw std::runtime_error("Unknown comparison operator");
+        }
+    }
+
+    // Integer comparison
+    switch (ctx->op->getType()) {
+        case PrystParser::LESS:
+            return builder->CreateICmpSLT(leftValue, rightValue, "lttmp");
+        case PrystParser::LESS_EQUAL:
+            return builder->CreateICmpSLE(leftValue, rightValue, "letmp");
+        case PrystParser::GREATER:
+            return builder->CreateICmpSGT(leftValue, rightValue, "gttmp");
+        case PrystParser::GREATER_EQUAL:
+            return builder->CreateICmpSGE(leftValue, rightValue, "getmp");
+        default:
+            throw std::runtime_error("Unknown comparison operator");
+    }
+}
+
+} // namespace pryst

@@ -1,0 +1,153 @@
+#include "llvm_codegen.hpp"
+#include "utils/debug.hpp"
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/raw_ostream.h>
+#include <sstream>
+
+namespace pryst {
+
+LLVMCodegen::LLVMCodegen()
+    : context(std::make_unique<llvm::LLVMContext>()),
+      module(std::make_unique<llvm::Module>("pryst_module", *context)),
+      builder(std::make_unique<llvm::IRBuilder<>>(*context)),
+      typeRegistry(*context),
+      currentFunction(nullptr) {
+    declarePrintFunctions();
+    declareBuiltinFunctions();
+}
+
+void LLVMCodegen::declareBuiltinFunctions() {
+    PRYST_DEBUG("Declaring builtin functions");
+    declareBoolToStr();
+    declareIntToStr();
+    declareFloatToStr();
+    declareStrConcat();
+    declareMathFunctions();
+}
+
+llvm::Function* LLVMCodegen::declareBoolToStr() {
+    PRYST_DEBUG("Declaring bool_to_str function");
+    std::vector<llvm::Type*> argTypes = {
+        llvm::Type::getInt1Ty(*context)
+    };
+    auto strType = typeRegistry.getStringType();
+    auto llvmStrType = typeRegistry.getLLVMType(strType);
+
+    auto funcType = llvm::FunctionType::get(llvmStrType, argTypes, false);
+    auto func = llvm::Function::Create(
+        funcType,
+        llvm::Function::ExternalLinkage,
+        "bool_to_str",
+        module.get()
+    );
+
+    auto entryBlock = llvm::BasicBlock::Create(*context, "entry", func);
+    builder->SetInsertPoint(entryBlock);
+
+    auto arg = func->arg_begin();
+    auto trueStr = builder->CreateGlobalString("true", "true_str");
+    auto falseStr = builder->CreateGlobalString("false", "false_str");
+
+    auto result = builder->CreateSelect(arg, trueStr, falseStr);
+    builder->CreateRet(result);
+
+    return func;
+}
+
+llvm::Function* LLVMCodegen::declareIntToStr() {
+    PRYST_DEBUG("Declaring int_to_str function");
+    std::vector<llvm::Type*> argTypes = {
+        llvm::Type::getInt32Ty(*context)
+    };
+    auto strType = typeRegistry.getStringType();
+    auto llvmStrType = typeRegistry.getLLVMType(strType);
+
+    auto funcType = llvm::FunctionType::get(llvmStrType, argTypes, false);
+    auto func = llvm::Function::Create(
+        funcType,
+        llvm::Function::ExternalLinkage,
+        "int_to_str",
+        module.get()
+    );
+
+    // Implementation will be provided by runtime library
+    return func;
+}
+
+llvm::Function* LLVMCodegen::declareFloatToStr() {
+    PRYST_DEBUG("Declaring float_to_str function");
+    std::vector<llvm::Type*> argTypes = {
+        llvm::Type::getDoubleTy(*context)
+    };
+    auto strType = typeRegistry.getStringType();
+    auto llvmStrType = typeRegistry.getLLVMType(strType);
+
+    auto funcType = llvm::FunctionType::get(llvmStrType, argTypes, false);
+    auto func = llvm::Function::Create(
+        funcType,
+        llvm::Function::ExternalLinkage,
+        "float_to_str",
+        module.get()
+    );
+
+    // Implementation will be provided by runtime library
+    return func;
+}
+
+llvm::Function* LLVMCodegen::declareStrConcat() {
+    PRYST_DEBUG("Declaring str_concat function");
+    auto strType = typeRegistry.getStringType();
+    auto llvmStrType = typeRegistry.getLLVMType(strType);
+    std::vector<llvm::Type*> argTypes = {llvmStrType, llvmStrType};
+
+    auto funcType = llvm::FunctionType::get(llvmStrType, argTypes, false);
+    auto func = llvm::Function::Create(
+        funcType,
+        llvm::Function::ExternalLinkage,
+        "str_concat",
+        module.get()
+    );
+
+    // Implementation will be provided by runtime library
+    return func;
+}
+
+llvm::Function* LLVMCodegen::declareMathFunctions() {
+    PRYST_DEBUG("Declaring math functions");
+    auto floatType = llvm::Type::getDoubleTy(*context);
+    std::vector<llvm::Type*> singleArgTypes = {floatType};
+    std::vector<llvm::Type*> doubleArgTypes = {floatType, floatType};
+
+    // sqrt(float) -> float
+    auto sqrtType = llvm::FunctionType::get(floatType, singleArgTypes, false);
+    auto sqrtFunc = llvm::Function::Create(
+        sqrtType,
+        llvm::Function::ExternalLinkage,
+        "sqrt",
+        module.get()
+    );
+
+    // pow(float, float) -> float
+    auto powType = llvm::FunctionType::get(floatType, doubleArgTypes, false);
+    auto powFunc = llvm::Function::Create(
+        powType,
+        llvm::Function::ExternalLinkage,
+        "pow",
+        module.get()
+    );
+
+    // abs(float) -> float
+    auto absType = llvm::FunctionType::get(floatType, singleArgTypes, false);
+    auto absFunc = llvm::Function::Create(
+        absType,
+        llvm::Function::ExternalLinkage,
+        "abs",
+        module.get()
+    );
+
+    return sqrtFunc; // Return one of the functions (others are stored in module)
+}
+
+// ... rest of the implementation from llvm_codegen.cpp.fix16 ...
+
+} // namespace pryst

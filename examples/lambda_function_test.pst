@@ -1,0 +1,122 @@
+// Test lambda function type declarations and type inference
+
+// Test function type declarations with explicit return types
+fn testFunctionTypeDeclarations() -> void {
+    // Basic function type declaration
+    fn<int>(int, int) add = (int x, int y) -> int {
+        return x + y;
+    };
+
+    // Function type with type inference
+    fn<int>(int, int) multiply = (int x, int y) -> {
+        return x * y;
+    };
+
+    // Function type with void return
+    fn<void>(int) printNumber = (int x) -> void {
+        print(x);
+    };
+
+    // Function type with mixed parameter types
+    fn<float>(int, float) combine = (int x, float y) -> float {
+        return float(x) + y;
+    };
+
+    // Test results
+    print("Function type declaration tests:");
+    print("add(5, 3) = " + add(5, 3).toString());
+    print("multiply(4, 2) = " + multiply(4, 2).toString());
+    printNumber(42);
+    print("combine(5, 2.5) = " + combine(5, 2.5).toString());
+}
+
+// Test function type inference in different contexts
+fn testFunctionTypeInference() -> void {
+    // Type inference in variable declaration
+    let square = (int x) -> int {
+        return x * x;
+    };
+
+    // Type inference with expression body
+    let cube = (int x) -> int x * x * x;
+
+    // Type inference with void return
+    let logNumber = (int x) -> {
+        print("Number: " + x.toString());
+    };
+
+    // Type inference with mixed types
+    let divide = (float x, int y) -> {
+        return x / float(y);
+    };
+
+    print("\nFunction type inference tests:");
+    print("square(5) = " + square(5).toString());
+    print("cube(3) = " + cube(3).toString());
+    logNumber(100);
+    print("divide(10.0, 2) = " + divide(10.0, 2).toString());
+}
+
+// Test function type as parameter and return type
+fn applyOperation(fn<int>(int) operation, int value) -> int {
+    return operation(value);
+}
+
+fn getOperation(str type) -> fn<int>(int) {
+    if (type == "square") {
+        return (int x) -> int { return x * x; };
+    } else {
+        return (int x) -> int { return x * 2; };
+    }
+}
+
+// Test type inference errors
+fn testTypeInferenceErrors() -> void {
+    print("\nTesting type inference errors:");
+
+    // Test return type mismatch
+    try {
+        let wrongReturn = (int x) -> int {
+            return float(x);  // Should throw error - type mismatch
+        };
+        wrongReturn(10);
+    } catch (TypeError e) {
+        print("Caught return type error: " + e.message);
+    }
+
+    // Test parameter type mismatch
+    try {
+        fn<int>(int) func = (float x) -> int {  // Should throw error - parameter type mismatch
+            return int(x);
+        };
+    } catch (TypeError e) {
+        print("Caught parameter type error: " + e.message);
+    }
+
+    // Test return type declaration mismatch
+    try {
+        fn<int>(int) func = (int x) -> float {  // Should throw error - return type mismatch
+            return float(x);
+        };
+    } catch (TypeError e) {
+        print("Caught return type declaration error: " + e.message);
+    }
+}
+
+fn main() -> void {
+    // Test function type declarations
+    testFunctionTypeDeclarations();
+
+    // Test function type inference
+    testFunctionTypeInference();
+
+    // Test function type as parameter and return value
+    print("\nTesting function types as parameters:");
+    let squareOp = getOperation("square");
+    let doubleOp = getOperation("double");
+    print("applyOperation(square, 5) = " + applyOperation(squareOp, 5).toString());
+    print("applyOperation(double, 5) = " + applyOperation(doubleOp, 5).toString());
+
+    // Test type inference errors
+    testTypeInferenceErrors();
+}

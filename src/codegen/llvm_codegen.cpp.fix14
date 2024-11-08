@@ -1,0 +1,153 @@
+#include "llvm_codegen.hpp"
+#include "utils/debug.hpp"
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/raw_ostream.h>
+#include <sstream>
+
+namespace pryst {
+
+LLVMCodegen::LLVMCodegen()
+    : context(std::make_unique<llvm::LLVMContext>()),
+      module(std::make_unique<llvm::Module>("pryst_module", *context)),
+      builder(std::make_unique<llvm::IRBuilder<>>(*context)),
+      typeRegistry(*context),
+      currentFunction(nullptr) {
+    declarePrintFunctions();
+}
+
+std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
+    PRYST_DEBUG("Generating module");
+    visitProgram(ctx);
+    return std::move(module);
+}
+
+std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext *ctx) {
+    PRYST_DEBUG("Visiting program");
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitDeclaration(PrystParser::DeclarationContext *ctx) {
+    PRYST_DEBUG("Visiting declaration");
+    return visitChildren(ctx);
+}
+
+std::any LLVMCodegen::visitGlobalUsingDecl(PrystParser::GlobalUsingDeclContext *ctx) {
+    PRYST_DEBUG("Visiting global using declaration");
+    return visitChildren(ctx);
+}
+
+std::any LLVMCodegen::visitBlockScopedNamespaceDecl(PrystParser::BlockScopedNamespaceDeclContext *ctx) {
+    PRYST_DEBUG("Visiting block scoped namespace declaration");
+    return visitChildren(ctx);
+}
+
+std::any LLVMCodegen::visitBlockScopedModuleDecl(PrystParser::BlockScopedModuleDeclContext *ctx) {
+    PRYST_DEBUG("Visiting block scoped module declaration");
+    return visitChildren(ctx);
+}
+
+std::any LLVMCodegen::visitNamespaceDecl(PrystParser::NamespaceDeclContext *ctx) {
+    PRYST_DEBUG("Visiting namespace declaration");
+    std::string name = ctx->IDENTIFIER()->getText();
+    currentNamespace.push_back(name);
+    auto result = visitChildren(ctx);
+    currentNamespace.pop_back();
+    return result;
+}
+
+std::any LLVMCodegen::visitModuleDecl(PrystParser::ModuleDeclContext *ctx) {
+    PRYST_DEBUG("Visiting module declaration");
+    std::string name = ctx->IDENTIFIER()->getText();
+    currentModule = name;
+    auto result = visitChildren(ctx);
+    currentModule.clear();
+    return result;
+}
+
+std::any LLVMCodegen::visitImportDecl(PrystParser::ImportDeclContext *ctx) {
+    PRYST_DEBUG("Visiting import declaration");
+    std::string importPath;
+    for (auto id : ctx->IDENTIFIER()) {
+        if (!importPath.empty()) importPath += "::";
+        importPath += id->getText();
+    }
+    importedModules.insert(importPath);
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitImportPath(PrystParser::ImportPathContext *ctx) {
+    PRYST_DEBUG("Visiting import path");
+    return visitChildren(ctx);
+}
+
+std::any LLVMCodegen::visitFunctionDecl(PrystParser::FunctionDeclContext *ctx) {
+    PRYST_DEBUG("Visiting function declaration");
+    return visitChildren(ctx);
+}
+
+std::any LLVMCodegen::visitNamedFunction(PrystParser::NamedFunctionContext *ctx) {
+    PRYST_DEBUG("Visiting named function");
+    // Implementation details...
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitLambdaFunction(PrystParser::LambdaFunctionContext *ctx) {
+    PRYST_DEBUG("Visiting lambda function");
+    // Implementation details...
+    return nullptr;
+}
+
+std::any LLVMCodegen::visitFunctionBody(PrystParser::FunctionBodyContext *ctx) {
+    PRYST_DEBUG("Visiting function body");
+    return visitChildren(ctx);
+}
+
+// Continue implementing all other visitor methods from PrystBaseVisitor.h...
+// Each method should follow the pattern:
+// 1. Debug output
+// 2. Proper implementation
+// 3. Return appropriate value
+
+void LLVMCodegen::declarePrintFunctions() {
+    PRYST_DEBUG("Declaring print functions");
+    // Implementation of print function declarations...
+}
+
+llvm::Function* LLVMCodegen::getFunctionProto(const std::string& name, llvm::FunctionType* type) {
+    PRYST_DEBUG("Getting function prototype for: " + name);
+    // Implementation of function prototype retrieval...
+    return nullptr;
+}
+
+
+llvm::Value* LLVMCodegen::getVariableValue(const std::string& name) {
+    PRYST_DEBUG("Getting variable value for: " + name);
+    // Implementation of variable value retrieval...
+    return nullptr;
+}
+
+llvm::AllocaInst* LLVMCodegen::createEntryBlockAlloca(llvm::Function* function,
+                                                     const std::string& varName,
+                                                     llvm::Type* type) {
+    PRYST_DEBUG("Creating entry block alloca for: " + varName);
+    // Implementation of alloca creation...
+    return nullptr;
+}
+
+void LLVMCodegen::createBasicBlock(const std::string& name) {
+    PRYST_DEBUG("Creating basic block: " + name);
+    // Implementation of basic block creation...
+}
+
+llvm::Value* LLVMCodegen::createCastInstruction(llvm::Value* value,
+                                               llvm::Type* destType,
+                                               bool isSigned) {
+    PRYST_DEBUG("Creating cast instruction");
+    // Implementation of cast instruction creation...
+    return nullptr;
+}
+
+} // namespace pryst

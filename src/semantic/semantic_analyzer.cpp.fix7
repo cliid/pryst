@@ -1,0 +1,116 @@
+#include "semantic_analyzer.hpp"
+#include "utils/debug.hpp"
+#include <stdexcept>
+#include <sstream>
+
+namespace pryst {
+
+SemanticAnalyzer::SemanticAnalyzer() : currentFunction(""), inLoop(false) {}
+
+std::any SemanticAnalyzer::visitProgram(PrystParser::ProgramContext* ctx) {
+    PRYST_DEBUG("Visiting program");
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+    return nullptr;
+}
+
+std::any SemanticAnalyzer::visitDeclaration(PrystParser::DeclarationContext* ctx) {
+    PRYST_DEBUG("Visiting declaration");
+    return visitChildren(ctx);
+}
+
+std::any SemanticAnalyzer::visitNamespaceDecl(PrystParser::NamespaceDeclContext* ctx) {
+    PRYST_DEBUG("Visiting namespace declaration");
+    auto qualifiedId = visit(ctx->qualifiedIdentifier());
+    std::string name = std::any_cast<std::string>(qualifiedId);
+    currentNamespace.push_back(name);
+
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    currentNamespace.pop_back();
+    return nullptr;
+}
+
+std::any SemanticAnalyzer::visitModuleDecl(PrystParser::ModuleDeclContext* ctx) {
+    PRYST_DEBUG("Visiting module declaration");
+    auto qualifiedId = visit(ctx->qualifiedIdentifier());
+    std::string name = std::any_cast<std::string>(qualifiedId);
+    currentModule = name;
+
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    currentModule.clear();
+    return nullptr;
+}
+
+std::any SemanticAnalyzer::visitImportDecl(PrystParser::ImportDeclContext* ctx) {
+    PRYST_DEBUG("Visiting import declaration");
+    auto importPath = visit(ctx->importPath());
+    std::string path = std::any_cast<std::string>(importPath);
+    moduleLoader.loadModule(path);
+    return nullptr;
+}
+
+std::any SemanticAnalyzer::visitUsingDecl(PrystParser::UsingDeclContext* ctx) {
+    PRYST_DEBUG("Visiting using declaration");
+    auto qualifiedId = visit(ctx->qualifiedIdentifier());
+    std::string target = std::any_cast<std::string>(qualifiedId);
+    symbolTable.addUsingDeclaration(target, ctx->MODULE() != nullptr);
+    return nullptr;
+}
+
+std::string SemanticAnalyzer::getExpressionType(antlr4::tree::ParseTree* ctx) {
+    try {
+        auto result = visit(ctx);
+        return std::any_cast<std::string>(result);
+    } catch (const std::exception& ex) {
+        PRYST_ERROR("Error in getExpressionType: " + std::string(ex.what()));
+        return "error";
+    }
+}
+
+bool SemanticAnalyzer::areTypesCompatible(const std::string& expected, const std::string& actual) {
+    if (expected == actual) return true;
+    if (expected == "float" && actual == "int") return true;
+    return false;
+}
+
+std::string SemanticAnalyzer::resolveType(const std::string& type) {
+    if (type == "int" || type == "float" || type == "bool" || type == "string" || type == "void") {
+        return type;
+    }
+
+    // Check if it's a class type
+    if (symbolTable.isClassDefined(type)) {
+        return type;
+    }
+
+    // Check if it's a qualified type (with namespace)
+    size_t pos = type.find("::");
+    if (pos != std::string::npos) {
+        std::string ns = type.substr(0, pos);
+        std::string className = type.substr(pos + 2);
+        if (symbolTable.isClassDefinedInNamespace(className, ns)) {
+            return type;
+        }
+    }
+
+    throw std::runtime_error("Unknown type: " + type);
+}
+
+void SemanticAnalyzer::checkVariableUsage(const std::string& name, antlr4::tree::ParseTree* ctx) {
+    if (!symbolTable.isVariableDefined(name)) {
+        std::stringstream ss;
+        ss << "Variable '" << name << "' is not defined";
+        throw std::runtime_error(ss.str());
+    }
+}
+
+// ... Continue implementing other visitor methods following the same pattern ...
+
+} // namespace pryst

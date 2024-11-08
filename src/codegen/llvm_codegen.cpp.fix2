@@ -1,0 +1,90 @@
+// Implementation of missing visitor methods
+
+llvm::Value* LLVMCodegen::visitImportDecl(PrystParser::ImportDeclContext* ctx) {
+    PRYST_DEBUG("Visiting import declaration");
+    // Import declarations are handled by the semantic analyzer
+    // No LLVM IR needs to be generated
+    return nullptr;
+}
+
+llvm::Value* LLVMCodegen::visitFunctionBody(PrystParser::FunctionBodyContext* ctx) {
+    PRYST_DEBUG("Visiting function body");
+    if (!ctx) return nullptr;
+
+    // Visit all statements in the function body
+    for (auto stmt : ctx->statement()) {
+        visit(stmt);
+    }
+
+    // If there's no explicit return, add a void return
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        builder->CreateRetVoid();
+    }
+
+    return nullptr;
+}
+
+llvm::Value* LLVMCodegen::visitLambdaType(PrystParser::LambdaTypeContext* ctx) {
+    PRYST_DEBUG("Visiting lambda type");
+    // Lambda type declarations are handled by the type system
+    // No LLVM IR needs to be generated
+    return nullptr;
+}
+
+llvm::Value* LLVMCodegen::visitBlockStatement(PrystParser::BlockStatementContext* ctx) {
+    PRYST_DEBUG("Visiting block statement");
+    if (!ctx) return nullptr;
+
+    // Create a new scope for the block
+    symbolTable.enterScope();
+
+    // Visit all statements in the block
+    for (auto stmt : ctx->statement()) {
+        visit(stmt);
+    }
+
+    // Exit the block scope
+    symbolTable.exitScope();
+
+    return nullptr;
+}
+
+llvm::Value* LLVMCodegen::visitExpression(PrystParser::ExpressionContext* ctx) {
+    PRYST_DEBUG("Visiting expression");
+    if (!ctx) return nullptr;
+
+    // Visit the expression's children
+    return visit(ctx->children[0]);
+}
+
+llvm::Value* LLVMCodegen::visitMemberSuffix(PrystParser::MemberSuffixContext* ctx) {
+    PRYST_DEBUG("Visiting member suffix");
+    if (!ctx) return nullptr;
+
+    // Get the base object
+    llvm::Value* base = visit(ctx->postfix());
+    if (!base) return nullptr;
+
+    // Get the member name
+    std::string memberName = ctx->IDENTIFIER()->getText();
+
+    // Load the member value
+    llvm::Value* memberPtr = builder->CreateStructGEP(base, getMemberIndex(base->getType(), memberName));
+    return builder->CreateLoad(memberPtr->getType()->getPointerElementType(), memberPtr);
+}
+
+llvm::Value* LLVMCodegen::visitTypeCastExpr(PrystParser::TypeCastExprContext* ctx) {
+    PRYST_DEBUG("Visiting type cast expression");
+    if (!ctx) return nullptr;
+
+    // Get the value to cast
+    llvm::Value* value = visit(ctx->expression());
+    if (!value) return nullptr;
+
+    // Get the target type
+    std::string targetTypeName = ctx->type()->getText();
+    auto targetType = typeRegistry.getType(targetTypeName);
+
+    // Create the appropriate cast instruction
+    return createCastInstruction(value, targetType);
+}

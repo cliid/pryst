@@ -1,0 +1,1719 @@
+#include "semantic_analyzer.hpp"
+#include "module_loader.hpp"
+#include "../codegen/type_registry.hpp"
+#include "../utils/logger.hpp"
+#include <stdexcept>
+#include <iostream>
+#include <algorithm>
+#include <regex>
+
+std::any SemanticAnalyzer::visitQualifiedIdentifier(PrystParser::QualifiedIdentifierContext* ctx) {
+    if (!ctx) {
+        PRYST_ERROR("Null qualified identifier context");
+        throw std::runtime_error("Null qualified identifier context");
+    }
+
+    PRYST_DEBUG("Visiting qualified identifier");
+
+    try {
+        std::string identifier;
+        for (auto id : ctx->IDENTIFIER()) {
+            if (!identifier.empty()) {
+                identifier += "::";
+            }
+            identifier += id->getText();
+        }
+
+        PRYST_DEBUG("Processing qualified identifier: " + identifier);
+
+        // Check if it's a variable
+        if (symbolTable.variableExists(identifier)) {
+            PRYST_DEBUG("Found variable: " + identifier);
+            return std::any(symbolTable.getVariableType(identifier));
+        }
+
+        // Check if it's a function
+        if (auto funcInfo = symbolTable.lookupFunction(identifier)) {
+            PRYST_DEBUG("Found function: " + identifier);
+            return std::any(funcInfo->returnType);
+        }
+
+        // Check if it's a module
+        if (symbolTable.moduleExists(identifier)) {
+            PRYST_DEBUG("Found module: " + identifier);
+            return std::any("module");
+        }
+
+        // Check if it's a namespace
+        if (symbolTable.namespaceExists(identifier)) {
+            PRYST_DEBUG("Found namespace: " + identifier);
+            return std::any("namespace");
+        }
+
+        PRYST_ERROR("Unknown identifier: " + identifier);
+        throw std::runtime_error("Unknown identifier: " + identifier);
+    } catch (const std::exception& ex) {
+        PRYST_ERROR("Error in visitQualifiedIdentifier: " + std::string(ex.what()));
+        throw;
+    }
+}
+
+std::string SemanticAnalyzer::constructFunctionTypeString(const std::string& returnType, const std::vector<std::string>& paramTypes) {
+    std::string typeStr = "fn<" + returnType + ">";
+    for (const auto& paramType : paramTypes) {
+        typeStr += "(" + paramType + ")";
+    }
+    return typeStr;
+}
+
+void SemanticAnalyzer::pushFunctionContext(const std::string& functionName) {
+    functionContextStack.push(functionName);
+    PRYST_DEBUG("Pushed function context: " + functionName);
+}
+
+void SemanticAnalyzer::popFunctionContext() {
+    if (!functionContextStack.empty()) {
+        PRYST_DEBUG("Popped function context: " + functionContextStack.top());
+        functionContextStack.pop();
+    }
+}
+
+std::string SemanticAnalyzer::getCurrentFunction() const {
+    return functionContextStack.empty() ? "" : functionContextStack.top();
+}
+
+SemanticAnalyzer::SemanticAnalyzer() : symbolTable() {
+    try {
+        PRYST_DEBUG("Starting SemanticAnalyzer initialization");
+
+        // Get TypeRegistry instance and verify basic types
+        auto& registry = TypeRegistry::getInstance();
+        PRYST_DEBUG("Got TypeRegistry instance");
+
+        // Verify each basic type exists
+        if (!registry.getIntType()) {
+            throw std::runtime_error("Int type not initialized in TypeRegistry");
+        }
+        PRYST_DEBUG("Verified int type");
+
+        if (!registry.getFloatType()) {
+            throw std::runtime_error("Float type not initialized in TypeRegistry");
+        }
+        PRYST_DEBUG("Verified float type");
+
+        if (!registry.getBoolType()) {
+            throw std::runtime_error("Bool type not initialized in TypeRegistry");
+        }
+        PRYST_DEBUG("Verified bool type");
+
+        if (!registry.getStrType()) {
+            throw std::runtime_error("String type not initialized in TypeRegistry");
+        }
+        PRYST_DEBUG("Verified string type");
+
+        // Register print functions with both SymbolTable and TypeRegistry
+        PRYST_DEBUG("Registering print functions");
+        symbolTable.addFunction("print", "void", {"int"});
+        symbolTable.addFunction("print", "void", {"float"});
+        symbolTable.addFunction("print", "void", {"bool"});
+        symbolTable.addFunction("print", "void", {"str"});
+
+        // Register math functions
+        PRYST_DEBUG("Registering math functions");
+        symbolTable.addFunction("sqrt", "float", {"float"});
+        symbolTable.addFunction("pow", "float", {"float", "float"});
+        symbolTable.addFunction("abs", "float", {"float"});
+        symbolTable.addFunction("abs", "int", {"int"});
+
+        // Initialize module loader with symbol table
+        moduleLoader = std::make_shared<ModuleLoader>(std::make_shared<SymbolTable>(symbolTable));
+        moduleLoader->addModuleSearchPath("src/modules");
+
+        PRYST_DEBUG("SemanticAnalyzer initialization completed successfully");
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Failed to initialize SemanticAnalyzer: " << e.what() << std::endl;
+        throw;
+    }
+}
+
+// Add semantic analyzer methods here...
+
+// ******************** SemanticAnalyzer Implementation *********************
+
+bool areTypesCompatibleForEquality(const std::string& type1, const std::string& type2);
+bool areTypesCompatibleForComparison(const std::string& type1, const std::string& type2);
+
+std::any SemanticAnalyzer::visitProgram(PrystParser::ProgramContext* ctx) {
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitExpression(PrystParser::ExpressionContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null expression context");
+    }
+    PRYST_DEBUG("Processing expression");
+
+    if (ctx->assignment()) {
+        PRYST_DEBUG("Processing assignment expression");
+        return visit(ctx->assignment());
+    } else if (ctx->lambdaFunction()) {
+        PRYST_DEBUG("Processing lambda function expression");
+        return visit(ctx->lambdaFunction());
+    } else if (ctx->typeCastExpr()) {
+        PRYST_DEBUG("Processing type cast expression");
+        return visit(ctx->typeCastExpr());
+    } else if (ctx->typeConversionExpr()) {
+        PRYST_DEBUG("Processing type conversion expression");
+        return visit(ctx->typeConversionExpr());
+    } else if (ctx->classConversionExpr()) {
+        PRYST_DEBUG("Processing class conversion expression");
+        return visit(ctx->classConversionExpr());
+    } else if (ctx->logicOr()) {
+        PRYST_DEBUG("Processing logic OR expression");
+        return visit(ctx->logicOr());
+    } else {
+        throw std::runtime_error("Invalid expression type");
+    }
+}
+
+std::any SemanticAnalyzer::visitDeclaration(PrystParser::DeclarationContext* ctx) {
+    if (ctx->functionDecl()) {
+        visit(ctx->functionDecl());
+    } else if (ctx->variableDecl()) {
+        visit(ctx->variableDecl());
+    } else if (ctx->classDeclaration()) {
+        visit(ctx->classDeclaration());
+    } else if (ctx->usingDecl()) {
+        visit(ctx->usingDecl());
+    } else if (ctx->statement()) {
+        visit(ctx->statement());
+    }
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
+    if (ctx->namedFunction()) {
+        return visit(ctx->namedFunction());
+    } else if (ctx->lambdaFunction()) {
+        return visit(ctx->lambdaFunction());
+    }
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitNamedFunction(PrystParser::NamedFunctionContext* ctx) {
+    std::string functionName = ctx->IDENTIFIER()->getText();
+    if (functionName == "print") {
+        throw std::runtime_error("Cannot redeclare built-in function 'print'");
+    }
+
+    // Handle both arrow-style and C-style function declarations
+    std::string returnType = "void";  // Default to void
+
+    // Check for prefix return type
+    auto prefixType = ctx->type();
+    auto prefixVoid = ctx->VOID();
+
+    if (prefixType != nullptr) {
+        returnType = prefixType->getText();
+    } else if (prefixVoid != nullptr) {
+        returnType = "void";
+    }
+
+    // Check for arrow return type (overrides prefix type if both are present)
+    if (ctx->ARROW() != nullptr) {
+        auto arrowType = ctx->type();
+        auto arrowVoid = ctx->VOID();
+
+        if (arrowType != nullptr) {
+            returnType = arrowType->getText();
+        } else if (arrowVoid != nullptr) {
+            returnType = "void";
+        }
+    }
+
+    if (symbolTable.functionExists(functionName)) {
+        throw std::runtime_error("Function '" + functionName + "' already declared");
+    }
+
+    std::vector<std::string> paramTypes;
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            paramTypes.push_back(param->type()->getText());
+        }
+    }
+
+    auto funcInfo = std::make_shared<FunctionInfo>();
+    funcInfo->returnType = returnType;
+    funcInfo->paramTypes = paramTypes;
+    symbolTable.addFunction(functionName, funcInfo);
+
+    pushFunctionContext(functionName);
+
+    symbolTable.pushScope();
+
+    if (ctx->paramList()) {
+        size_t idx = 0;
+        for (auto param : ctx->paramList()->param()) {
+            std::string paramName = param->IDENTIFIER()->getText();
+            std::string paramType = paramTypes[idx];
+            symbolTable.addVariable(paramName, paramType, false);  // Parameters are not const by default
+            ++idx;
+        }
+    }
+
+    // Process function body
+    if (ctx->functionBody()) {
+        visit(ctx->functionBody());
+    }
+
+    symbolTable.popScope();
+
+    popFunctionContext();
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) {
+    // Handle return type for lambda function
+    std::string returnType;  // Don't default to void
+    auto typeCtx = ctx->type();
+    auto voidCtx = ctx->VOID();
+
+    if (typeCtx != nullptr) {
+        returnType = typeCtx->getText();
+    } else if (voidCtx != nullptr) {
+        returnType = "void";
+    }
+    // Otherwise, leave returnType empty to be inferred from function body
+
+    std::vector<std::string> paramTypes;
+
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            paramTypes.push_back(param->type()->getText());
+        }
+    }
+
+    // Create unique lambda name and register it in the current scope
+    std::string lambdaName = "lambda_" + std::to_string(lambdaCount++);
+
+    // Push function context and new scope for lambda body
+    pushFunctionContext(lambdaName);
+    symbolTable.pushScope();
+
+    if (ctx->paramList()) {
+        size_t idx = 0;
+        for (auto param : ctx->paramList()->param()) {
+            std::string paramName = param->IDENTIFIER()->getText();
+            std::string paramType = paramTypes[idx];
+            symbolTable.addVariable(paramName, paramType, false);  // Lambda parameters are not const by default
+            ++idx;
+        }
+    }
+
+    // If return type wasn't explicitly specified, infer it from the function body
+    if (returnType.empty()) {
+        returnType = getReturnTypeFromBody(ctx->declaration());
+    }
+
+    // Create function type string after we know the return type
+    std::string functionType = constructFunctionTypeString(returnType, paramTypes);
+
+    auto funcInfo = std::make_shared<FunctionInfo>(
+        returnType,
+        paramTypes,
+        symbolTable.getCurrentScopeLevel(),
+        true,  // isAnonymous = true for lambda functions
+        !returnType.empty()  // hasExplicitReturnType = true if return type was specified
+    );
+    symbolTable.addFunction(lambdaName, funcInfo);
+
+    // Process declarations in lambda body
+    for (auto* decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    // Pop scope and function context
+    symbolTable.popScope();
+    popFunctionContext();
+
+    // Return LambdaInfo containing both the lambda name and its type
+    LambdaInfo info{lambdaName, functionType, returnType, paramTypes};
+    return info;
+}
+
+std::any SemanticAnalyzer::visitVariableDecl(PrystParser::VariableDeclContext* ctx) {
+    PRYST_DEBUG("=== Processing Variable Declaration ===");
+
+    if (!ctx || !ctx->IDENTIFIER()) {
+        PRYST_DEBUG("Error: Null context or missing identifier");
+        throw std::runtime_error("Invalid variable declaration");
+    }
+
+    std::string varName = ctx->IDENTIFIER()->getText();
+    PRYST_DEBUG("Variable name: " + varName);
+
+    std::string varType;
+    if (ctx->type()) {
+        varType = ctx->type()->getText();
+        PRYST_DEBUG("Explicit type: " + varType);
+    } else if (ctx->LET()) {
+        PRYST_DEBUG("Using 'let' keyword - type will be inferred");
+        if (!ctx->expression()) {
+            throw std::runtime_error("Type inference requires an initializer expression");
+        }
+    }
+
+    PRYST_DEBUG("Checking if variable exists in current scope");
+    if (symbolTable.variableExistsInCurrentScope(varName)) {
+        PRYST_DEBUG("Error: Variable already exists in current scope");
+        throw std::runtime_error("Variable '" + varName + "' already declared in this scope");
+    }
+
+    if (ctx->expression()) {
+        PRYST_DEBUG("Processing initializer expression");
+        auto exprResult = visit(ctx->expression());
+
+        if (exprResult.type() == typeid(LambdaInfo)) {
+            // Handle lambda function assignment
+            auto lambdaInfo = std::any_cast<LambdaInfo>(exprResult);
+            varType = lambdaInfo.typeString;
+            PRYST_DEBUG("Lambda function type: " + varType);
+
+            // Add the lambda function to the symbol table as a function
+            symbolTable.addFunction(varName, lambdaInfo.returnType, lambdaInfo.paramTypes);
+            PRYST_DEBUG("Added lambda function to symbol table: " + varName);
+        } else if (exprResult.type() != typeid(std::string)) {
+            PRYST_DEBUG("Error: Expression did not return a type string");
+            throw std::runtime_error("Expression did not return a type string");
+        } else {
+            std::string exprType = std::any_cast<std::string>(exprResult);
+            PRYST_DEBUG("Expression type: " + exprType);
+
+            if (ctx->LET()) {
+                PRYST_DEBUG("Inferring type from expression");
+                varType = exprType;
+            } else {
+                PRYST_DEBUG("Checking type compatibility");
+                checkTypes(varType, exprType, "Type mismatch in variable declaration");
+            }
+        }
+    }
+
+    PRYST_DEBUG("Adding variable to symbol table: " + varName + " : " + varType);
+    symbolTable.addVariable(varName, varType, false);  // Variables are not const by default
+    PRYST_DEBUG("=== Variable Declaration Completed ===");
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitClassDeclaration(PrystParser::ClassDeclarationContext* ctx) {
+    std::string className = ctx->IDENTIFIER(0)->getText();
+
+    std::string superClassName;
+    if (ctx->EXTENDS()) {
+        superClassName = ctx->IDENTIFIER(1)->getText();
+
+        if (!symbolTable.classExists(superClassName)) {
+            throw std::runtime_error("Undefined superclass: '" + superClassName + "'");
+        }
+    }
+
+    if (symbolTable.classExists(className)) {
+        throw std::runtime_error("Class '" + className + "' already declared");
+    }
+
+    ClassInfo classInfo;
+    classInfo.superClassName = superClassName;
+
+    symbolTable.pushScope();
+
+    if (ctx->classBody()) {
+        for (auto memberCtx : ctx->classBody()->classMember()) {
+            visit(memberCtx);  // This will call visitClassVariableDecl or visitClassFunctionDecl
+        }
+    }
+
+    classInfo.members = symbolTable.getCurrentScopeVariables();
+    classInfo.methods = symbolTable.getCurrentScopeFunctions();
+
+    symbolTable.clearCurrentScopeVariables();
+    symbolTable.clearCurrentScopeFunctions();
+
+    symbolTable.popScope();
+
+    symbolTable.addClass(className, classInfo);
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitClassVariableDecl(PrystParser::ClassVariableDeclContext* ctx) {
+    std::string varName = ctx->IDENTIFIER()->getText();
+    std::string varType = ctx->type()->getText();
+
+    if (symbolTable.variableExistsInCurrentScope(varName)) {
+        throw std::runtime_error("Variable '" + varName + "' already declared in this scope");
+    }
+
+    symbolTable.addVariable(varName, varType, false);  // Class member variables are not const by default
+
+    if (ctx->expression()) {
+        auto exprResult = visit(ctx->expression());
+        if (exprResult.type() != typeid(std::string)) {
+            throw std::runtime_error("Expression did not return a type string");
+        }
+        std::string exprType = std::any_cast<std::string>(exprResult);
+        checkTypes(varType, exprType, "Type mismatch in variable declaration");
+    }
+
+    return std::any();
+}
+
+
+
+std::any SemanticAnalyzer::visitAssignment(PrystParser::AssignmentContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null assignment context");
+    }
+
+    // Handle member access if present
+    if (ctx->call() && ctx->DOT()) {
+        if (!ctx->qualifiedIdentifier()) {
+            throw std::runtime_error("Null qualified identifier in member assignment");
+        }
+
+        // Visit the call to get the object type
+        auto callResult = visit(ctx->call());
+        std::string objectType = std::any_cast<std::string>(callResult);
+
+        // Get the member name from qualified identifier
+        std::string memberName = ctx->qualifiedIdentifier()->getText();
+
+        // Check if member exists in class
+        std::string memberType = getMemberVariableType(objectType, memberName);
+        if (memberType.empty()) {
+            throw std::runtime_error("Unknown member: " + memberName + " in type " + objectType);
+        }
+
+        // Visit the expression and check type compatibility
+        if (!ctx->expression()) {
+            throw std::runtime_error("Null expression in member assignment");
+        }
+        auto exprResult = visit(ctx->expression());
+        std::string exprType = std::any_cast<std::string>(exprResult);
+        checkTypes(memberType, exprType, "Type mismatch in member assignment");
+    } else {
+        // Handle regular variable assignment
+        if (!ctx->qualifiedIdentifier()) {
+            throw std::runtime_error("Null qualified identifier in assignment");
+        }
+        std::string varName = ctx->qualifiedIdentifier()->getText();
+        if (!symbolTable.variableExists(varName)) {
+            throw std::runtime_error("Unknown variable: " + varName);
+        }
+
+        // Visit the expression and check type compatibility
+        if (!ctx->expression()) {
+            throw std::runtime_error("Null expression in assignment");
+        }
+        auto exprResult = visit(ctx->expression());
+        std::string exprType = std::any_cast<std::string>(exprResult);
+        std::string varType = symbolTable.getVariableType(varName);
+        checkTypes(varType, exprType, "Type mismatch in assignment");
+    }
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitLogicOr(PrystParser::LogicOrContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null logic OR context");
+    }
+
+    PRYST_DEBUG("Processing logic OR expression");
+
+    if (ctx->logicAnd().empty()) {
+        throw std::runtime_error("Logic OR has no operands");
+    }
+
+    if (!ctx->logicAnd(0)) {
+        throw std::runtime_error("Null left operand in logic OR");
+    }
+
+    auto leftType = visit(ctx->logicAnd(0));
+    if (leftType.type() != typeid(std::string)) {
+        throw std::runtime_error("LogicAnd did not return a type string");
+    }
+    std::string type = std::any_cast<std::string>(leftType);
+
+    if (ctx->logicAnd().size() > 1) {
+        checkTypes(type, "bool", "Left operand of logical OR must be boolean");
+        for (size_t i = 1; i < ctx->logicAnd().size(); ++i) {
+            if (!ctx->logicAnd(i)) {
+                throw std::runtime_error("Null right operand in logic OR at index " + std::to_string(i));
+            }
+            auto rightType = visit(ctx->logicAnd(i));
+            if (rightType.type() != typeid(std::string)) {
+                throw std::runtime_error("LogicAnd did not return a type string");
+            }
+            std::string rightTypeStr = std::any_cast<std::string>(rightType);
+            checkTypes(rightTypeStr, "bool", "Right operand of logical OR must be boolean");
+        }
+        type = "bool";
+    }
+
+    return std::any(type);
+}
+
+std::any SemanticAnalyzer::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null logic AND context");
+    }
+
+    PRYST_DEBUG("Processing logic AND expression");
+
+    if (ctx->equality().empty()) {
+        throw std::runtime_error("Logic AND has no operands");
+    }
+
+    if (!ctx->equality(0)) {
+        throw std::runtime_error("Null left operand in logic AND");
+    }
+
+    auto leftType = visit(ctx->equality(0));
+    if (leftType.type() != typeid(std::string)) {
+        throw std::runtime_error("Equality did not return a type string");
+    }
+    std::string type = std::any_cast<std::string>(leftType);
+
+    if (ctx->equality().size() > 1) {
+        checkTypes(type, "bool", "Left operand of logical AND must be boolean");
+        for (size_t i = 1; i < ctx->equality().size(); ++i) {
+            if (!ctx->equality(i)) {
+                throw std::runtime_error("Null right operand in logic AND at index " + std::to_string(i));
+            }
+            auto rightType = visit(ctx->equality(i));
+            if (rightType.type() != typeid(std::string)) {
+                throw std::runtime_error("Equality did not return a type string");
+            }
+            std::string rightTypeStr = std::any_cast<std::string>(rightType);
+            checkTypes(rightTypeStr, "bool", "Right operand of logical AND must be boolean");
+        }
+        type = "bool";
+    }
+
+    return std::any(type);
+}
+
+std::any SemanticAnalyzer::visitEquality(PrystParser::EqualityContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null equality context");
+    }
+
+    PRYST_DEBUG("Processing equality expression");
+
+    if (ctx->comparison().empty()) {
+        throw std::runtime_error("Equality has no operands");
+    }
+
+    if (!ctx->comparison(0)) {
+        throw std::runtime_error("Null left operand in equality");
+    }
+
+    auto leftType = visit(ctx->comparison(0));
+    if (leftType.type() != typeid(std::string)) {
+        throw std::runtime_error("Comparison did not return a type string");
+    }
+    std::string type = std::any_cast<std::string>(leftType);
+
+    for (size_t i = 1; i < ctx->comparison().size(); ++i) {
+        if (!ctx->comparison(i)) {
+            throw std::runtime_error("Null right operand in equality at index " + std::to_string(i));
+        }
+        auto rightType = visit(ctx->comparison(i));
+        if (rightType.type() != typeid(std::string)) {
+            throw std::runtime_error("Comparison did not return a type string");
+        }
+        std::string rightTypeStr = std::any_cast<std::string>(rightType);
+
+        if (!areTypesCompatibleForEquality(type, rightTypeStr)) {
+            throw std::runtime_error("Type mismatch in equality comparison: '" + type + "' and '" + rightTypeStr + "'");
+        }
+
+        type = "bool";
+    }
+
+    return std::any(type);
+}
+
+std::any SemanticAnalyzer::visitComparison(PrystParser::ComparisonContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null comparison context");
+    }
+
+    PRYST_DEBUG("Processing comparison expression");
+
+    if (ctx->addition().empty()) {
+        throw std::runtime_error("Comparison has no operands");
+    }
+
+    if (!ctx->addition(0)) {
+        throw std::runtime_error("Null left operand in comparison");
+    }
+
+    auto leftType = visit(ctx->addition(0));
+    if (leftType.type() != typeid(std::string)) {
+        throw std::runtime_error("Addition did not return a type string");
+    }
+    std::string type = std::any_cast<std::string>(leftType);
+
+    for (size_t i = 1; i < ctx->addition().size(); ++i) {
+        if (!ctx->addition(i)) {
+            throw std::runtime_error("Null right operand in comparison at index " + std::to_string(i));
+        }
+        auto rightType = visit(ctx->addition(i));
+        if (rightType.type() != typeid(std::string)) {
+            throw std::runtime_error("Addition did not return a type string");
+        }
+        std::string rightTypeStr = std::any_cast<std::string>(rightType);
+
+        if (!areTypesCompatibleForComparison(type, rightTypeStr)) {
+            throw std::runtime_error("Type mismatch in comparison: '" + type + "' and '" + rightTypeStr + "'");
+        }
+
+        type = "bool";
+    }
+
+    return std::any(type);
+}
+
+// Helper functions
+
+bool areTypesCompatibleForEquality(const std::string& type1, const std::string& type2) {
+    if (type1 == type2) return true;
+    if ((type1 == "int" || type1 == "float") && (type2 == "int" || type2 == "float")) return true;
+    return false;
+}
+
+bool areTypesCompatibleForComparison(const std::string& type1, const std::string& type2) {
+    return (type1 == "int" || type1 == "float") && (type2 == "int" || type2 == "float");
+}
+
+bool areTypesCompatibleForArithmetic(const std::string& type1, const std::string& type2) {
+    // Allow int + int -> int
+    if (type1 == "int" && type2 == "int") return true;
+    // Allow float + float -> float
+    if (type1 == "float" && type2 == "float") return true;
+    // Allow int + float -> float or float + int -> float
+    if ((type1 == "int" && type2 == "float") || (type1 == "float" && type2 == "int")) return true;
+    return false;
+}
+
+
+std::any SemanticAnalyzer::visitAddition(PrystParser::AdditionContext* ctx) {
+    auto typeResult = visit(ctx->multiplication(0));
+    if (typeResult.type() != typeid(std::string)) {
+        throw std::runtime_error("Multiplication did not return a type string");
+    }
+    std::string type = std::any_cast<std::string>(typeResult);
+
+    for (size_t i = 1; i < ctx->multiplication().size(); ++i) {
+        auto rightTypeResult = visit(ctx->multiplication(i));
+        if (rightTypeResult.type() != typeid(std::string)) {
+            throw std::runtime_error("Multiplication did not return a type string");
+        }
+        std::string rightType = std::any_cast<std::string>(rightTypeResult);
+
+        // Handle string concatenation
+        if (type == "str" && rightType == "str") {
+            type = "str";
+            continue;
+        }
+
+        // Check if types are compatible for arithmetic
+        if (!areTypesCompatibleForArithmetic(type, rightType)) {
+            throw std::runtime_error("Type mismatch in addition/subtraction: incompatible types '" + type + "' and '" + rightType + "'");
+        }
+
+        // Promote to float if either operand is float
+        if (type == "float" || rightType == "float") {
+            type = "float";
+        }
+    }
+
+    return std::any(type);
+}
+
+std::any SemanticAnalyzer::visitMultiplication(PrystParser::MultiplicationContext* ctx) {
+    auto typeResult = visit(ctx->unary(0));
+    if (typeResult.type() != typeid(std::string)) {
+        throw std::runtime_error("Unary did not return a type string");
+    }
+    std::string type = std::any_cast<std::string>(typeResult);
+
+    for (size_t i = 1; i < ctx->unary().size(); ++i) {
+        auto rightTypeResult = visit(ctx->unary(i));
+        if (rightTypeResult.type() != typeid(std::string)) {
+            throw std::runtime_error("Unary did not return a type string");
+        }
+        std::string rightType = std::any_cast<std::string>(rightTypeResult);
+        checkTypes(type, rightType, "Type mismatch in multiplication/division");
+        if (type != "int" && type != "float") {
+            throw std::runtime_error("Multiplication/division requires numeric operands");
+        }
+    }
+
+    return std::any(type);
+}
+
+std::any SemanticAnalyzer::visitUnary(PrystParser::UnaryContext* ctx) {
+    if (ctx->unary()) {
+        auto typeResult = visit(ctx->unary());
+        if (typeResult.type() != typeid(std::string)) {
+            throw std::runtime_error("Unary did not return a type string");
+        }
+        std::string type = std::any_cast<std::string>(typeResult);
+        if (ctx->BANG()) {
+            checkTypes(type, "bool", "Logical NOT operation requires boolean operand");
+            return std::any(std::string("bool"));
+        } else if (ctx->MINUS()) {
+            if (type != "int" && type != "float") {
+                throw std::runtime_error("Unary minus requires numeric operand");
+            }
+            return std::any(type);
+        } else if (ctx->INCREMENT() || ctx->DECREMENT()) {
+            if (type != "int") {
+                throw std::runtime_error("Increment/decrement requires integer operand");
+            }
+            return std::any(std::string("int"));
+        }
+    } else {
+        return visit(ctx->postfix());
+    }
+    throw std::runtime_error("Invalid unary operation");
+}
+
+std::any SemanticAnalyzer::visitPostfix(PrystParser::PostfixContext* ctx) {
+    auto typeResult = visit(ctx->primary());
+    if (typeResult.type() != typeid(std::string)) {
+        throw std::runtime_error("Primary did not return a type string");
+    }
+    std::string type = std::any_cast<std::string>(typeResult);
+
+    if (!ctx->INCREMENT().empty() || !ctx->DECREMENT().empty()) {
+        if (type != "int") {
+            throw std::runtime_error("Increment/decrement requires integer operand");
+        }
+        return std::any(std::string("int"));
+    }
+
+    return std::any(type);
+}
+
+std::any SemanticAnalyzer::visitCall(PrystParser::CallContext* ctx) {
+    // Get the qualified identifier
+    if (!ctx) {
+        throw std::runtime_error("Invalid call expression: null context");
+    }
+    if (!ctx->qualifiedIdentifier()) {
+        throw std::runtime_error("Invalid call expression: missing qualified identifier");
+    }
+
+    PRYST_DEBUG("Processing call for identifier: " + ctx->qualifiedIdentifier()->getText());
+
+    std::string fullName = ctx->qualifiedIdentifier()->getText();
+    std::string type;
+
+    // Check if it's a function call
+    if (auto funcInfo = symbolTable.lookupFunction(fullName)) {
+        type = funcInfo->returnType;
+        PRYST_DEBUG("Found function with return type: " + type);
+    }
+    // Check if it's a variable access
+    else if (symbolTable.variableExists(fullName)) {
+        type = symbolTable.getVariableType(fullName);
+        PRYST_DEBUG("Found variable with type: " + type);
+    }
+    else {
+        PRYST_ERROR("Unknown identifier: " + fullName);
+        throw std::runtime_error("Unknown identifier: " + fullName);
+    }
+
+    // Process member access chain
+    if (!ctx->IDENTIFIER().empty() && type.empty()) {
+        throw std::runtime_error("Cannot access members of void type");
+    }
+
+    for (size_t i = 0; i < ctx->IDENTIFIER().size(); i++) {
+        auto identifier = ctx->IDENTIFIER()[i];
+        if (!identifier) {
+            throw std::runtime_error("Invalid member access: null identifier");
+        }
+        std::string memberName = identifier->getText();
+        PRYST_DEBUG("Processing member access: " + memberName);
+
+        // Get member type from class
+        std::string memberType = getMemberVariableType(type, memberName);
+        if (memberType.empty()) {
+            // Try to get member function
+            auto methodInfo = getMemberFunctionInfo(type, memberName);
+            if (!methodInfo) {
+                PRYST_ERROR("Unknown member: " + memberName + " in type " + type);
+                throw std::runtime_error("Unknown member: " + memberName + " in type " + type);
+            }
+            if (methodInfo->returnType.empty()) {
+                PRYST_ERROR("Member function has no return type: " + memberName);
+                throw std::runtime_error("Member function has no return type: " + memberName);
+            }
+            type = methodInfo->returnType;
+            PRYST_DEBUG("Found member function with return type: " + type);
+        } else {
+            type = memberType;
+            PRYST_DEBUG("Found member variable with type: " + type);
+        }
+    }
+
+    return std::any(type);
+}
+
+std::any SemanticAnalyzer::visitCallSuffix(PrystParser::CallSuffixContext* ctx) {
+    throw std::runtime_error("CallSuffix should not be called directly");
+}
+std::any SemanticAnalyzer::visitPrimary(PrystParser::PrimaryContext* ctx) {
+    if (!ctx) {
+        PRYST_ERROR("Null primary context");
+        throw std::runtime_error("Null primary context");
+    }
+
+    PRYST_DEBUG("Visiting primary expression");
+
+    try {
+        if (ctx->TRUE() || ctx->FALSE()) {
+            PRYST_DEBUG("Processing boolean literal");
+            return std::any(std::string("bool"));
+        }
+
+        if (ctx->NULL_()) {
+            PRYST_DEBUG("Processing null literal");
+            return std::any(std::string("null"));
+        }
+
+        if (ctx->NUMBER()) {
+            PRYST_DEBUG("Processing number literal");
+            if (!ctx->NUMBER()->getText().empty()) {
+                std::string numStr = ctx->NUMBER()->getText();
+                return std::any(std::string(numStr.find('.') != std::string::npos ? "float" : "int"));
+            }
+            throw std::runtime_error("Invalid number literal");
+        }
+
+        if (ctx->STRING()) {
+            PRYST_DEBUG("Processing string literal");
+            std::string str = ctx->STRING()->getText();
+            // Remove quotes
+            str = str.substr(1, str.length() - 2);
+
+            // Check for string interpolation
+            std::regex interpolationPattern("\\{([^}]+)\\}");
+            if (std::regex_search(str, interpolationPattern)) {
+                PRYST_DEBUG("Found string interpolation pattern");
+                std::smatch match;
+                std::string::const_iterator searchStart(str.cbegin());
+                while (std::regex_search(searchStart, str.cend(), match, interpolationPattern)) {
+                    std::string expr = match[1].str();
+                    PRYST_DEBUG("Checking interpolated expression: " + expr);
+
+                    size_t formatPos = expr.find(':');
+                    std::string varName = formatPos != std::string::npos ? expr.substr(0, formatPos) : expr;
+                    std::string formatSpec = formatPos != std::string::npos ? expr.substr(formatPos + 1) : "";
+
+                    if (!symbolTable.variableExists(varName)) {
+                        PRYST_ERROR("Unknown variable in string interpolation: " + varName);
+                        throw std::runtime_error("Unknown variable in string interpolation: " + varName);
+                    }
+
+                    std::string varType = symbolTable.getVariableType(varName);
+                    PRYST_DEBUG("Variable type in interpolation: " + varType);
+
+                    if (!formatSpec.empty() && formatSpec.find('f') != std::string::npos && varType != "float") {
+                        PRYST_ERROR("Format specifier 'f' can only be used with float type");
+                        throw std::runtime_error("Format specifier 'f' can only be used with float type");
+                    }
+
+                    searchStart = match.suffix().first;
+                }
+            }
+            return std::any(std::string("str"));
+        }
+
+        if (ctx->qualifiedIdentifier()) {
+            if (!ctx->qualifiedIdentifier()->getText().empty()) {
+                std::string name = ctx->qualifiedIdentifier()->getText();
+                PRYST_DEBUG("Processing qualified identifier: " + name);
+
+                // First check if it's a variable
+                if (symbolTable.variableExists(name)) {
+                    PRYST_DEBUG("Found variable: " + name);
+                    std::string varType = symbolTable.getVariableType(name);
+                    PRYST_DEBUG("Variable type: " + varType);
+
+                    try {
+                        // If it's a function call, check if the variable is a lambda function
+                        if (ctx->LPAREN() && varType.length() >= 3 && varType.substr(0, 3) == "fn<") {
+                            PRYST_DEBUG("Processing lambda function call");
+                            // Parse the lambda function type to get return and param types
+                            size_t returnTypeStart = 3;
+                            size_t returnTypeEnd = varType.find('>', returnTypeStart);
+                            if (returnTypeEnd == std::string::npos) {
+                                throw std::runtime_error("Invalid lambda function type: " + varType);
+                            }
+                            std::string returnType = varType.substr(returnTypeStart, returnTypeEnd - returnTypeStart);
+                            PRYST_DEBUG("Lambda return type: " + returnType);
+
+                            // Extract parameter types
+                            std::vector<std::string> paramTypes;
+                            size_t pos = returnTypeEnd + 1;
+                            while (pos < varType.length()) {
+                                if (varType[pos] == '(') {
+                                    size_t end = varType.find(')', pos);
+                                    if (end == std::string::npos) break;
+                                    std::string paramType = varType.substr(pos + 1, end - pos - 1);
+                                    PRYST_DEBUG("Found parameter type: " + paramType);
+                                    paramTypes.push_back(paramType);
+                                    pos = end + 1;
+                                } else {
+                                    pos++;
+                                }
+                            }
+
+                            // Check argument count
+                            size_t actualArgs = ctx->arguments() ? ctx->arguments()->expression().size() : 0;
+                            PRYST_DEBUG("Checking argument count: expected=" + std::to_string(paramTypes.size()) +
+                                      ", actual=" + std::to_string(actualArgs));
+                            if (actualArgs != paramTypes.size()) {
+                                throw std::runtime_error("Wrong number of arguments for lambda function " + name +
+                                                      ". Expected " + std::to_string(paramTypes.size()) +
+                                                      ", got " + std::to_string(actualArgs));
+                            }
+
+                            // Check argument types
+                            if (ctx->arguments()) {
+                                PRYST_DEBUG("Checking argument types");
+                                for (size_t i = 0; i < actualArgs; i++) {
+                                    auto expr = ctx->arguments()->expression(i);
+                                    if (!expr) {
+                                        throw std::runtime_error("Null expression in argument " + std::to_string(i + 1));
+                                    }
+                                    auto argResult = visit(expr);
+                                    std::string argType = std::any_cast<std::string>(argResult);
+                                    PRYST_DEBUG("Argument " + std::to_string(i + 1) + " type: " + argType);
+                                    checkTypes(paramTypes[i], argType,
+                                             "Type mismatch in argument " + std::to_string(i + 1) +
+                                             " of lambda function " + name);
+                                }
+                            }
+
+                            PRYST_DEBUG("Lambda function call validated, returning type: " + returnType);
+                            return std::any(returnType);
+                        }
+                    } catch (const std::exception& e) {
+                        PRYST_DEBUG("Error processing lambda function: " + std::string(e.what()));
+                        throw;
+                    }
+                    return std::any(varType);
+                }
+
+                // If not a variable, check if it's a regular function call
+                if (ctx->LPAREN()) {
+                    PRYST_DEBUG("Looking up function: " + name);
+                    auto funcInfo = symbolTable.lookupFunction(name);
+                    if (!funcInfo) {
+                        throw std::runtime_error("Unknown function: " + name);
+                    }
+
+                    // Check argument count
+                    size_t expectedArgs = funcInfo->paramTypes.size();
+                    size_t actualArgs = 0;
+
+                    if (ctx->arguments()) {
+                        actualArgs = ctx->arguments()->expression().size();
+                    }
+                    PRYST_DEBUG("Checking function arguments: expected=" + std::to_string(expectedArgs) +
+                               ", actual=" + std::to_string(actualArgs));
+
+                    if (actualArgs != expectedArgs) {
+                        throw std::runtime_error("Wrong number of arguments for function " + name +
+                                               ". Expected " + std::to_string(expectedArgs) +
+                                               ", got " + std::to_string(actualArgs));
+                    }
+
+                    // Check argument types
+                    if (ctx->arguments()) {
+                        PRYST_DEBUG("Checking function argument types");
+                        for (size_t i = 0; i < actualArgs; i++) {
+                            auto expr = ctx->arguments()->expression(i);
+                            if (!expr) {
+                                throw std::runtime_error("Null expression in argument " + std::to_string(i + 1));
+                            }
+                            auto argResult = visit(expr);
+                            std::string argType = std::any_cast<std::string>(argResult);
+                            PRYST_DEBUG("Function argument " + std::to_string(i + 1) + " type: " + argType);
+                            checkTypes(funcInfo->paramTypes[i], argType,
+                                     "Type mismatch in argument " + std::to_string(i + 1) +
+                                     " of function " + name);
+                        }
+                    }
+
+                    PRYST_DEBUG("Function call validated, returning type: " + funcInfo->returnType);
+                    return std::any(funcInfo->returnType);
+                }
+
+                throw std::runtime_error("Unknown identifier: " + name);
+            }
+            throw std::runtime_error("Empty qualified identifier");
+        } else if (ctx->LPAREN() && ctx->expression()) {
+            PRYST_DEBUG("Processing parenthesized expression");
+            return visit(ctx->expression());
+        } else if (ctx->SUPER()) {
+            throw std::runtime_error("'super' keyword not implemented");
+        } else if (ctx->newExpression()) {
+            PRYST_DEBUG("Processing new expression");
+            return visit(ctx->newExpression());
+        }
+
+        throw std::runtime_error("Invalid primary expression");
+    } catch (const std::exception& ex) {
+        PRYST_ERROR("Error in visitPrimary: " + std::string(ex.what()));
+        throw;
+    }
+}
+
+std::any SemanticAnalyzer::visitNewExpression(PrystParser::NewExpressionContext* ctx) {
+    std::string className = ctx->IDENTIFIER()->getText();
+
+    if (!symbolTable.classExists(className)) {
+        throw std::runtime_error("Undefined class: '" + className + "'");
+    }
+
+    size_t argCount = ctx->arguments() ? ctx->arguments()->expression().size() : 0;
+
+    if (argCount > 0) {
+        throw std::runtime_error("Constructors with arguments are not implemented");
+    }
+
+    return std::any(className);
+}
+
+std::any SemanticAnalyzer::visitExprStatement(PrystParser::ExprStatementContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null expression statement context");
+    }
+    if (!ctx->expression()) {
+        throw std::runtime_error("Null expression in expression statement");
+    }
+    PRYST_DEBUG("Processing expression statement");
+    visit(ctx->expression());
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitIfStatement(PrystParser::IfStatementContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null if statement context");
+    }
+
+    if (!ctx->expression()) {
+        throw std::runtime_error("Null condition in if statement");
+    }
+
+    PRYST_DEBUG("Processing if statement condition");
+    auto conditionTypeResult = visit(ctx->expression());
+    if (conditionTypeResult.type() != typeid(std::string)) {
+        throw std::runtime_error("If condition did not return a type string");
+    }
+    std::string conditionType = std::any_cast<std::string>(conditionTypeResult);
+    checkTypes(conditionType, "bool", "If condition must be a boolean expression");
+
+    if (!ctx->statement(0)) {
+        throw std::runtime_error("Null then-branch in if statement");
+    }
+    PRYST_DEBUG("Processing if statement then-branch");
+    visit(ctx->statement(0));
+
+    if (ctx->ELSE()) {
+        if (!ctx->statement(1)) {
+            throw std::runtime_error("Null else-branch in if statement");
+        }
+        PRYST_DEBUG("Processing if statement else-branch");
+        visit(ctx->statement(1));
+    }
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitWhileStatement(PrystParser::WhileStatementContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null while statement context");
+    }
+
+    if (!ctx->expression()) {
+        throw std::runtime_error("Null condition in while statement");
+    }
+
+    PRYST_DEBUG("Processing while statement condition");
+    auto conditionTypeResult = visit(ctx->expression());
+    if (conditionTypeResult.type() != typeid(std::string)) {
+        throw std::runtime_error("While condition did not return a type string");
+    }
+    std::string conditionType = std::any_cast<std::string>(conditionTypeResult);
+    checkTypes(conditionType, "bool", "While condition must be a boolean expression");
+
+    if (!ctx->statement()) {
+        throw std::runtime_error("Null body in while statement");
+    }
+    PRYST_DEBUG("Processing while statement body");
+    visit(ctx->statement());
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitForStatement(PrystParser::ForStatementContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null for statement context");
+    }
+
+    PRYST_DEBUG("Processing for statement");
+    symbolTable.pushScope();
+
+    if (ctx->variableDecl()) {
+        PRYST_DEBUG("Processing for statement initialization (variable declaration)");
+        visit(ctx->variableDecl());
+    } else if (ctx->expression(0)) {
+        PRYST_DEBUG("Processing for statement initialization (expression)");
+        visit(ctx->expression(0));
+    }
+
+    if (ctx->expression(1)) {
+        PRYST_DEBUG("Processing for statement condition");
+        auto conditionTypeResult = visit(ctx->expression(1));
+        if (conditionTypeResult.type() != typeid(std::string)) {
+            throw std::runtime_error("For loop condition did not return a type string");
+        }
+        std::string conditionType = std::any_cast<std::string>(conditionTypeResult);
+        checkTypes(conditionType, "bool", "For loop condition must be a boolean expression");
+    }
+
+    if (ctx->expression(2)) {
+        PRYST_DEBUG("Processing for statement increment");
+        visit(ctx->expression(2));
+    }
+
+    if (!ctx->statement()) {
+        throw std::runtime_error("Null body in for statement");
+    }
+    PRYST_DEBUG("Processing for statement body");
+    visit(ctx->statement());
+
+    symbolTable.popScope();
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitBlockStatement(PrystParser::BlockStatementContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null block statement context");
+    }
+
+    PRYST_DEBUG("Processing block statement");
+
+    // Save current namespace and module state
+    std::string previousNamespace = symbolTable.getCurrentNamespacePath();
+    std::string previousModule = symbolTable.getCurrentModule();
+
+    // Push new scope for block
+    symbolTable.pushScope();
+    PRYST_DEBUG("Pushed new scope for block statement");
+
+    // Process all declarations in block
+    if (ctx->declaration().empty()) {
+        PRYST_DEBUG("Block has no declarations");
+    } else {
+        PRYST_DEBUG("Processing " + std::to_string(ctx->declaration().size()) + " declarations in block");
+        for (auto decl : ctx->declaration()) {
+            if (!decl) {
+                throw std::runtime_error("Null declaration in block");
+            }
+            visit(decl);
+        }
+    }
+
+    // Pop scope and restore previous state
+    symbolTable.popScope();
+    symbolTable.setCurrentNamespacePath(previousNamespace);
+    symbolTable.setCurrentModule(previousModule);
+    PRYST_DEBUG("Restored previous scope and state");
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitReturnStatement(PrystParser::ReturnStatementContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null return statement context");
+    }
+
+    std::string currentFunction = getCurrentFunction();
+    if (currentFunction.empty()) {
+        throw std::runtime_error("Return statement outside of function");
+    }
+
+    PRYST_DEBUG("Processing return statement in function: " + currentFunction);
+
+    auto funcInfo = symbolTable.getFunctionInfo(currentFunction);
+    if (!funcInfo) {
+        throw std::runtime_error("Current function info not found: " + currentFunction);
+    }
+    std::string expectedReturnType = funcInfo->returnType;
+
+    bool hasExpression = ctx->expression() != nullptr;
+    PRYST_DEBUG(hasExpression ? "Return statement has expression" : "Return statement is bare 'return;'");
+
+    if (hasExpression) {
+        if (expectedReturnType == "void") {
+            PRYST_ERROR("Void function '" + currentFunction + "' cannot return a value");
+            throw std::runtime_error("Void function '" + currentFunction + "' cannot return a value");
+        }
+        PRYST_DEBUG("Processing return expression");
+        auto actualReturnTypeResult = visit(ctx->expression());
+        if (actualReturnTypeResult.type() != typeid(std::string)) {
+            throw std::runtime_error("Return expression did not return a type string");
+        }
+        std::string actualReturnType = std::any_cast<std::string>(actualReturnTypeResult);
+        checkTypes(expectedReturnType, actualReturnType, "Return type mismatch");
+        PRYST_DEBUG("Return type check passed: " + actualReturnType);
+    } else {
+        if (expectedReturnType != "void") {
+            PRYST_ERROR("Function '" + currentFunction + "' must return a value");
+            throw std::runtime_error("Function '" + currentFunction + "' must return a value");
+        }
+        PRYST_DEBUG("Void return statement processed");
+    }
+
+    return std::any();
+}
+
+std::any SemanticAnalyzer::visitFunctionBody(PrystParser::FunctionBodyContext* ctx) {
+    if (!ctx) {
+        throw std::runtime_error("Null function body context");
+    }
+
+    PRYST_DEBUG("Processing function body");
+
+    // Process all declarations in the function body (which includes statements)
+    if (!ctx->declaration().empty()) {
+        PRYST_DEBUG("Processing " + std::to_string(ctx->declaration().size()) + " declarations/statements in function body");
+        int declIndex = 0;
+        for (auto decl : ctx->declaration()) {
+            if (!decl) {
+                throw std::runtime_error("Null declaration in function body");
+            }
+            PRYST_DEBUG("Processing declaration " + std::to_string(declIndex) + ":");
+            if (decl->functionDecl()) {
+                PRYST_DEBUG("  Type: Function Declaration");
+            } else if (decl->variableDecl()) {
+                PRYST_DEBUG("  Type: Variable Declaration");
+            } else if (decl->statement()) {
+                PRYST_DEBUG("  Type: Statement");
+                auto stmt = decl->statement();
+                if (dynamic_cast<PrystParser::ExprStatementContext*>(stmt)) {
+                    PRYST_DEBUG("    Statement type: Expression");
+                } else if (dynamic_cast<PrystParser::ReturnStatementContext*>(stmt)) {
+                    PRYST_DEBUG("    Statement type: Return");
+                } else if (dynamic_cast<PrystParser::BlockStatementContext*>(stmt)) {
+                    PRYST_DEBUG("    Statement type: Block");
+                } else if (dynamic_cast<PrystParser::IfStatementContext*>(stmt)) {
+                    PRYST_DEBUG("    Statement type: If");
+                } else if (dynamic_cast<PrystParser::WhileStatementContext*>(stmt)) {
+                    PRYST_DEBUG("    Statement type: While");
+                } else if (dynamic_cast<PrystParser::ForStatementContext*>(stmt)) {
+                    PRYST_DEBUG("    Statement type: For");
+                }
+            }
+            visit(decl);
+            declIndex++;
+        }
+    }
+
+    return std::any();
+}
+
+
+
+std::any SemanticAnalyzer::visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext* ctx) {
+    std::string functionName = ctx->IDENTIFIER()->getText();
+    std::string returnType = ctx->type()->getText();
+
+    if (symbolTable.functionExists(functionName)) {
+        throw std::runtime_error("Function '" + functionName + "' already declared in this scope");
+    }
+
+    std::vector<std::string> paramTypes;
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            paramTypes.push_back(param->type()->getText());
+        }
+    }
+
+    symbolTable.addFunction(functionName, returnType, paramTypes);
+
+    pushFunctionContext(functionName);
+    symbolTable.pushScope();
+
+    if (ctx->paramList()) {
+        size_t idx = 0;
+        for (auto param : ctx->paramList()->param()) {
+            std::string paramName = param->IDENTIFIER()->getText();
+            std::string paramType = paramTypes[idx];
+            symbolTable.addVariable(paramName, paramType, false);  // Class method parameters are not const by default
+            ++idx;
+        }
+    }
+
+    // Process function body
+    if (ctx->functionBody()) {
+        visit(ctx->functionBody());
+    }
+
+    symbolTable.popScope();
+    popFunctionContext();
+
+    return std::any();
+}
+
+void SemanticAnalyzer::checkTypes(const std::string& expected, const std::string& actual, const std::string& errorMessage) {
+    // Allow implicit promotion from int to float in numeric operations
+    if (expected == "float" && actual == "int") {
+        return;  // Allow int-to-float promotion
+    }
+
+    if (expected != actual) {
+        throw std::runtime_error(errorMessage + ": expected '" + expected + "', got '" + actual + "'. Use explicit casting if this conversion is intended.");
+    }
+}
+
+std::string SemanticAnalyzer::getMemberVariableType(const std::string& className, const std::string& memberName) {
+    if (!symbolTable.classExists(className)) {
+        throw std::runtime_error("Undefined class: '" + className + "'");
+    }
+
+    ClassInfo classInfo = symbolTable.getClassInfo(className);
+    auto it = classInfo.members.find(memberName);
+    if (it != classInfo.members.end()) {
+        return it->second.type;
+    } else {
+        throw std::runtime_error("Class '" + className + "' has no member variable named '" + memberName + "'");
+    }
+}
+
+std::shared_ptr<FunctionInfo> SemanticAnalyzer::getMemberFunctionInfo(const std::string& className, const std::string& methodName) {
+    if (!symbolTable.classExists(className)) {
+        throw std::runtime_error("Undefined class: '" + className + "'");
+    }
+
+    ClassInfo classInfo = symbolTable.getClassInfo(className);
+    auto it = classInfo.methods.find(methodName);
+    if (it != classInfo.methods.end() && !it->second.empty()) {
+        return it->second[0];  // Return the first overload
+    } else {
+        throw std::runtime_error("Class '" + className + "' has no method named '" + methodName + "'");
+    }
+}
+
+// Add namespace declaration visitor
+std::any SemanticAnalyzer::visitNamespaceDecl(PrystParser::NamespaceDeclContext* ctx) {
+    std::string namespaceName = ctx->qualifiedIdentifier()->getText();
+
+    // Push namespace scope
+    symbolTable.pushScope();
+
+    // Process declarations inside namespace
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    // Register namespace in symbol table
+    symbolTable.addNamespace(namespaceName);
+
+    // Pop namespace scope
+    symbolTable.popScope();
+
+    return std::any();
+}
+
+// Add module declaration visitor
+std::any SemanticAnalyzer::visitModuleDecl(PrystParser::ModuleDeclContext* ctx) {
+    std::string moduleName = ctx->qualifiedIdentifier()->getText();
+
+    // Get current namespace path if any
+    std::string currentNamespace = symbolTable.getCurrentNamespacePath();
+    std::string qualifiedName = currentNamespace.empty() ? moduleName : currentNamespace + "::" + moduleName;
+
+    // Push module scope
+    symbolTable.pushScope();
+
+    // Set current module context
+    std::string previousModule = symbolTable.getCurrentModule();
+    symbolTable.setCurrentModule(qualifiedName);
+
+    // Process declarations inside module
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    // Create module info
+    ModuleInfo moduleInfo;
+    moduleInfo.qualifiedName = qualifiedName;
+    moduleInfo.exports = symbolTable.getCurrentScopeVariables();
+    moduleInfo.exportedFunctions.clear();
+    for (const auto& [name, funcVec] : symbolTable.getCurrentScopeFunctions()) {
+        if (!funcVec.empty()) {
+            moduleInfo.exportedFunctions[name] = funcVec;  // Export all overloads
+        }
+    }
+    moduleInfo.exportedClasses = symbolTable.getCurrentScopeClasses();
+
+    // Register module in symbol table
+    symbolTable.addModule(qualifiedName, moduleInfo);
+
+    // Create module directory if it doesn't exist
+    std::string modulePath = "src/modules/" + qualifiedName;
+    std::replace(modulePath.begin(), modulePath.end(), ':', '/');
+    std::filesystem::create_directories(modulePath);
+
+    // Restore previous module context
+    symbolTable.setCurrentModule(previousModule);
+
+    // Pop module scope
+    symbolTable.popScope();
+
+    return std::any();
+}
+
+// Add using declaration visitor
+std::any SemanticAnalyzer::visitUsingDecl(PrystParser::UsingDeclContext* ctx) {
+    try {
+        if (!ctx) {
+            throw std::runtime_error("Null context in visitUsingDecl");
+        }
+        std::string kind = ctx->NAMESPACE() ? "namespace" : "module";
+        if (!ctx->qualifiedIdentifier()) {
+            throw std::runtime_error("Null qualified identifier in visitUsingDecl");
+        }
+        std::string name = ctx->qualifiedIdentifier()->getText();
+
+        if (kind == "namespace") {
+            // Handle namespace using declaration
+            auto namespaceInfo = symbolTable.getNamespaceInfo(name);
+            if (namespaceInfo == nullptr) {
+                throw std::runtime_error("Namespace not found: " + name);
+            }
+
+            // Import all symbols from the namespace
+            for (const auto& [varName, varInfo] : namespaceInfo->variables) {
+                symbolTable.addVariable(varName, varInfo.type, varInfo.isConst);
+            }
+            for (const auto& [funcName, funcVec] : namespaceInfo->functions) {
+                for (const auto& func : funcVec) {
+                    symbolTable.addFunction(funcName, func->returnType, func->paramTypes);
+                }
+            }
+            for (const auto& [className, classInfo] : namespaceInfo->classes) {
+                symbolTable.addClass(className, classInfo);
+            }
+
+            PRYST_DEBUG("Imported namespace symbols from " + name);
+        } else {
+            // Handle module using declaration
+            ModuleInfo moduleInfo = symbolTable.getModuleInfo(name);
+            if (moduleInfo.qualifiedName.empty()) {
+                throw std::runtime_error("Module not found: " + name);
+            }
+
+            // Import all exported symbols from the module
+            for (const auto& [varName, varInfo] : moduleInfo.exports) {
+                symbolTable.addVariable(varName, varInfo.type, varInfo.isConst);
+            }
+            for (const auto& [funcName, funcVec] : moduleInfo.exportedFunctions) {
+                for (const auto& func : funcVec) {
+                    symbolTable.addFunction(funcName, func->returnType, func->paramTypes);
+                }
+            }
+            for (const auto& [className, classInfo] : moduleInfo.exportedClasses) {
+                symbolTable.addClass(className, classInfo);
+            }
+
+            PRYST_DEBUG("Imported module symbols from " + name);
+        }
+
+        return std::any();
+    } catch (const std::exception& e) {
+        PRYST_ERROR("Error in visitUsingDecl: " + std::string(e.what()));
+        throw;
+    }
+}
+
+// Add import declaration visitor
+std::any SemanticAnalyzer::visitImportDecl(PrystParser::ImportDeclContext* ctx) {
+    try {
+        if (!ctx->importPath()) {
+            throw std::runtime_error("Invalid import declaration: missing import path");
+        }
+
+        std::string importPath = ctx->importPath()->getText();
+        PRYST_DEBUG("Processing import declaration for: " + importPath);
+
+        // Get current module path for relative imports
+        std::string currentModulePath = symbolTable.getCurrentModule();
+        PRYST_DEBUG("Current module path: " + currentModulePath);
+
+        try {
+            // Load the module and get its info
+            ModuleInfo moduleInfo = moduleLoader->loadModule(importPath);
+            PRYST_DEBUG("Successfully loaded module: " + moduleInfo.qualifiedName);
+
+            // Add module to symbol table with its qualified name
+            symbolTable.addModule(moduleInfo.qualifiedName, moduleInfo);
+            PRYST_DEBUG("Added module to symbol table: " + moduleInfo.qualifiedName);
+
+            // Register all exported functions with their qualified names
+            for (const auto& [funcName, funcVec] : moduleInfo.exportedFunctions) {
+                std::string qualifiedFuncName = moduleInfo.qualifiedName + "::" + funcName;
+                for (const auto& func : funcVec) {
+                    symbolTable.addFunction(qualifiedFuncName, func);
+                    PRYST_DEBUG("Registered function: " + qualifiedFuncName);
+                }
+            }
+
+            // Add module to current scope's imports
+            symbolTable.addImport(moduleInfo.qualifiedName);
+            PRYST_DEBUG("Added module to imports: " + moduleInfo.qualifiedName);
+
+            return std::any();
+        } catch (const std::runtime_error& ex) {
+            PRYST_ERROR("Failed to load module: " + importPath + " - " + std::string(ex.what()));
+            throw;
+        }
+    } catch (const std::exception& ex) {
+        PRYST_ERROR("Error in visitImportDecl: " + std::string(ex.what()));
+        throw;
+    }
+}
+
+std::string SemanticAnalyzer::getExpressionType(PrystParser::ExpressionContext* ctx) {
+    if (!ctx) {
+        PRYST_DEBUG("Null expression context in getExpressionType");
+        return "void";
+    }
+
+    PRYST_DEBUG("Getting type for expression");
+
+    try {
+        if (ctx->assignment()) {
+            PRYST_DEBUG("Expression is an assignment");
+            auto result = visit(ctx->assignment());
+            if (result.type() == typeid(std::string)) {
+                return std::any_cast<std::string>(result);
+            }
+            PRYST_DEBUG("Assignment did not return a type string");
+            return "void";
+        }
+
+        if (ctx->lambdaFunction()) {
+            PRYST_DEBUG("Expression is a lambda function");
+            auto result = visit(ctx->lambdaFunction());
+            if (result.type() == typeid(LambdaInfo)) {
+                auto lambdaInfo = std::any_cast<LambdaInfo>(result);
+                return lambdaInfo.typeString;
+            }
+            PRYST_DEBUG("Lambda function did not return LambdaInfo");
+            return "void";
+        }
+
+        if (ctx->typeCastExpr()) {
+            PRYST_DEBUG("Expression is a type cast");
+            return ctx->typeCastExpr()->type()->getText();
+        }
+
+        if (ctx->typeConversionExpr()) {
+            PRYST_DEBUG("Expression is a type conversion");
+            return ctx->typeConversionExpr()->type()->getText();
+        }
+
+        if (ctx->classConversionExpr()) {
+            PRYST_DEBUG("Expression is a class conversion");
+            return ctx->classConversionExpr()->IDENTIFIER()->getText();
+        }
+
+        if (ctx->logicOr()) {
+            PRYST_DEBUG("Expression is a logic OR");
+            auto result = visit(ctx->logicOr());
+            if (result.type() == typeid(std::string)) {
+                return std::any_cast<std::string>(result);
+            }
+            return "bool";
+        }
+
+        // Handle other expression types
+        auto result = visit(ctx);
+        if (result.type() == typeid(std::string)) {
+            return std::any_cast<std::string>(result);
+        }
+
+        PRYST_DEBUG("Expression type could not be determined");
+        return "void";
+    } catch (const std::exception& ex) {
+        PRYST_ERROR("Error in getExpressionType: " + std::string(ex.what()));
+        return "void";
+    }
+}
+
+std::string SemanticAnalyzer::getReturnTypeFromBody(const std::vector<PrystParser::DeclarationContext*>& declarations) {
+    PRYST_DEBUG("Analyzing function body for return type");
+
+    std::string inferredType = "void";
+    bool hasReturn = false;
+
+    for (auto* decl : declarations) {
+        if (!decl) continue;
+
+        if (auto* stmt = decl->statement()) {
+            if (auto* returnStmt = dynamic_cast<PrystParser::ReturnStatementContext*>(stmt)) {
+                hasReturn = true;
+                PRYST_DEBUG("Found return statement");
+
+                if (returnStmt->expression()) {
+                    auto exprResult = visit(returnStmt->expression());
+                    if (exprResult.type() == typeid(std::string)) {
+                        std::string returnType = std::any_cast<std::string>(exprResult);
+                        PRYST_DEBUG("Return statement type: " + returnType);
+
+                        if (inferredType == "void") {
+                            inferredType = returnType;
+                        } else if (inferredType != returnType) {
+                            // Handle type promotion
+                            if ((inferredType == "int" && returnType == "float") ||
+                                (inferredType == "float" && returnType == "int")) {
+                                inferredType = "float";
+                            }
+                            // Could add more type promotion rules here
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    PRYST_DEBUG("Inferred return type: " + inferredType);
+    return inferredType;
+}
