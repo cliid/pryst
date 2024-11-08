@@ -3,6 +3,7 @@
 #include "../generated/PrystBaseVisitor.h"
 #include "../generated/PrystParser.h"
 #include "type_registry.hpp"
+#include "type_metadata.hpp"
 #include "class_info.hpp"
 #include "utils/debug.hpp"
 #include <memory>
@@ -19,10 +20,31 @@
 
 namespace pryst {
 
+// Forward declarations
+class TypeMetadata;
+
 class LLVMCodegen : public PrystBaseVisitor {
 public:
-    LLVMCodegen() : typeRegistry(nullptr) {}
+    LLVMCodegen() {
+        initializeModule();
+    }
     virtual ~LLVMCodegen() = default;
+
+    // Public accessors
+    llvm::LLVMContext* getContext() const { return context_.get(); }
+    llvm::Module* getModule() const { return module_.get(); }
+    llvm::IRBuilder<>* getBuilder() const { return builder_.get(); }
+    LLVMTypeRegistry* getTypeRegistry() const { return typeRegistry_.get(); }
+    void registerFunction(const std::string& name, llvm::Function* func) {
+        module_->getOrInsertFunction(name, func->getFunctionType());
+    }
+
+    // Reflection API methods
+    llvm::Value* generateGetType(llvm::Value* value);
+    llvm::Value* generateIsInstance(llvm::Value* value, const std::string& typeName);
+    TypeInfoPtr getTypeInfo(llvm::Value* value) const;
+    void attachTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo);
+    llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) const;
 
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* ctx);
 
@@ -48,7 +70,18 @@ public:
     std::any visitClassDeclaration(PrystParser::ClassDeclarationContext *ctx) override;
     std::any visitClassBody(PrystParser::ClassBodyContext *ctx) override;
     std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *ctx) override;
-    std::any visitClassMemberDecl(PrystParser::ClassMemberDeclContext *ctx) override;
+    std::any visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext *ctx) override;
+    std::any visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext *ctx) override;
+    std::any visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext *ctx) override;
+    std::any visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext *ctx) override;
+
+    // String handling
+    std::any visitSimpleString(PrystParser::SimpleStringContext *ctx) override;
+
+    // Type conversions
+    std::any visitTypeCastExpr(PrystParser::TypeCastExprContext *ctx) override;
+    std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext *ctx) override;
+    std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext *ctx) override;
 
     // Expressions
     std::any visitExpression(PrystParser::ExpressionContext *ctx) override;
@@ -76,16 +109,33 @@ public:
 
 private:
     // Helper methods
+    void initializeModule();
     llvm::AllocaInst* createEntryBlockAlloca(llvm::Function* function, const std::string& varName, llvm::Type* type);
     void declarePrintFunctions();
 
+    // Built-in function declarations
+    llvm::Function* declareBoolToStr();
+    llvm::Function* declareIntToStr();
+    llvm::Function* declareFloatToStr();
+    llvm::Function* declareMathSqrt();
+    llvm::Function* declareMathPow();
+    llvm::Function* declareMathAbs();
+    llvm::Function* declareStrConcat();
+    llvm::Function* declareStrSubstr();
+    llvm::Function* declareToString();
+    llvm::Function* declareToInt();
+    llvm::Function* declareToFloat();
+    llvm::Function* declareMalloc();
+
     // Private members
-    std::unique_ptr<llvm::LLVMContext> context;
-    std::unique_ptr<llvm::Module> module;
-    std::unique_ptr<llvm::IRBuilder<>> builder;
-    std::unique_ptr<LLVMTypeRegistry> typeRegistry;
-    std::map<std::string, llvm::Value*> namedValues;
-    llvm::Function* currentFunction;
+    std::unique_ptr<llvm::LLVMContext> context_;
+    std::unique_ptr<llvm::Module> module_;
+    std::unique_ptr<llvm::IRBuilder<>> builder_;
+    std::unique_ptr<LLVMTypeRegistry> typeRegistry_;
+    std::unique_ptr<TypeMetadata> typeMetadata_;
+    std::map<std::string, llvm::Value*> namedValues_;
+    std::map<std::string, llvm::Function*> functions_;
+    llvm::Function* currentFunction_;
 };
 
 } // namespace pryst
