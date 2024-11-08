@@ -47,4 +47,5 @@ llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) {
     }
     return getLLVMTypeFromTypeInfoImpl(typeInfo, module->getContext());
 }
+
 } // namespace pryst

@@ -321,7 +321,37 @@ public:
         return nullptr;
     }
 
+    // Get TypeInfo from LLVM Type
+    TypeInfoPtr getTypeInfoFromLLVMType(llvm::Type* type) {
+        if (!type) {
+            PRYST_ERROR("Attempted to get TypeInfo for null LLVM type");
+            return nullptr;
+        }
+
+        std::string typeName = getLLVMTypeName(type);
+        if (typeName.empty()) {
+            PRYST_ERROR("Could not determine type name for LLVM type");
+            return nullptr;
+        }
+
+        return getTypeInfo(typeName);
+    }
+
 private:
+    // Helper method to get type name from LLVM type
+    std::string getLLVMTypeName(llvm::Type* type) {
+        if (!type) return "";
+
+        if (type->isVoidTy()) return "void";
+        if (type->isIntegerTy(32)) return "int";
+        if (type->isFloatTy()) return "float";
+        if (type->isIntegerTy(1)) return "bool";
+        if (type->isPointerTy()) return "string";
+
+        PRYST_ERROR("Unknown LLVM type encountered");
+        return "";
+    }
+
     llvm::LLVMContext* context;
     llvm::IRBuilder<>& builder;
     llvm::Module& module;
