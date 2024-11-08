@@ -2,75 +2,42 @@
 
 #include <string>
 #include <vector>
-#include <unordered_map>
 #include <memory>
-#include <filesystem>
-#include "types.hpp"
-#include "symbol_table.hpp"
+#include <unordered_map>
+#include "semantic/symbol_table.hpp"
+
+namespace pryst {
+namespace semantic {
 
 class ModuleLoader {
 public:
-    ModuleLoader(std::shared_ptr<SymbolTable> symbolTable);
-    ~ModuleLoader() = default;
+    ModuleLoader(SymbolTable& symbolTable);
 
-    // Load a module from a file path
-    ModuleInfo loadModule(const std::string& modulePath);
+    // TypeScript-style module loading
+    bool loadModule(const std::string& modulePath);
+    bool importModule(const std::string& qualifiedName);
 
-    // Get the absolute path for a module based on import statement
-    std::string resolveModulePath(const std::string& importPath, const std::string& currentModulePath);
+    // Block-level using declarations
+    void addUsingDeclaration(const std::string& moduleName, bool isModule);
+    void enterScope();
+    void exitScope();
 
-    // Check if a module has been loaded
-    bool isModuleLoaded(const std::string& modulePath) const;
+    // Interface compliance
+    bool verifyInterfaceCompliance(const std::string& implementation,
+                                 const std::string& interface);
 
-    // Get the module's qualified name from its path
-    std::string getModuleQualifiedName(const std::string& modulePath) const;
-
-    // Add a module search path
-    void addModuleSearchPath(const std::string& searchPath);
-
-    // Get module info from cache
-    ModuleInfo getModuleInfo(const std::string& qualifiedName) const;
-
-    // Initialize module system
-    void initializeModuleSystem();
-
-    // Get all available modules in search paths
-    std::vector<std::string> discoverModules() const;
-
-    // Get module exports
-    std::unordered_map<std::string, VariableInfo> getModuleExports(const std::string& qualifiedName) const;
-
-    // Get module exported functions
-    std::unordered_map<std::string, FunctionInfo> getModuleExportedFunctions(const std::string& qualifiedName) const;
-
-    // Get module exported classes
-    std::unordered_map<std::string, ClassInfo> getModuleExportedClasses(const std::string& qualifiedName) const;
+    // Namespace resolution
+    std::string resolveQualifiedName(const std::string& name);
+    bool isNameVisible(const std::string& name);
 
 private:
-    // Map of module paths to their loaded status
-    std::unordered_map<std::string, bool> loadedModules;
+    SymbolTable& symbolTable;
+    std::vector<std::unordered_map<std::string, bool>> scopeStack;
+    std::unordered_map<std::string, std::string> moduleCache;
 
-    // Module cache storing parsed module information
-    std::unordered_map<std::string, ModuleInfo> moduleCache;
-
-    // List of module search paths
-    std::vector<std::string> searchPaths;
-
-    // Symbol table reference
-    std::shared_ptr<SymbolTable> symbolTable;
-
-    // Convert file path to module qualified name
-    std::string pathToQualifiedName(const std::string& path) const;
-
-    // Find module file in search paths
-    std::string findModuleFile(const std::string& moduleName) const;
-
-    // Initialize default module search paths
-    void initializeSearchPaths();
-
-    // Parse module file and extract exports
-    ModuleInfo parseModuleFile(const std::string& modulePath);
-
-    // Validate module structure
-    bool validateModuleStructure(const std::string& modulePath) const;
+    std::string resolveModulePath(const std::string& qualifiedName);
+    bool checkCircularDependency(const std::string& moduleName);
 };
+
+} // namespace semantic
+} // namespace pryst
