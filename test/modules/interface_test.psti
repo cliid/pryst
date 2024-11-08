@@ -1,0 +1,18 @@
+// Module interface definition
+interface test::math {
+    // Exported types
+    type Vector;
+    type Matrix;
+
+    // Exported functions
+    fn add(int x, int y) -> int;
+    fn subtract(int x, int y) -> int;
+    fn multiply(int x, int y) -> int;
+    fn divide(int x, int y) -> float;
+
+    // Exported class
+    class Vector {
+        fn dot(Vector other) -> float;
+        fn scale(float factor) -> Vector;
+    }
+}
