@@ -10,10 +10,21 @@
 #include <string>
 #include "../semantic/type_info.hpp"
 
-// Forward declaration of type conversion function
-llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& context);
+namespace pryst {
 
-// LLVM-specific type information that extends semantic types
+// Forward declarations and type aliases
+class LLVMClassTypeInfo;
+class LLVMFunctionTypeInfo;
+using LLVMClassTypeInfoPtr = std::shared_ptr<LLVMClassTypeInfo>;
+using LLVMFunctionTypeInfoPtr = std::shared_ptr<LLVMFunctionTypeInfo>;
+
+// Forward declarations and type aliases
+class LLVMClassTypeInfo;
+class LLVMFunctionTypeInfo;
+using LLVMClassTypeInfoPtr = std::shared_ptr<LLVMClassTypeInfo>;
+using LLVMFunctionTypeInfoPtr = std::shared_ptr<LLVMFunctionTypeInfo>;
+
+// LLVM-specific type information interface
 class LLVMTypeInfo {
 public:
     virtual ~LLVMTypeInfo() = default;
@@ -21,13 +32,13 @@ public:
 };
 
 // LLVM-specific function type information
-class LLVMFunctionTypeInfo : public FunctionTypeInfo, public LLVMTypeInfo {
+class LLVMFunctionTypeInfo : public pryst::FunctionTypeInfo, public LLVMTypeInfo {
 public:
     LLVMFunctionTypeInfo(const std::string& name,
-                        TypeInfoPtr returnType,
-                        std::vector<TypeInfoPtr> paramTypes,
+                        pryst::TypeInfoPtr returnType,
+                        std::vector<pryst::TypeInfoPtr> paramTypes,
                         llvm::FunctionType* type)
-        : FunctionTypeInfo(returnType, std::move(paramTypes)),
+        : FunctionTypeInfo(name, returnType, std::move(paramTypes)),
           llvmType(type) {}
 
     llvm::Type* getLLVMType() const override { return llvmType; }
@@ -37,33 +48,20 @@ public:
     }
 
 private:
-    llvm::FunctionType* createFunctionType(llvm::LLVMContext& context) const {
-        std::vector<llvm::Type*> paramLLVMTypes;
-        for (const auto& paramType : getParamTypes()) {
-            paramLLVMTypes.push_back(::getLLVMTypeFromTypeInfo(paramType, context));
-        }
-        return llvm::FunctionType::get(
-            ::getLLVMTypeFromTypeInfo(getReturnType(), context),
-            paramLLVMTypes,
-            false
-        );
-    }
+    llvm::FunctionType* createFunctionType(llvm::LLVMContext& context) const;
     llvm::FunctionType* llvmType;
 };
 
 // LLVM-specific class type information
-class LLVMClassTypeInfo : public ClassTypeInfo, public LLVMTypeInfo {
+class LLVMClassTypeInfo : public pryst::ClassTypeInfo, public LLVMTypeInfo {
 public:
-    LLVMClassTypeInfo(const std::string& name,
-                      llvm::StructType* type,
-                      ClassTypeInfoPtr parent = nullptr)
-        : ClassTypeInfo(name, parent),
-          structType(type) {}
+    LLVMClassTypeInfo(const std::string& name, llvm::StructType* type)
+        : ClassTypeInfo(name), structType(type) {}
 
     llvm::Type* getLLVMType() const override { return structType; }
     llvm::StructType* getStructType() const { return structType; }
 
-    void addMember(const std::string& memberName, size_t index, TypeInfoPtr type) {
+    void addMember(const std::string& memberName, size_t index, pryst::TypeInfoPtr type) {
         memberIndices[memberName] = index;
         addField(memberName, type);
     }
@@ -73,21 +71,14 @@ public:
         if (it != memberIndices.end()) {
             return it->second;
         }
-        auto parent = getParent();
-        if (auto llvmParent = std::dynamic_pointer_cast<LLVMClassTypeInfo>(parent)) {
-            return llvmParent->getMemberIndex(memberName);
-        }
         throw std::runtime_error("Member not found: " + memberName);
     }
 
-    TypeInfoPtr getMemberTypeInfo(const std::string& memberName) const {
-        auto fieldType = getFieldType(memberName);
-        if (fieldType) {
-            return fieldType;
-        }
-        auto parent = getParent();
-        if (auto llvmParent = std::dynamic_pointer_cast<LLVMClassTypeInfo>(parent)) {
-            return llvmParent->getMemberTypeInfo(memberName);
+    pryst::TypeInfoPtr getMemberTypeInfo(const std::string& memberName) const {
+        const auto& fields = getFields();
+        auto it = fields.find(memberName);
+        if (it != fields.end()) {
+            return it->second;
         }
         throw std::runtime_error("Member type not found: " + memberName);
     }
@@ -101,9 +92,6 @@ private:
     std::unordered_map<std::string, size_t> memberIndices;
 };
 
-using LLVMFunctionTypeInfoPtr = std::shared_ptr<LLVMFunctionTypeInfo>;
-using LLVMClassTypeInfoPtr = std::shared_ptr<LLVMClassTypeInfo>;
-
 // Container for all type metadata
 class TypeMetadata {
 public:
@@ -115,7 +103,7 @@ public:
     void setContext(llvm::LLVMContext& ctx) { context = &ctx; }
     void setModule(llvm::Module& mod) { module = &mod; }
 
-    void addTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo) {
+    void addTypeInfo(llvm::Value* value, pryst::TypeInfoPtr typeInfo) {
         if (!value || !typeInfo) return;
         valueTypes[value] = std::move(typeInfo);
     }
@@ -130,7 +118,7 @@ public:
         classTypes[structType] = std::move(typeInfo);
     }
 
-    TypeInfoPtr getTypeInfo(llvm::Value* value) const {
+    pryst::TypeInfoPtr getTypeInfo(llvm::Value* value) const {
         auto it = valueTypes.find(value);
         return it != valueTypes.end() ? it->second : nullptr;
     }
@@ -148,7 +136,9 @@ public:
 private:
     llvm::LLVMContext* context;
     llvm::Module* module;
-    std::unordered_map<llvm::Value*, TypeInfoPtr> valueTypes;
+    std::unordered_map<llvm::Value*, pryst::TypeInfoPtr> valueTypes;
     std::unordered_map<llvm::Function*, LLVMFunctionTypeInfoPtr> functionTypes;
     std::unordered_map<llvm::StructType*, LLVMClassTypeInfoPtr> classTypes;
 };
+
+} // namespace pryst
