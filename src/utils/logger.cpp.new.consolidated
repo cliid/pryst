@@ -1,0 +1,152 @@
+#include "logger.hpp"
+#include <chrono>
+#include <iomanip>
+#include <ctime>
+
+namespace pryst {
+
+thread_local std::vector<std::string> Logger::contextStack;
+
+Logger::Logger()
+    : debugEnabled(false)
+    , currentLevel(LogLevel::INFO)
+    , debugStream(&std::cout)
+    , errorStream(&std::cerr)
+{}
+
+Logger& Logger::getInstance() {
+    static Logger instance;
+    return instance;
+}
+
+void Logger::setDebugEnabled(bool enabled) {
+    debugEnabled = enabled;
+    if (enabled) {
+        currentLevel = LogLevel::DEBUG;
+    }
+}
+
+bool Logger::isDebugEnabled() const {
+    return debugEnabled;
+}
+
+// Original interface implementations
+void Logger::debug(const std::string& msg) {
+    if (debugEnabled) {
+        log(LogLevel::DEBUG, msg);
+    }
+}
+
+void Logger::error(const std::string& msg) {
+    log(LogLevel::ERROR, msg);
+}
+
+void Logger::info(const std::string& msg) {
+    log(LogLevel::INFO, msg);
+}
+
+// Enhanced interface implementations
+void Logger::debug(const std::string& msg, const std::string& file, int line) {
+    if (debugEnabled) {
+        log(LogLevel::DEBUG, msg, file, line);
+    }
+}
+
+void Logger::warning(const std::string& msg) {
+    log(LogLevel::WARNING, msg);
+}
+
+void Logger::fatal(const std::string& msg) {
+    log(LogLevel::FATAL, msg);
+    std::exit(1);
+}
+
+void Logger::log(LogLevel level, const std::string& msg, const std::string& file, int line) {
+    if (level < currentLevel && level != LogLevel::DEBUG) {
+        return;
+    }
+
+    std::stringstream ss;
+    ss << "[" << getTimestamp() << "] "
+       << "[" << getLogLevelString(level) << "] ";
+
+    // Add context if available
+    if (!contextStack.empty()) {
+        ss << "[" << contextStack.back() << "] ";
+    }
+
+
+    ss << msg;
+
+    // Add file and line for debug messages
+    if (level == LogLevel::DEBUG && !file.empty()) {
+        ss << " (" << file << ":" << line << ")";
+    }
+
+    ss << std::endl;
+
+    // Output to appropriate stream
+    if (level == LogLevel::DEBUG) {
+        *debugStream << ss.str();
+        debugStream->flush();
+    } else if (level >= LogLevel::WARNING) {
+        *errorStream << ss.str();
+        errorStream->flush();
+    } else {
+        std::cout << ss.str();
+        std::cout.flush();
+    }
+}
+
+std::string Logger::getLogLevelString(LogLevel level) const {
+    switch (level) {
+        case LogLevel::DEBUG: return "DEBUG";
+        case LogLevel::INFO: return "INFO";
+        case LogLevel::WARNING: return "WARNING";
+        case LogLevel::ERROR: return "ERROR";
+        case LogLevel::FATAL: return "FATAL";
+        default: return "UNKNOWN";
+    }
+}
+
+std::string Logger::getTimestamp() const {
+    auto now = std::chrono::system_clock::now();
+    auto time = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()
+    ).count() % 1000;
+
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
+    ss << "." << std::setfill('0') << std::setw(3) << ms;
+    return ss.str();
+}
+
+bool Logger::parseArgs(int argc, char* argv[]) {
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--debug") {
+            Logger::getInstance().setDebugEnabled(true);
+            return true;
+        }
+    }
+    return false;
+}
+
+DebugContext::DebugContext(const std::string& context) : contextName(context) {
+    if (Logger::getInstance().isDebugEnabled()) {
+        Logger::contextStack.push_back(contextName);
+        Logger::getInstance().debug("Entering " + contextName);
+    }
+}
+
+DebugContext::~DebugContext() {
+    if (Logger::getInstance().isDebugEnabled()) {
+        Logger::getInstance().debug("Leaving " + contextName);
+        if (!Logger::contextStack.empty()) {
+            Logger::contextStack.pop_back();
+        }
+    }
+}
+
+} // namespace pryst
