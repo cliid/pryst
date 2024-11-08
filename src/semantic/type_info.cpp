@@ -1,6 +1,8 @@
 #include "type_info.hpp"
 #include <sstream>
 
+bool TypeRegistry::debugEnabled = false;
+
 // Helper function to check if a type is numeric
 bool TypeInfo::isNumericType(const TypeInfoPtr& type) {
     return type->getName() == "int" || type->getName() == "float";
@@ -167,4 +169,45 @@ std::string ClassTypeInfo::toString() const {
         result += ":" + parent_->getName();
     }
     return result;
+}
+
+// Implementation of ArrayTypeInfo::isConvertibleTo
+bool ArrayTypeInfo::isConvertibleTo(const TypeInfoPtr& other) const {
+    if (other->getKind() != Kind::Array) {
+        // Allow conversion to basic type if array has conversion method
+        if (other->getKind() == Kind::Basic) {
+            // Arrays can be converted to strings
+            if (other->getName() == "str") return true;
+        }
+        return false;
+    }
+
+    auto otherArray = std::static_pointer_cast<ArrayTypeInfo>(other);
+    if (size != otherArray->getSize()) return false;
+
+    return elementType->isConvertibleTo(otherArray->getElementType());
+}
+
+// Implementation of PointerTypeInfo::isConvertibleTo
+bool PointerTypeInfo::isConvertibleTo(const TypeInfoPtr& other) const {
+    if (other->getKind() != Kind::Pointer) {
+        // Allow conversion to basic type if it's a pointer type
+        if (other->getKind() == Kind::Basic) {
+            // Pointers can be converted to strings
+            if (other->getName() == "str") return true;
+            // Allow conversion between pointer types
+            if (other->getName() == "pointer") return true;
+        }
+        return false;
+    }
+
+    auto otherPtr = std::static_pointer_cast<PointerTypeInfo>(other);
+    return pointeeType->isConvertibleTo(otherPtr->getPointeeType());
+}
+
+// Implementation of ModuleTypeInfo::isConvertibleTo
+bool ModuleTypeInfo::isConvertibleTo(const TypeInfoPtr& other) const {
+    // Modules are not convertible to other types except string representation
+    if (other->getKind() == Kind::Basic && other->getName() == "str") return true;
+    return other->getKind() == Kind::Module && other->getName() == name;
 }

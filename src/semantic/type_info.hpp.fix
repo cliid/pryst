@@ -1,0 +1,32 @@
+class ClassTypeInfo : public TypeInfo {
+public:
+    ClassTypeInfo(const std::string& name) : TypeInfo(name) {}
+
+    void addMember(const std::string& name, TypeInfoPtr type, int index) {
+        memberTypes[name] = type;
+        memberIndices[name] = index;
+    }
+
+    void setMemberTypes(const std::vector<TypeInfoPtr>& types) {
+        orderedMemberTypes = types;
+    }
+
+    int getMemberIndex(const std::string& name) const {
+        auto it = memberIndices.find(name);
+        return it != memberIndices.end() ? it->second : -1;
+    }
+
+    TypeInfoPtr getMemberType(const std::string& name) const {
+        auto it = memberTypes.find(name);
+        return it != memberTypes.end() ? it->second : nullptr;
+    }
+
+    const std::vector<TypeInfoPtr>& getOrderedMemberTypes() const {
+        return orderedMemberTypes;
+    }
+
+private:
+    std::unordered_map<std::string, TypeInfoPtr> memberTypes;
+    std::unordered_map<std::string, int> memberIndices;
+    std::vector<TypeInfoPtr> orderedMemberTypes;
+};

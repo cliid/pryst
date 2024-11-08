@@ -1,15 +1,18 @@
 #include "llvm_codegen.hpp"
 #include "type_registry.hpp"
-#include <iostream>
+#include "type_metadata.hpp"
+#include "../utils/debug.hpp"
+#include <stdexcept>
+#include <memory>
 
 // Implementation of reflection API functions
 llvm::Value* LLVMCodegen::generateGetType(llvm::Value* value) {
-    std::cout << "DEBUG: Generating getType() call" << std::endl;
+    PRYST_DEBUG("Generating getType() call");
 
     // Get type info from type registry
     auto typeInfo = typeMetadata->getTypeInfo(value);
     if (!typeInfo) {
-        std::cerr << "ERROR: No type info found for value" << std::endl;
+        PRYST_ERROR("No type info found for value");
         return nullptr;
     }
 
@@ -17,17 +20,19 @@ llvm::Value* LLVMCodegen::generateGetType(llvm::Value* value) {
     std::string typeName = typeInfo->getName();
     auto& context = module->getContext();
     auto globalStr = builder->CreateGlobalString(typeName);
-    auto strType = typeRegistry.getStrType();
-    return builder->CreateBitCast(globalStr, LLVMTypeRegistry::getInstance().getLLVMType(strType, context));
+    // Use opaque pointer type for string
+    auto& llvmTypeRegistry = LLVMTypeRegistry::getInstance();
+    auto charPtrTy = llvmTypeRegistry.getOpaquePointerType(context);
+    return builder->CreateBitCast(globalStr, charPtrTy);
 }
 
 llvm::Value* LLVMCodegen::generateIsInstance(llvm::Value* value, const std::string& typeName) {
-    std::cout << "DEBUG: Generating isInstance() call for type '" << typeName << "'" << std::endl;
+    PRYST_DEBUG("Generating isInstance() call for type '" + typeName + "'");
 
     // Get type info from type registry
     auto typeInfo = typeMetadata->getTypeInfo(value);
     if (!typeInfo) {
-        std::cerr << "ERROR: No type info found for value" << std::endl;
+        PRYST_ERROR("No type info found for value");
         return llvm::ConstantInt::getFalse(module->getContext());
     }
 

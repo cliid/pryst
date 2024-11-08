@@ -1,0 +1,288 @@
+#include "llvm_codegen.hpp"
+#include "utils/logger.hpp"
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/raw_ostream.h>
+#include <sstream>
+#include <any>
+
+namespace pryst {
+
+LLVMCodegen::LLVMCodegen()
+    : context(std::make_unique<llvm::LLVMContext>()),
+      module(std::make_unique<llvm::Module>("pryst", *context)),
+      builder(std::make_unique<llvm::IRBuilder<>>(*context)),
+      typeRegistry(*context),
+      currentFunction(nullptr) {
+    declarePrintFunctions();
+}
+
+std::unique_ptr<llvm::Module> LLVMCodegen::generateModule(PrystParser::ProgramContext* ctx) {
+    PRYST_DEBUG("Generating module");
+    visit(ctx);
+    return std::move(module);
+}
+
+void LLVMCodegen::declarePrintFunctions() {
+    auto voidType = typeRegistry.getVoidType();
+    auto int32Type = typeRegistry.getIntType(32);
+    auto floatType = typeRegistry.getFloatType();
+    auto boolType = typeRegistry.getBoolType();
+    auto strType = typeRegistry.getStringType();
+
+    // Declare print functions for each type
+    std::vector<llvm::Type*> argTypes;
+
+    // print_int(int)
+    argTypes = {int32Type};
+    auto printIntType = llvm::FunctionType::get(voidType, argTypes, false);
+    printFunctions["print_int"] = llvm::Function::Create(
+        printIntType, llvm::Function::ExternalLinkage, "print_int", module.get());
+
+    // print_float(float)
+    argTypes = {floatType};
+    auto printFloatType = llvm::FunctionType::get(voidType, argTypes, false);
+    printFunctions["print_float"] = llvm::Function::Create(
+        printFloatType, llvm::Function::ExternalLinkage, "print_float", module.get());
+
+    // print_bool(bool)
+    argTypes = {boolType};
+    auto printBoolType = llvm::FunctionType::get(voidType, argTypes, false);
+    printFunctions["print_bool"] = llvm::Function::Create(
+        printBoolType, llvm::Function::ExternalLinkage, "print_bool", module.get());
+
+    // print_str(str)
+    argTypes = {strType};
+    auto printStrType = llvm::FunctionType::get(voidType, argTypes, false);
+    printFunctions["print_str"] = llvm::Function::Create(
+        printStrType, llvm::Function::ExternalLinkage, "print_str", module.get());
+}
+
+std::any LLVMCodegen::visitProgram(PrystParser::ProgramContext* ctx) {
+    PRYST_DEBUG("Visiting program");
+
+    for (auto decl : ctx->declaration()) {
+        visit(decl);
+    }
+
+    std::string errorInfo;
+    llvm::raw_string_ostream errorStream(errorInfo);
+
+    if (llvm::verifyModule(*module, &errorStream)) {
+        PRYST_ERROR("Module verification failed: " + errorInfo);
+        return std::any();
+    }
+
+    return std::any(module.get());
+}
+
+std::any LLVMCodegen::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
+    PRYST_DEBUG("Visiting function declaration: " + ctx->name->getText());
+
+    llvm::Type* returnType = typeRegistry.getVoidType();
+    if (ctx->returnType) {
+        std::string typeName = ctx->returnType->getText();
+        returnType = typeRegistry.getType(typeName);
+        if (!returnType) {
+            PRYST_ERROR("Unknown return type: " + typeName);
+            return std::any();
+        }
+    }
+
+    std::vector<llvm::Type*> paramTypes;
+    for (auto param : ctx->parameters) {
+        std::string typeName = param->type()->getText();
+        auto paramType = typeRegistry.getType(typeName);
+        if (!paramType) {
+            PRYST_ERROR("Unknown parameter type: " + typeName);
+            return std::any();
+        }
+        paramTypes.push_back(paramType);
+    }
+
+    auto functionType = llvm::FunctionType::get(returnType, paramTypes, false);
+    auto function = llvm::Function::Create(
+        functionType, llvm::Function::ExternalLinkage,
+        ctx->name->getText(), module.get());
+
+    auto entryBlock = llvm::BasicBlock::Create(*context, "entry", function);
+    builder->SetInsertPoint(entryBlock);
+
+    currentFunction = function;
+
+    unsigned idx = 0;
+    for (auto &arg : function->args()) {
+        auto paramName = ctx->parameters[idx]->name->getText();
+        auto alloca = createEntryBlockAlloca(function, paramName, arg.getType());
+        builder->CreateStore(&arg, alloca);
+        namedValues[paramName] = alloca;
+        idx++;
+    }
+
+    visit(ctx->body);
+
+    if (!entryBlock->getTerminator()) {
+        if (returnType->isVoidTy()) {
+            builder->CreateRetVoid();
+        } else {
+            llvm::Value* defaultValue = typeRegistry.getDefaultValue(returnType);
+            builder->CreateRet(defaultValue);
+        }
+    }
+
+    std::string errorInfo;
+    llvm::raw_string_ostream errorStream(errorInfo);
+
+    if (llvm::verifyFunction(*function, &errorStream)) {
+        PRYST_ERROR("Function verification failed: " + errorInfo);
+        function->eraseFromParent();
+        return std::any();
+    }
+
+    return std::any(function);
+}
+
+std::any LLVMCodegen::visitCall(PrystParser::CallContext* ctx) {
+    PRYST_DEBUG("Visiting function call: " + ctx->name->getText());
+
+    std::string funcName = ctx->name->getText();
+    llvm::Function* callee = module->getFunction(funcName);
+
+    if (!callee) {
+        PRYST_ERROR("Unknown function: " + funcName);
+        return std::any();
+    }
+
+    if (callee->arg_size() != ctx->arguments.size()) {
+        PRYST_ERROR("Incorrect number of arguments for function: " + funcName);
+        return std::any();
+    }
+
+    std::vector<llvm::Value*> args;
+    for (size_t i = 0; i < ctx->arguments.size(); i++) {
+        auto arg = visit(ctx->arguments[i]);
+        if (!arg.has_value()) {
+            PRYST_ERROR("Failed to evaluate argument " + std::to_string(i));
+            return std::any();
+        }
+        llvm::Value* argValue = std::any_cast<llvm::Value*>(arg);
+
+        if (auto alloca = llvm::dyn_cast<llvm::AllocaInst>(argValue)) {
+            argValue = builder->CreateLoad(alloca->getAllocatedType(), alloca);
+        }
+
+        args.push_back(argValue);
+    }
+
+    return std::any(builder->CreateCall(callee, args));
+}
+
+std::any LLVMCodegen::visitBinary(PrystParser::BinaryContext* ctx) {
+    PRYST_DEBUG("Visiting binary expression");
+
+    auto leftAny = visit(ctx->left);
+    auto rightAny = visit(ctx->right);
+
+    if (!leftAny.has_value() || !rightAny.has_value()) {
+        return std::any();
+    }
+
+    llvm::Value* left = std::any_cast<llvm::Value*>(leftAny);
+    llvm::Value* right = std::any_cast<llvm::Value*>(rightAny);
+
+    auto leftType = typeRegistry.getType(left->getType());
+    auto rightType = typeRegistry.getType(right->getType());
+
+    if (auto op = ctx->op->getText(); op == "+") {
+        if (leftType->isIntegerTy() && rightType->isIntegerTy()) {
+            return std::any(builder->CreateAdd(left, right));
+        } else if (leftType->isFloatingPointTy() && rightType->isFloatingPointTy()) {
+            return std::any(builder->CreateFAdd(left, right));
+        }
+    } else if (op == "-") {
+        if (leftType->isIntegerTy() && rightType->isIntegerTy()) {
+            return std::any(builder->CreateSub(left, right));
+        } else if (leftType->isFloatingPointTy() && rightType->isFloatingPointTy()) {
+            return std::any(builder->CreateFSub(left, right));
+        }
+    } else if (op == "*") {
+        if (leftType->isIntegerTy() && rightType->isIntegerTy()) {
+            return std::any(builder->CreateMul(left, right));
+        } else if (leftType->isFloatingPointTy() && rightType->isFloatingPointTy()) {
+            return std::any(builder->CreateFMul(left, right));
+        }
+    } else if (op == "/") {
+        if (leftType->isIntegerTy() && rightType->isIntegerTy()) {
+            return std::any(builder->CreateSDiv(left, right));
+        } else if (leftType->isFloatingPointTy() && rightType->isFloatingPointTy()) {
+            return std::any(builder->CreateFDiv(left, right));
+        }
+    }
+
+    PRYST_ERROR("Invalid binary operation");
+    return std::any();
+}
+
+std::any LLVMCodegen::visitUnary(PrystParser::UnaryContext* ctx) {
+    PRYST_DEBUG("Visiting unary expression");
+
+    auto operandAny = visit(ctx->operand);
+    if (!operandAny.has_value()) {
+        return std::any();
+    }
+
+    llvm::Value* operand = std::any_cast<llvm::Value*>(operandAny);
+    auto operandType = typeRegistry.getType(operand->getType());
+
+    if (ctx->op->getText() == "-") {
+        if (operandType->isIntegerTy()) {
+            return std::any(builder->CreateNeg(operand));
+        } else if (operandType->isFloatingPointTy()) {
+            return std::any(builder->CreateFNeg(operand));
+        }
+    } else if (ctx->op->getText() == "!") {
+        if (operandType->isIntegerTy(1)) {
+            return std::any(builder->CreateNot(operand));
+        }
+    }
+
+    PRYST_ERROR("Invalid unary operation");
+    return std::any();
+}
+
+
+std::any LLVMCodegen::visitLiteral(PrystParser::LiteralContext* ctx) {
+    PRYST_DEBUG("Visiting literal");
+
+    if (ctx->INTEGER_LITERAL()) {
+        int value = std::stoi(ctx->INTEGER_LITERAL()->getText());
+        return std::any(llvm::ConstantInt::get(typeRegistry.getIntType(32), value));
+    }
+    if (ctx->FLOAT_LITERAL()) {
+        double value = std::stod(ctx->FLOAT_LITERAL()->getText());
+        return std::any(llvm::ConstantFP::get(typeRegistry.getFloatType(), value));
+    }
+    if (ctx->BOOL_LITERAL()) {
+        bool value = ctx->BOOL_LITERAL()->getText() == "true";
+        return std::any(llvm::ConstantInt::get(typeRegistry.getBoolType(), value));
+    }
+    if (ctx->STRING_LITERAL()) {
+        std::string str = ctx->STRING_LITERAL()->getText();
+        str = str.substr(1, str.length() - 2); // Remove quotes
+        return std::any(builder->CreateGlobalString(str));
+    }
+    if (ctx->NULL_()) {
+        return std::any(llvm::Constant::getNullValue(typeRegistry.getOpaquePointerType(*context)));
+    }
+
+    PRYST_ERROR("Unknown literal type");
+    return std::any();
+}
+
+llvm::AllocaInst* LLVMCodegen::createEntryBlockAlloca(
+    llvm::Function* function, const std::string& varName, llvm::Type* type) {
+    llvm::IRBuilder<> tmpBuilder(&function->getEntryBlock(),
+                                function->getEntryBlock().begin());
+    return tmpBuilder.CreateAlloca(type, nullptr, varName);
+}
+
+} // namespace pryst

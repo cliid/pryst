@@ -37,16 +37,23 @@ set(ANTLR_SOURCES
     ${CMAKE_SOURCE_DIR}/src/codegen/builtin_functions.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/visitor_antlr.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/string_utils.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/string_builder.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/reflection_api.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_utils.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_metadata.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/llvm_utils.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/type_conversion.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/type_visitors.cpp
+    ${CMAKE_SOURCE_DIR}/src/codegen/visitor_methods.cpp
+    ${CMAKE_SOURCE_DIR}/src/diagnostic/ast_tracer.cpp
+    ${CMAKE_SOURCE_DIR}/src/diagnostic/diagnostic_visitor.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/semantic_analyzer.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/symbol_table.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/type_info.cpp
     ${CMAKE_SOURCE_DIR}/src/semantic/module_loader.cpp
-    ${CMAKE_SOURCE_DIR}/src/diagnostic/diagnostic_visitor.cpp
+    ${CMAKE_SOURCE_DIR}/src/semantic/type_registry.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logger.cpp
 )
 
 # Set RTTI flags based on file types
@@ -94,7 +101,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 add_definitions(${LLVM_DEFINITIONS})
-include_directories(${LLVM_INCLUDE_DIRS})
+include_directories(${LLVM_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/src)
+link_directories(${LLVM_LIBRARY_DIRS})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -113,6 +121,34 @@ else()
         "/usr/local/opt/antlr4-cpp-runtime"
     )
 endif()
+
+# Add custom command to generate ANTLR files
+add_custom_command(
+    OUTPUT
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.cpp
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.cpp
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.cpp
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.cpp
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.h
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.h
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.h
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.h
+    COMMAND
+        ${ANTLR4_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o ${CMAKE_SOURCE_DIR}/src/generated ${CMAKE_SOURCE_DIR}/Pryst.g4
+    DEPENDS
+        ${CMAKE_SOURCE_DIR}/Pryst.g4
+    COMMENT "Generating ANTLR parser files"
+)
+
+# Add custom target for parser generation
+add_custom_target(
+    GenerateParser
+    DEPENDS
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.cpp
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.cpp
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.cpp
+        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.cpp
+)
 
 # Find ANTLR4 runtime in search paths
 foreach(base_path ${ANTLR4_SEARCH_PATHS})
@@ -137,6 +173,7 @@ link_directories(${ANTLR4_LIBRARY_DIR})
 # Verify ANTLR4 runtime library exists
 find_library(ANTLR4_RUNTIME_LIBRARY antlr4-runtime HINTS ${ANTLR4_LIBRARY_DIR})
 if(NOT ANTLR4_RUNTIME_LIBRARY)
+include_directories(${CMAKE_SOURCE_DIR}/include)
     message(FATAL_ERROR "ANTLR4 runtime library not found. Please install or set ANTLR4_LIBRARY_DIR to the correct path.")
 endif()
 
@@ -146,83 +183,40 @@ if(NOT ANTLR4_EXECUTABLE)
     message(FATAL_ERROR "ANTLR4 executable not found. Please ensure it is installed and in your PATH.")
 endif()
 
-add_custom_command(
-    OUTPUT
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.h
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.h
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.h
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.h
-    COMMAND
-        ${ANTLR4_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o ${CMAKE_SOURCE_DIR}/src/generated ${CMAKE_SOURCE_DIR}/Pryst.g4
-    DEPENDS
-        ${CMAKE_SOURCE_DIR}/Pryst.g4
-)
-
 file(GLOB GENERATED_SRC
     "${CMAKE_SOURCE_DIR}/src/generated/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/generated/*.h"
 )
 
-add_custom_target(GenerateParser DEPENDS ${GENERATED_SRC})
+# Create executable target
+add_executable(pryst ${ANTLR_SOURCES})
 
-# Add source files
-set(SOURCES
-    ${LLVM_SOURCES}
-    ${ANTLR_SOURCES}
-)
-
-# Create executable
-add_executable(pryst ${SOURCES})
-
+# Add dependencies
 add_dependencies(pryst GenerateParser)
 
-target_sources(pryst PRIVATE ${SOURCES} ${GENERATED_SRC})
-
-# Set include directories for the target
-target_include_directories(pryst PRIVATE
-    include
-    src
-    src/generated
-    ${LLVM_INCLUDE_DIRS}
-    ${ANTLR4_INCLUDE_DIR}
+# Link against LLVM libraries
+llvm_map_components_to_libnames(llvm_libs
+    core
+    support
+    irreader
+    passes
+    target
+    executionengine
+    mcjit
+    native
+    option
+    bitwriter
+    analysis
+    transformutils
 )
 
-# Update LLVM libraries based on architecture
-llvm_map_components_to_libnames(LLVM_LIBS
-    Core Support native
-    MC MCParser MCDisassembler Object BitWriter Analysis CodeGen BitReader
-    OrcJIT MCJIT ExecutionEngine RuntimeDyld
-    AsmParser AsmPrinter Target TargetParser
-    Passes IPO TransformUtils
-    X86CodeGen X86AsmParser X86Desc X86Info X86TargetMCA
+# Link against required libraries
+target_link_libraries(pryst
+    ${ANTLR4_RUNTIME_LIBRARY}
+    ${llvm_libs}
 )
 
-# Add architecture-specific libraries based on target
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-    # X86 libraries already included above
-endif()
-
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-    list(REMOVE_ITEM LLVM_LIBS
-        X86CodeGen X86AsmParser X86Desc X86Info X86TargetMCA
-    )
-    list(APPEND LLVM_LIBS
-        AArch64CodeGen AArch64AsmParser AArch64Desc AArch64Info AArch64TargetMCA
-    )
-endif()
-
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
-    # list(APPEND LLVM_LIBS)
-endif()
-
-# target_link_libraries(jit_compiler PRIVATE ${LLVM_LIBS} antlr4-runtime)
-target_link_libraries(pryst PRIVATE ${LLVM_LIBS} antlr4-runtime)
-
-# Configuration summary
+# Print configuration summary
 message(STATUS "Configuration Summary:")
 message(STATUS "  C++ Compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "  LLVM Version: ${LLVM_PACKAGE_VERSION}")

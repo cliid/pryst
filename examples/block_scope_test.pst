@@ -1,0 +1,96 @@
+// Test block-level scoping with using declarations
+namespace test {
+    fn printHello() -> void {
+        print("Hello from test namespace");
+    }
+}
+
+namespace utils {
+    fn printWorld() -> void {
+        print("World from utils namespace");
+    }
+}
+
+fn test_variable_shadowing() -> void {
+    let x = 42;  // Outer scope
+    print(x);    // Should print 42
+
+    {
+        let x = "shadow";  // Inner scope shadows outer x
+        print(x);         // Should print "shadow"
+
+        {
+            let x = true;  // Deepest scope shadows both outer x's
+            print(x);     // Should print true
+        }
+
+        print(x);         // Should print "shadow" again
+    }
+
+    print(x);    // Should print 42 again
+}
+
+fn test_block_scope_inheritance() -> void {
+    let a = 1;
+    {
+        let b = 2;
+        print(a);  // Can access outer scope
+        {
+            let c = 3;
+            print(a);  // Can access outermost scope
+            print(b);  // Can access middle scope
+            print(c);  // Can access current scope
+        }
+        // c is not accessible here
+    }
+    // b is not accessible here
+}
+
+fn main() -> void {
+    // Test block-level using declaration
+    {
+        using namespace test;
+        printHello();  // Should work without qualification
+    }
+
+    // This should fail as using declaration was block-scoped
+    // printHello();  // Uncomment to verify error
+
+    {
+        using namespace utils;
+        printWorld();  // Should work without qualification
+    }
+
+    // Test variable shadowing
+    test_variable_shadowing();
+
+    // Test block scope inheritance
+    test_block_scope_inheritance();
+
+    // Test nested functions with updated syntax
+    let printMessage = fn() -> void {
+        let message = "outer";
+        {
+            let message = "inner";
+            print(message);  // Should print "inner"
+        }
+        print(message);      // Should print "outer"
+    };
+    printMessage();
+
+    // Test block-level module usage
+    {
+        using module pryst::web;
+        // host();  // Uncomment when web module is implemented
+    }
+
+    // Test const shadowing in blocks
+    const MAGIC = 42;
+    {
+        const MAGIC = 7;  // Shadows outer MAGIC
+        print(MAGIC);     // Should print 7
+    }
+    print(MAGIC);         // Should print 42
+
+    return;
+}
