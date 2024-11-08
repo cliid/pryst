@@ -4,8 +4,9 @@
 
 namespace pryst {
 
-// Global type conversion function
-llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& context) {
+namespace {
+// Internal helper function
+llvm::Type* getLLVMTypeFromTypeInfoImpl(TypeInfoPtr typeInfo, llvm::LLVMContext& context) {
     if (!typeInfo) {
         throw std::runtime_error("Invalid type info");
     }
@@ -38,5 +39,12 @@ llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& con
             throw std::runtime_error("Unknown type kind");
     }
 }
+} // anonymous namespace
 
+llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) {
+    if (!typeInfo) {
+        throw std::runtime_error("Invalid type info");
+    }
+    return getLLVMTypeFromTypeInfoImpl(typeInfo, module->getContext());
+}
 } // namespace pryst
