@@ -1,0 +1,42 @@
+// Test edge cases for module system
+
+// Test circular dependency
+namespace pryst::test::circular {
+    module a {
+        import pryst::test::circular::b;
+        fn getValueA() -> int {
+            return b::getValueB() + 1;
+        }
+    }
+
+    module b {
+        import pryst::test::circular::a;
+        fn getValueB() -> int {
+            return a::getValueA() + 1;
+        }
+    }
+}
+
+// Test ambiguous imports
+namespace pryst::math {
+    module operations {
+        fn add(int a, int b) -> int { return a + b; }
+    }
+}
+
+namespace utils::math {
+    module operations {
+        fn add(int a, int b) -> int { return a + b; }
+    }
+}
+
+fn testAmbiguousImports() -> void {
+    import pryst::math::operations;
+    import utils::math::operations;  // Should cause error
+
+    int result = add(5, 3);  // Should fail due to ambiguous reference
+}
+
+fn main() -> void {
+    testAmbiguousImports();
+}
