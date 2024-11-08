@@ -1,8 +1,9 @@
-#include "llvm_codegen.hpp"
-#include "type_registry.hpp"
+#include "reflection_api.hpp"
+#include "type_utils.hpp"
 #include "type_metadata.hpp"
+#include "type_registry.hpp"
 #include "../utils/debug.hpp"
-#include <stdexcept>
+#include <llvm/IR/Constants.h>
 #include <memory>
 
 namespace pryst {
@@ -12,7 +13,7 @@ llvm::Value* LLVMCodegen::generateGetType(llvm::Value* value) {
     PRYST_DEBUG("Generating getType() call");
 
     // Get type info from type registry
-    auto typeInfo = typeMetadata->getTypeInfo(value);
+    auto typeInfo = getTypeInfo(value);
     if (!typeInfo) {
         PRYST_ERROR("No type info found for value");
         return nullptr;
@@ -33,7 +34,7 @@ llvm::Value* LLVMCodegen::generateIsInstance(llvm::Value* value, const std::stri
     auto valueTypeInfo = typeMetadata->getTypeInfo(value);
     if (!valueTypeInfo) {
         PRYST_ERROR("No type info found for value");
-        return llvm::ConstantInt::getFalse(module->getContext());
+        return llvm::ConstantInt::getFalse(getModule()->getContext());
     }
 
     // Get the target type info from registry
@@ -50,15 +51,15 @@ llvm::Value* LLVMCodegen::generateIsInstance(llvm::Value* value, const std::stri
 }
 
 // Get type information from TypeRegistry and TypeMetadata
-TypeInfoPtr LLVMCodegen::getTypeInfo(llvm::Value* value) {
+pryst::TypeInfoPtr LLVMCodegen::getTypeInfo(llvm::Value* value) {
     if (!value) return nullptr;
-    return typeMetadata->getTypeInfo(value);
+    return typeMetadata.getTypeInfo(value);
 }
 
 // Attach type information using TypeRegistry and TypeMetadata
-void LLVMCodegen::attachTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo) {
+void LLVMCodegen::attachTypeInfo(llvm::Value* value, pryst::TypeInfoPtr typeInfo) {
     if (!value || !typeInfo) return;
-    typeMetadata->addTypeInfo(value, typeInfo);
+    typeMetadata.addTypeInfo(value, typeInfo);
 }
 
 } // namespace pryst

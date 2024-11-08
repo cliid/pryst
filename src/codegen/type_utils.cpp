@@ -1,4 +1,4 @@
-#include "llvm_codegen.hpp"
+#include "type_utils.hpp"
 #include "type_metadata.hpp"
 #include <llvm/IR/DerivedTypes.h>
 
@@ -47,5 +47,4 @@ llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) {
     }
     return getLLVMTypeFromTypeInfoImpl(typeInfo, module->getContext());
 }
-
 } // namespace pryst

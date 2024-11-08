@@ -3,6 +3,9 @@
 #include "../generated/PrystBaseVisitor.h"
 #include "../generated/PrystParser.h"
 #include "type_registry.hpp"
+#include "type_metadata.hpp"
+#include "type_utils.hpp"
+#include "reflection_api.hpp"
 #include "class_info.hpp"
 #include "string_interpolation.hpp"
 #include "type_metadata.hpp"
@@ -21,7 +24,7 @@
 
 namespace pryst {
 
-class LLVMCodegen : public PrystBaseVisitor {
+class LLVMCodegen : public PrystBaseVisitor, public ReflectionAPI {
 public:
     LLVMCodegen() : context(std::make_unique<llvm::LLVMContext>()) {
         module = std::make_unique<llvm::Module>("pryst", *context);
@@ -53,6 +56,25 @@ public:
     }
 
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* ctx);
+
+    // Getter methods for private members
+    llvm::LLVMContext* getContext() const { return context.get(); }
+    llvm::Module* getModule() const { return module.get(); }
+    llvm::IRBuilder<>* getBuilder() const { return builder.get(); }
+    LLVMTypeRegistry& getTypeRegistry() const { return *typeRegistry; }
+    void registerFunction(const std::string& name, llvm::Function* func) {
+        module->getOrInsertFunction(name, func->getFunctionType());
+    }
+
+    // Type system methods
+    llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo);
+    llvm::Type* getPointerType(llvm::Type* elementType);
+
+    // Reflection API methods (implementing ReflectionAPI interface)
+    llvm::Value* generateGetType(llvm::Value* value) override;
+    llvm::Value* generateIsInstance(llvm::Value* value, const std::string& typeName) override;
+    TypeInfoPtr getTypeInfo(llvm::Value* value) override;
+    void attachTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo) override;
 
     // Program structure and declarations
     std::any visitProgram(PrystParser::ProgramContext *ctx) override;
@@ -145,5 +167,4 @@ private:
     llvm::Function* currentFunction;
     std::unique_ptr<TypeMetadata> typeMetadata;
 };
-
 } // namespace pryst

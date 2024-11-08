@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "../utils/debug.hpp"
 #include "../codegen/type_registry.hpp"
+#include "llvm_codegen.hpp"
 
 namespace pryst {
 
@@ -16,14 +17,15 @@ namespace pryst {
 class StringBuilder {
 public:
     /**
-     * Constructor initializes the StringBuilder with LLVM context and required dependencies.
-     * @param context LLVM context reference
-     * @param builder LLVM IR builder pointer
-     * @param module LLVM module pointer
-     * @param typeRegistry Type registry for managing LLVM types
+     * Constructor initializes the StringBuilder with LLVM codegen instance.
+     * @param codegen LLVMCodegen instance for LLVM operations
      */
-    StringBuilder(llvm::LLVMContext& context, llvm::IRBuilder<>* builder, llvm::Module* module, LLVMTypeRegistry& typeRegistry)
-        : context(context), builder(builder), module(module), typeRegistry(typeRegistry) {
+    StringBuilder(LLVMCodegen* codegen)
+        : codegen(codegen),
+          context(*codegen->getContext()),
+          builder(codegen->getBuilder()),
+          module(codegen->getModule()),
+          typeRegistry(codegen->getTypeRegistry()) {
         // Initialize string builder functions
         initializeStringFunctions();
     }
@@ -63,6 +65,7 @@ private:
      */
     void initializeStringFunctions();
 
+    LLVMCodegen* codegen;
     llvm::LLVMContext& context;
     llvm::IRBuilder<>* builder;
     llvm::Module* module;
