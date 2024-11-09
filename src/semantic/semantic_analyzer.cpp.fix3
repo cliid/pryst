@@ -1,6 +1,0 @@
-try {
-    // ... existing code ...
-} catch (const std::exception& ex) {
-    PRYST_ERROR("Error in getExpressionType: " + std::string(ex.what()));
-    return "error";
-}
