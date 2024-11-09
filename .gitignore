@@ -2,3 +2,15 @@ build
 .cache
 .antlr
 antlr4-runtime
+
+# ANTLR generated files
+src/generated/*.interp
+src/generated/*.tokens
+src/generated/*Lexer.cpp
+src/generated/*Lexer.h
+src/generated/*Parser.cpp
+src/generated/*Parser.h
+src/generated/*Visitor.cpp
+src/generated/*Visitor.h
+src/generated/*BaseVisitor.cpp
+src/generated/*BaseVisitor.h
