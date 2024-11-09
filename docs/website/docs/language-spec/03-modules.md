@@ -107,35 +107,33 @@ using namespace math;
 let root = sqrt(16.0);
 ```
 
-## Module Interface Files
+## Module Interfaces
 
-Interface files (`.psti`) define the public API of a module:
+Interfaces in Pryst are defined within regular module files:
 
 ```pryst
-// math.psti - interface file
+// math.pst
 module math {
-    // Public interface declarations
-    fn sqrt(float x) -> float;
-    fn pow(float base, float exp) -> float;
-
-    // Forward declarations are allowed in interfaces
-    declare fn complexCalculation(float x) -> float;
-}
-
-// math.pst - implementation
-module math {
-    // Implementation details
-    fn sqrt(float x) -> float {
-        // Implementation
+    // Interface definition
+    interface MathOperations {
+        fn sqrt(float x) -> float;
+        fn pow(float base, float exp) -> float;
+        fn complexCalculation(float x) -> float;
     }
 
-    fn pow(float base, float exp) -> float {
-        // Implementation
-    }
+    // Implementation
+    class MathImpl : MathOperations {
+        fn sqrt(float x) -> float {
+            // Implementation
+        }
 
-    // Must implement all interface declarations
-    fn complexCalculation(float x) -> float {
-        // Implementation
+        fn pow(float base, float exp) -> float {
+            // Implementation
+        }
+
+        fn complexCalculation(float x) -> float {
+            // Implementation
+        }
     }
 
     // Private function (not in interface)
@@ -149,10 +147,16 @@ module math {
 When importing modules, Pryst enforces strict type checking:
 
 ```pryst
-// graphics.psti
+// graphics.pst
 module graphics {
-    class Color {
+    interface ColorInterface {
         fn toString() -> str;
+    }
+
+    class Color : ColorInterface {
+        fn toString() -> str {
+            // Implementation
+        }
     }
 }
 
@@ -169,24 +173,31 @@ str description = color.toString();  // Type checked against interface
 Forward declarations can span module boundaries:
 
 ```pryst
-// parser.psti
+// parser.pst
 module parser {
-    declare fn parse(str input) -> ast::Node;
+    interface ASTParser {
+        fn parse(str input) -> ast::Node;
+    }
+
+    // Forward declaration of dependency
+    declare module ast {
+        class Node;
+    }
 }
 
-// ast.psti
+// ast.pst
 module ast {
     class Node {
         // Node implementation
     }
 }
 
-// parser.pst
-import ast;
-
+// parser implementation
 module parser {
-    fn parse(str input) -> ast::Node {
-        // Implementation using ast::Node
+    class ParserImpl : ASTParser {
+        fn parse(str input) -> ast::Node {
+            // Implementation using ast::Node
+        }
     }
 }
 ```
@@ -195,12 +206,12 @@ module parser {
 
 1. **Import Resolution**
    - Modules are resolved relative to the project root
-   - Interface files must match implementation files
+   - Classes implementing interfaces must satisfy all interface requirements
    - Circular dependencies are not allowed
 
 2. **Type Visibility**
-   - Types declared in interfaces are public
-   - Implementation-only types are private
+   - Interface declarations are always public
+   - Implementation classes can be public or private
    - Forward declarations must be resolved within the module system
 
 3. **Implementation Requirements**
