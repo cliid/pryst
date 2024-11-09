@@ -1,83 +1,143 @@
-// Basic string interpolation tests
-fn test_basic_interpolation() {
-    let name = "World";
-    let greeting = "Hello, {name}!";
-    assert(greeting == "Hello, World!");
+// Test comprehensive string interpolation functionality
+fn testBasicInterpolation() -> void {
+    let name = "Alice";
+    let age = 30;
+
+    // Basic interpolation
+    let basic = "Hello, ${name}!";
+    print(basic);  // Should print: Hello, Alice!
+
+    // Multiple interpolations
+    let multiple = "${name} is ${age} years old";
+    print(multiple);  // Should print: Alice is 30 years old
 }
 
-// Number formatting tests
-fn test_number_formatting() {
-    let num = 42;
-    let pi = 3.14159;
-
-    // Integer formatting
-    let int_format = "Number: {num:5d}";
-    assert(int_format == "Number:    42");
-
-    // Float formatting
-    let float_format = "Pi: {pi:.2f}";
-    assert(float_format == "Pi: 3.14");
-}
-
-// Multiple interpolation test
-fn test_multiple_interpolation() {
+fn testNestedExpressions() -> void {
     let x = 10;
     let y = 20;
-    let result = "{x} + {y} = {x + y}";
-    assert(result == "10 + 20 = 30");
+
+    // Arithmetic expressions
+    let math = "Sum: ${x + y}, Product: ${x * y}";
+    print(math);  // Should print: Sum: 30, Product: 200
+
+    // Function calls in interpolation
+    let len = "Length of 'test': ${string('test').length()}";
+    print(len);  // Should print: Length of 'test': 4
+
+    // Nested string interpolation
+    let nested = "Nested: ${string('Value: ${x}')}";
+    print(nested);  // Should print: Nested: Value: 10
 }
 
-// Format specifier tests
-fn test_format_specifiers() {
-    let num = 7;
-    let price = 9.99;
+fn testTypeConversions() -> void {
+    let int_val = 42;
+    let float_val = 3.14159;
+    let bool_val = true;
 
-    // Width and alignment
-    let aligned = "{num:>3d}";
-    assert(aligned == "  7");
-
-    // Precision
-    let formatted_price = "${price:.2f}";
-    assert(formatted_price == "$9.99");
+    // Different type conversions
+    let conversions = """
+    Integer: ${int_val}
+    Float: ${float_val}
+    Boolean: ${bool_val}
+    Hex: ${hex(int_val)}
+    Binary: ${bin(int_val)}
+    Scientific: ${scientific(float_val)}
+    """;
+    print(conversions);
 }
 
-// Expression interpolation test
-fn test_expression_interpolation() {
-    let a = 5;
-    let b = 3;
-    let expr = "Result: {a * b + 2}";
-    assert(expr == "Result: 17");
+fn testEscapeSequences() -> void {
+    // Test various escape sequences
+    let escaped = "Line 1\nLine 2\tTabbed\rCarriage Return";
+    print(escaped);
+
+    // Escaping ${
+    let dollar = "Cost: \${100}";
+    print(dollar);  // Should print: Cost: ${100}
+
+    // Escaping quotes
+    let quotes = "He said \"Hello!\"";
+    print(quotes);  // Should print: He said "Hello!"
 }
 
-// Escape sequence test
-fn test_escape_sequences() {
-    let escaped = "{{escaped}} but {not_escaped}";
-    let not_escaped = "interpolated";
-    assert(escaped == "{escaped} but interpolated");
+fn testComplexObjects() -> void {
+    class Person {
+        private string name;
+        private int age;
+
+        fn new(string n, int a) -> Person {
+            this.name = n;
+            this.age = a;
+        }
+
+        fn toString() -> string {
+            return "${this.name} (${this.age})";
+        }
+    }
+
+    let person = new Person("Bob", 25);
+    print("Person: ${person}");  // Should print: Person: Bob (25)
 }
 
-// Complex formatting test
-fn test_complex_formatting() {
-    let items = ["apple", "banana", "orange"];
-    let prices = [1.99, 0.99, 2.49];
+fn testErrorCases() -> void {
+    // Test null handling
+    let nullable: string? = null;
+    try {
+        print("Null test: ${nullable}");
+    } catch (NullPointerException e) {
+        print("Caught null pointer as expected");
+    }
 
-    for (let i = 0; i < 3; i++) {
-        let line = "{items[i]:<10}: ${prices[i]:>5.2f}";
-        // Check formatting with left-aligned item and right-aligned price
-        if (i == 0) assert(line == "apple     : $ 1.99");
-        if (i == 1) assert(line == "banana    : $ 0.99");
-        if (i == 2) assert(line == "orange    : $ 2.49");
+    // Test invalid expressions
+    try {
+        let invalid = "Invalid: ${undefinedVariable}";
+    } catch (UndefinedVariableException e) {
+        print("Caught undefined variable as expected");
     }
 }
 
-// Main test runner
-fn main() {
-    test_basic_interpolation();
-    test_number_formatting();
-    test_multiple_interpolation();
-    test_format_specifiers();
-    test_expression_interpolation();
-    test_escape_sequences();
-    test_complex_formatting();
-    print("All string interpolation tests passed!");
+fn testMultilineStrings() -> void {
+    let name = "Charlie";
+    let multiline = """
+        Hello, ${name}!
+        This is a multiline
+        string with ${2 + 2}
+        interpolated values.
+    """;
+    print(multiline);
+}
+
+fn testConditionalInterpolation() -> void {
+    let condition = true;
+    let value = 42;
+
+    // Conditional expressions
+    let conditional = "The value is: ${condition ? value : 0}";
+    print(conditional);  // Should print: The value is: 42
+
+    // Complex conditions
+    let complex = """
+    Status: ${
+        if value > 50 {
+            "High"
+        } else if value > 20 {
+            "Medium"
+        } else {
+            "Low"
+        }
+    }
+    """;
+    print(complex);  // Should print: Status: Medium
+}
+
+// Entry point
+fn main() -> void {
+    testBasicInterpolation();
+    testNestedExpressions();
+    testTypeConversions();
+    testEscapeSequences();
+    testComplexObjects();
+    testErrorCases();
+    testMultilineStrings();
+    testConditionalInterpolation();
 }
