@@ -18,8 +18,8 @@ llvm::Function* LLVMCodegen::declareToString() {
     if (auto* existingFunc = functions_["toString"]) return existingFunc;
 
     // Create function type for toString(value: any) -> string
-    auto strType = typeRegistry_->getStrType();
-    auto llvmStrType = typeRegistry_->getLLVMType(strType);
+    auto llvmStrType = typeRegistry_->getStrType();
+    TypeInfoPtr strTypeInfo = typeRegistry_->lookupType("string");
     std::vector<llvm::Type*> toStrArgs;
     toStrArgs.push_back(llvmStrType);  // Generic type for any value
 
@@ -68,14 +68,18 @@ llvm::Function* LLVMCodegen::declareToString() {
     llvm::FunctionCallee sprintfCallee = module_->getOrInsertFunction("sprintf", sprintfType);
 
     // Convert based on type info from our type system
-    auto valueTypeInfo = typeMetadata_->getTypeInfo(value);
+    TypeInfoPtr valueTypeInfo = typeMetadata_->getTypeInfo(value);
+    TypeInfoPtr intTypeInfo = typeRegistry_->lookupType("int");
+    TypeInfoPtr floatTypeInfo = typeRegistry_->lookupType("float");
+    TypeInfoPtr boolTypeInfo = typeRegistry_->lookupType("bool");
+
     if (!valueTypeInfo) {
         builder_->CreateBr(defaultCase);
-    } else if (valueTypeInfo == typeRegistry_->getIntType()) {
+    } else if (valueTypeInfo->getKind() == intTypeInfo->getKind()) {
         builder_->CreateBr(intCase);
-    } else if (valueTypeInfo == typeRegistry_->getFloatType()) {
+    } else if (valueTypeInfo->getKind() == floatTypeInfo->getKind()) {
         builder_->CreateBr(floatCase);
-    } else if (valueTypeInfo == typeRegistry_->getBoolType()) {
+    } else if (valueTypeInfo->getKind() == boolTypeInfo->getKind()) {
         builder_->CreateBr(boolCase);
     } else {
         builder_->CreateBr(defaultCase);
@@ -83,10 +87,13 @@ llvm::Function* LLVMCodegen::declareToString() {
 
     // Int case: Convert int to string
     builder_->SetInsertPoint(intCase);
-    auto charPtrTy = typeRegistry_->getOpaquePointerType();
+    auto charPtrTy = typeRegistry_->getPointerType();
     auto* intFormat = builder_->CreateGlobalString("%d", "int_format");
     auto* intFormatPtr = builder_->CreateBitCast(intFormat, charPtrTy);
-    std::vector<llvm::Value*> intCallArgs = {buffer, intFormatPtr, value};
+    std::vector<llvm::Value*> intCallArgs;
+    intCallArgs.push_back(buffer);
+    intCallArgs.push_back(intFormatPtr);
+    intCallArgs.push_back(value);
     builder_->CreateCall(sprintfCallee, llvm::ArrayRef<llvm::Value*>(intCallArgs));
     builder_->CreateRet(buffer);
 
@@ -94,7 +101,10 @@ llvm::Function* LLVMCodegen::declareToString() {
     builder_->SetInsertPoint(floatCase);
     auto* floatFormat = builder_->CreateGlobalString("%.6f", "float_format");
     auto* floatFormatPtr = builder_->CreateBitCast(floatFormat, charPtrTy);
-    std::vector<llvm::Value*> floatCallArgs = {buffer, floatFormatPtr, value};
+    std::vector<llvm::Value*> floatCallArgs;
+    floatCallArgs.push_back(buffer);
+    floatCallArgs.push_back(floatFormatPtr);
+    floatCallArgs.push_back(value);
     builder_->CreateCall(sprintfCallee, llvm::ArrayRef<llvm::Value*>(floatCallArgs));
     builder_->CreateRet(buffer);
 
@@ -106,7 +116,10 @@ llvm::Function* LLVMCodegen::declareToString() {
     auto* boolFormatPtr = builder_->CreateBitCast(boolFormat, charPtrTy);
     auto* selectedStr = builder_->CreateSelect(value, trueStr, falseStr, "bool_str");
     auto* selectedStrPtr = builder_->CreateBitCast(selectedStr, charPtrTy);
-    std::vector<llvm::Value*> boolCallArgs = {buffer, boolFormatPtr, selectedStrPtr};
+    std::vector<llvm::Value*> boolCallArgs;
+    boolCallArgs.push_back(buffer);
+    boolCallArgs.push_back(boolFormatPtr);
+    boolCallArgs.push_back(selectedStrPtr);
     builder_->CreateCall(sprintfCallee, llvm::ArrayRef<llvm::Value*>(boolCallArgs));
     builder_->CreateRet(buffer);
 
@@ -125,18 +138,14 @@ llvm::Function* LLVMCodegen::declareToInt() {
     if (auto* existingFunc = functions_["toInt"]) return existingFunc;
 
     // Create function type for toInt(value: any) -> int
-    auto strType = typeRegistry_->getStrType();
-    auto llvmStrType = typeRegistry_->getLLVMType(strType);
-    std::vector<llvm::Type*> toIntArgs = {
-        llvmStrType  // Generic type for any value
-    };
+    auto llvmStrType = typeRegistry_->getStrType();
+    TypeInfoPtr strTypeInfo = typeRegistry_->lookupType("string");
+    std::vector<llvm::Type*> toIntArgs;
+    toIntArgs.push_back(llvmStrType);  // Generic type for any value
     auto* toIntType = llvm::FunctionType::get(
-        llvm::Type::getInt32Ty(*context_),  // Return type (int)
-        toIntArgs,
-        false
-    );
+        typeRegistry_->getIntType(), toIntArgs, false);
 
-    // Create function
+    // Create the function
     auto* toIntFunc = llvm::Function::Create(
         toIntType,
         llvm::Function::ExternalLinkage,
@@ -144,26 +153,30 @@ llvm::Function* LLVMCodegen::declareToInt() {
         module_.get()
     );
 
-    // Create blocks
+    // Set up basic blocks for different type conversions
     auto* entry = llvm::BasicBlock::Create(*context_, "entry", toIntFunc);
-    auto* strCase = llvm::BasicBlock::Create(*context_, "str_case", toIntFunc);
-    auto* floatCase = llvm::BasicBlock::Create(*context_, "float_case", toIntFunc);
-    auto* boolCase = llvm::BasicBlock::Create(*context_, "bool_case", toIntFunc);
-    auto* defaultCase = llvm::BasicBlock::Create(*context_, "default_case", toIntFunc);
+    auto* strCase = llvm::BasicBlock::Create(*context_, "strCase", toIntFunc);
+    auto* floatCase = llvm::BasicBlock::Create(*context_, "floatCase", toIntFunc);
+    auto* boolCase = llvm::BasicBlock::Create(*context_, "boolCase", toIntFunc);
+    auto* defaultCase = llvm::BasicBlock::Create(*context_, "defaultCase", toIntFunc);
+    auto* endBlock = llvm::BasicBlock::Create(*context_, "endBlock", toIntFunc);
 
     // Entry block: Check value type
     builder_->SetInsertPoint(entry);
     auto* value = toIntFunc->arg_begin();
 
     // Convert based on type info from our type system
-    auto valueTypeInfo = typeMetadata_->getTypeInfo(value);
+    TypeInfoPtr valueTypeInfo = typeMetadata_->getTypeInfo(value);
+    TypeInfoPtr floatTypeInfo = typeRegistry_->lookupType("float");
+    TypeInfoPtr boolTypeInfo = typeRegistry_->lookupType("bool");
+
     if (!valueTypeInfo) {
         builder_->CreateBr(defaultCase);
-    } else if (valueTypeInfo == typeRegistry_->getStrType()) {
+    } else if (valueTypeInfo->getKind() == strTypeInfo->getKind()) {
         builder_->CreateBr(strCase);
-    } else if (valueTypeInfo == typeRegistry_->getFloatType()) {
+    } else if (valueTypeInfo->getKind() == floatTypeInfo->getKind()) {
         builder_->CreateBr(floatCase);
-    } else if (valueTypeInfo == typeRegistry_->getBoolType()) {
+    } else if (valueTypeInfo->getKind() == boolTypeInfo->getKind()) {
         builder_->CreateBr(boolCase);
     } else {
         builder_->CreateBr(defaultCase);
@@ -171,31 +184,40 @@ llvm::Function* LLVMCodegen::declareToInt() {
 
     // String case: Convert string to int using atoi
     builder_->SetInsertPoint(strCase);
-    std::vector<llvm::Type*> atoiArgs = {
-        llvmStrType  // str
-    };
+    std::vector<llvm::Type*> atoiArgs;
+    atoiArgs.push_back(llvmStrType);  // str
     auto* atoiType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(*context_),
         atoiArgs,
         false
     );
     llvm::FunctionCallee atoiCallee = module_->getOrInsertFunction("atoi", atoiType);
-    auto* intVal = builder_->CreateCall(atoiCallee, {value}, "int_val");
-    builder_->CreateRet(intVal);
+    llvm::Value* atoiArgsArray[] = {value};
+    auto* intVal = builder_->CreateCall(atoiCallee, llvm::ArrayRef<llvm::Value*>(atoiArgsArray, 1), "int_val");
+    builder_->CreateBr(endBlock);  // Branch to end block instead of returning
 
     // Float case: Convert float to int by truncation
     builder_->SetInsertPoint(floatCase);
     auto* intVal2 = builder_->CreateFPToSI(value, llvm::Type::getInt32Ty(*context_), "int_val");
-    builder_->CreateRet(intVal2);
+    builder_->CreateBr(endBlock);  // Branch to end block instead of returning
 
     // Bool case: Convert bool to int (true = 1, false = 0)
     builder_->SetInsertPoint(boolCase);
     auto* intVal3 = builder_->CreateZExt(value, llvm::Type::getInt32Ty(*context_), "int_val");
-    builder_->CreateRet(intVal3);
+    builder_->CreateBr(endBlock);  // Branch to end block instead of returning
 
     // Default case: Return 0
     builder_->SetInsertPoint(defaultCase);
-    builder_->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context_), 0));
+    builder_->CreateBr(endBlock);  // Branch to end block instead of returning
+
+    // End block: Use PHI node to select the right value
+    builder_->SetInsertPoint(endBlock);
+    auto* phi = builder_->CreatePHI(typeRegistry_->getIntType(), 4, "result");
+    phi->addIncoming(intVal, strCase);
+    phi->addIncoming(intVal2, floatCase);
+    phi->addIncoming(intVal3, boolCase);
+    phi->addIncoming(llvm::ConstantInt::get(typeRegistry_->getIntType(), 0), defaultCase);
+    builder_->CreateRet(phi);
 
     functions_["toInt"] = toIntFunc;
     return toIntFunc;
@@ -206,13 +228,12 @@ llvm::Function* LLVMCodegen::declareToFloat() {
     if (auto* existingFunc = functions_["toFloat"]) return existingFunc;
 
     // Create function type for toFloat(value: any) -> float
-    auto strType = typeRegistry_->getStrType();
-    auto llvmStrType = typeRegistry_->getLLVMType(strType);
-    std::vector<llvm::Type*> toFloatArgs = {
-        llvmStrType  // Generic type for any value
-    };
+    auto llvmStrType = typeRegistry_->getStrType();
+    TypeInfoPtr strTypeInfo = typeRegistry_->lookupType("string");
+    std::vector<llvm::Type*> toFloatArgs;
+    toFloatArgs.push_back(llvmStrType);  // Generic type for any value
     auto* toFloatType = llvm::FunctionType::get(
-        llvm::Type::getDoubleTy(*context_),  // Return type (float)
+        typeRegistry_->getFloatType(),  // Return type (float)
         toFloatArgs,
         false
     );
@@ -231,20 +252,24 @@ llvm::Function* LLVMCodegen::declareToFloat() {
     auto* intCase = llvm::BasicBlock::Create(*context_, "int_case", toFloatFunc);
     auto* boolCase = llvm::BasicBlock::Create(*context_, "bool_case", toFloatFunc);
     auto* defaultCase = llvm::BasicBlock::Create(*context_, "default_case", toFloatFunc);
+    auto* endBlock = llvm::BasicBlock::Create(*context_, "endBlock", toFloatFunc);
 
     // Entry block: Check value type
     builder_->SetInsertPoint(entry);
     auto* value = toFloatFunc->arg_begin();
 
     // Convert based on type info from our type system
-    auto valueTypeInfo = typeMetadata_->getTypeInfo(value);
+    TypeInfoPtr valueTypeInfo = typeMetadata_->getTypeInfo(value);
+    TypeInfoPtr intTypeInfo = typeRegistry_->lookupType("int");
+    TypeInfoPtr boolTypeInfo = typeRegistry_->lookupType("bool");
+
     if (!valueTypeInfo) {
         builder_->CreateBr(defaultCase);
-    } else if (valueTypeInfo == typeRegistry_->getStrType()) {
+    } else if (valueTypeInfo->getKind() == strTypeInfo->getKind()) {
         builder_->CreateBr(strCase);
-    } else if (valueTypeInfo == typeRegistry_->getIntType()) {
+    } else if (valueTypeInfo->getKind() == intTypeInfo->getKind()) {
         builder_->CreateBr(intCase);
-    } else if (valueTypeInfo == typeRegistry_->getBoolType()) {
+    } else if (valueTypeInfo->getKind() == boolTypeInfo->getKind()) {
         builder_->CreateBr(boolCase);
     } else {
         builder_->CreateBr(defaultCase);
@@ -252,34 +277,45 @@ llvm::Function* LLVMCodegen::declareToFloat() {
 
     // String case: Convert string to float using atof
     builder_->SetInsertPoint(strCase);
-    std::vector<llvm::Type*> atofArgs = {
-        llvmStrType  // str
-    };
+    std::vector<llvm::Type*> atofArgs;
+    atofArgs.push_back(llvmStrType);  // str
     auto* atofType = llvm::FunctionType::get(
-        llvm::Type::getDoubleTy(*context_),
+        typeRegistry_->getFloatType(),
         atofArgs,
         false
     );
     llvm::FunctionCallee atofCallee = module_->getOrInsertFunction("atof", atofType);
-    auto* floatVal = builder_->CreateCall(atofCallee, {value}, "float_val");
-    builder_->CreateRet(floatVal);
+    llvm::Value* atofArgsArray[] = {value};
+    auto* strFloatVal = builder_->CreateCall(atofCallee, llvm::ArrayRef<llvm::Value*>(atofArgsArray, 1), "float_val");
+    builder_->CreateBr(endBlock);
 
     // Int case: Convert int to float
     builder_->SetInsertPoint(intCase);
-    auto* floatVal2 = builder_->CreateSIToFP(value, llvm::Type::getDoubleTy(*context_), "float_val");
-    builder_->CreateRet(floatVal2);
+    auto* intFloatVal = builder_->CreateSIToFP(value, typeRegistry_->getFloatType(), "float_val");
+    builder_->CreateBr(endBlock);
 
     // Bool case: Convert bool to float (true = 1.0, false = 0.0)
     builder_->SetInsertPoint(boolCase);
     auto* intVal = builder_->CreateZExt(value, llvm::Type::getInt32Ty(*context_), "int_val");
-    auto* floatVal3 = builder_->CreateSIToFP(intVal, llvm::Type::getDoubleTy(*context_), "float_val");
-    builder_->CreateRet(floatVal3);
+    auto* boolFloatVal = builder_->CreateSIToFP(intVal, typeRegistry_->getFloatType(), "float_val");
+    builder_->CreateBr(endBlock);
 
     // Default case: Return 0.0
     builder_->SetInsertPoint(defaultCase);
-    builder_->CreateRet(llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), 0.0));
+    auto* defaultVal = llvm::ConstantFP::get(typeRegistry_->getFloatType(), 0.0);
+    builder_->CreateBr(endBlock);
+
+    // End block: Use PHI node to select the right value
+    builder_->SetInsertPoint(endBlock);
+    auto* phi = builder_->CreatePHI(typeRegistry_->getFloatType(), 4, "result");
+    phi->addIncoming(strFloatVal, strCase);
+    phi->addIncoming(intFloatVal, intCase);
+    phi->addIncoming(boolFloatVal, boolCase);
+    phi->addIncoming(defaultVal, defaultCase);
+    builder_->CreateRet(phi);
 
     functions_["toFloat"] = toFloatFunc;
     return toFloatFunc;
 }
-}
+
+} // namespace pryst
