@@ -1,0 +1,44 @@
+// Test basic type reflection
+class Animal {
+    name: string;
+    age: int;
+
+    fn getName() -> string {
+        return this.name;
+    }
+}
+
+class Dog extends Animal {
+    breed: string;
+
+    fn getBreed() -> string {
+        return this.breed;
+    }
+}
+
+fn main() -> void {
+    // Test basic type reflection
+    let animal = new Animal();
+    let dog = new Dog();
+
+    // Test type name retrieval
+    print(getType(animal)); // Should print "Animal"
+    print(getType(dog));    // Should print "Dog"
+
+    // Test instance checking
+    print(isInstance(animal, "Animal")); // Should print true
+    print(isInstance(dog, "Dog"));       // Should print true
+    print(isInstance(dog, "Animal"));    // Should print true (inheritance)
+    print(isInstance(animal, "Dog"));    // Should print false
+
+    // Test with primitive types
+    let num = 42;
+    let text = "Hello";
+    print(getType(num));   // Should print "int"
+    print(getType(text));  // Should print "string"
+
+    // Test with null values
+    let nullDog: Dog = null;
+    print(getType(nullDog));  // Should print "Dog"
+    print(isInstance(nullDog, "Dog"));    // Should handle null case
+}

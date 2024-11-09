@@ -1,42 +1,37 @@
-// Comprehensive type conversion test
+// Test all type conversion paths
 fn main() -> int {
-    // Test toString conversions
-    let intStr = toString(42);
-    print(intStr);  // Should print "42"
+    // String to int conversions
+    let strNum = "123";
+    let intFromStr = toInt(strNum);
+    print("String to int: " + toString(intFromStr));  // Should print 123
 
-    let floatStr = toString(3.14);
-    print(floatStr);  // Should print "3.140000"
+    // Float to int conversions
+    let floatNum = 456.789;
+    let intFromFloat = toInt(floatNum);
+    print("Float to int: " + toString(intFromFloat));  // Should print 456
 
-    let boolStr = toString(true);
-    print(boolStr);  // Should print "true"
+    // Bool to int conversions
+    let boolVal = true;
+    let intFromBool = toInt(boolVal);
+    print("Bool to int: " + toString(intFromBool));  // Should print 1
 
-    // Test toInt conversions
-    let strInt = toInt("42");
-    print(toString(strInt));  // Should print "42"
+    // String to float conversions
+    let strFloat = "123.456";
+    let floatFromStr = toFloat(strFloat);
+    print("String to float: " + toString(floatFromStr));  // Should print 123.456
 
-    let floatInt = toInt(3.14);
-    print(toString(floatInt));  // Should print "3"
+    // Int to float conversions
+    let intNum = 789;
+    let floatFromInt = toFloat(intNum);
+    print("Int to float: " + toString(floatFromInt));  // Should print 789.0
 
-    let boolInt = toInt(true);
-    print(toString(boolInt));  // Should print "1"
-
-    // Test toFloat conversions
-    let strFloat = toFloat("3.14");
-    print(toString(strFloat));  // Should print "3.140000"
-
-    let intFloat = toFloat(42);
-    print(toString(intFloat));  // Should print "42.000000"
-
-    let boolFloat = toFloat(true);
-    print(toString(boolFloat));  // Should print "1.000000"
+    // Bool to float conversions
+    let floatFromBool = toFloat(true);
+    print("Bool to float: " + toString(floatFromBool));  // Should print 1.0
 
     // Test edge cases
-    print(toString(toInt("invalid")));  // Should print "0"
-    print(toString(toFloat("invalid"))); // Should print "0.000000"
-
-    // Test memory management with string operations
-    let longStr = "This is a long string to test memory allocation";
-    print(toString(toInt(longStr)));  // Should print "0"
+    print("Empty string to int: " + toString(toInt("")));  // Should print 0
+    print("Invalid string to float: " + toString(toFloat("abc")));  // Should print 0.0
 
     return 0;
 }

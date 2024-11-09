@@ -45,7 +45,7 @@ llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) const {
     if (!typeInfo) {
         throw std::runtime_error("Invalid type info");
     }
-    return getLLVMTypeFromTypeInfoImpl(typeInfo, module->getContext());
+    return getLLVMTypeFromTypeInfoImpl(typeInfo, module_->getContext());
 }
 
 } // namespace pryst

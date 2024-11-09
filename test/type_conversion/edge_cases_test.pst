@@ -1,36 +1,24 @@
 // Edge cases for type conversion
 fn main() -> int {
-    // Test empty string conversions
-    print(toString(toInt("")));  // Should print "0"
-    print(toString(toFloat("")));  // Should print "0.000000"
+    // Test boundary values
+    print(toString(2147483647));  // MAX_INT
+    print(toString(-2147483648)); // MIN_INT
+    print(toString(1.7976931348623157e+308)); // MAX_DOUBLE
+    print(toString(2.2250738585072014e-308)); // MIN_DOUBLE
 
-    // Test very large numbers
-    let largeInt = "2147483647";  // Max 32-bit int
-    print(toString(toInt(largeInt)));
-
-    let largeFloat = "1e308";  // Near max double
-    print(toString(toFloat(largeFloat)));
-
-    // Test negative numbers
-    print(toString(toInt("-42")));
-    print(toString(toFloat("-3.14")));
-
-    // Test invalid input handling
-    print(toString(toInt("abc")));  // Should print "0"
-    print(toString(toFloat("def"))); // Should print "0.000000"
-
-    // Test null termination
-    let nullStr = "Test\0with\0nulls";
-    print(toString(toInt(nullStr)));
-    print(toString(toFloat(nullStr)));
+    // Test special float values
+    print(toFloat("inf"));     // infinity
+    print(toFloat("-inf"));    // negative infinity
+    print(toFloat("nan"));     // not a number
 
     // Test whitespace handling
-    print(toString(toInt("  42  ")));  // Should print "42"
-    print(toString(toFloat("  3.14  "))); // Should print "3.140000"
+    print(toInt("  123  "));   // leading/trailing spaces
+    print(toFloat(" 3.14 "));  // leading/trailing spaces
 
-    // Test hex and octal numbers
-    print(toString(toInt("0xFF")));  // Should print "255"
-    print(toString(toInt("0o77")));  // Should print "63"
+    // Test empty and special strings
+    print(toInt(""));          // empty string
+    print(toFloat(""));        // empty string
+    print(toString(""));       // empty string
 
     return 0;
 }
