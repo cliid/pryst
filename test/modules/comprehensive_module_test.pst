@@ -1,0 +1,40 @@
+// Comprehensive test for TypeScript-style module system
+namespace pryst::test {
+    module math {
+        fn add(int a, int b) -> int {
+            return a + b;
+        }
+
+        fn multiply(int a, int b) -> int {
+            return a * b;
+        }
+    }
+
+    module utils {
+        fn format(str template, int value) -> str {
+            return "{template}: {value}";
+        }
+    }
+}
+
+// Test nested imports
+import pryst::test::math;
+import pryst::test::utils;
+
+// Test block-level using declarations
+fn testBlockScoping() -> void {
+    {
+        using module pryst::test::math;
+        int result = add(5, multiply(3, 4));
+        print(utils::format("Result", result));
+    }
+
+    {
+        using module pryst::test::utils;
+        print(format("Direct access", 42));
+    }
+}
+
+fn main() -> void {
+    testBlockScoping();
+}
