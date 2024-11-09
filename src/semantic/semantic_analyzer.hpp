@@ -17,6 +17,7 @@ public:
 
     virtual std::any visitProgram(PrystParser::ProgramContext *ctx) override;
     virtual std::any visitFunctionDecl(PrystParser::FunctionDeclContext *ctx) override;
+    virtual std::any visitForwardDecl(PrystParser::ForwardDeclContext *ctx) override;
     virtual std::any visitImportDecl(PrystParser::ImportDeclContext *ctx) override;
 
 private:

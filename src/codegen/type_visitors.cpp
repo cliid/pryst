@@ -5,7 +5,7 @@
 
 namespace pryst {
 
-std::any LLVMCodegen::visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) {
+std::any LLVMCodegen::visitParenthesizedCast(PrystParser::ParenthesizedCastContext* ctx) {
     visit(ctx->expression());
     llvm::Value* value = lastValue;
     std::string targetTypeName = ctx->type()->getText();
@@ -30,7 +30,44 @@ std::any LLVMCodegen::visitTypeConversionExpr(PrystParser::TypeConversionExprCon
     TypeInfoPtr valueTypeInfo = registry.getTypeInfo(valueTypeName);
     TypeInfoPtr targetTypeInfo = registry.getTypeInfo(targetTypeName);
 
-    // Handle string conversions
+    if (valueTypeInfo && valueTypeInfo->getKind() == TypeKind::String) {
+        lastValue = convertFromString(value, targetType);
+    } else if (targetTypeInfo && targetTypeInfo->getKind() == TypeKind::String) {
+        lastValue = convertToString(value);
+    } else if (value->getType()->isIntegerTy() && targetType->isFloatingPointTy()) {
+        lastValue = builder->CreateSIToFP(value, targetType, "int2float");
+    } else if (value->getType()->isFloatingPointTy() && targetType->isIntegerTy()) {
+        lastValue = builder->CreateFPToSI(value, targetType, "float2int");
+    }
+
+    return {};
+}
+
+std::any LLVMCodegen::visitConstructorCast(PrystParser::ConstructorCastContext* ctx) {
+    visit(ctx->expression());
+    llvm::Value* value = lastValue;
+    std::string targetTypeName = ctx->type()->getText();
+    llvm::Type* targetType = getLLVMType(targetTypeName);
+
+    auto& registry = *typeRegistry;
+    std::string valueTypeName;
+    llvm::Type* valueType = value->getType();
+
+    if (valueType->isStructTy()) {
+        valueTypeName = valueType->getStructName().str();
+    } else if (valueType->isIntegerTy(1)) {
+        valueTypeName = "bool";
+    } else if (valueType->isIntegerTy(32)) {
+        valueTypeName = "int";
+    } else if (valueType->isDoubleTy()) {
+        valueTypeName = "float";
+    } else if (valueType->isPointerTy()) {
+        valueTypeName = "string";
+    }
+
+    TypeInfoPtr valueTypeInfo = registry.getTypeInfo(valueTypeName);
+    TypeInfoPtr targetTypeInfo = registry.getTypeInfo(targetTypeName);
+
     if (valueTypeInfo && valueTypeInfo->getKind() == TypeKind::String) {
         lastValue = convertFromString(value, targetType);
     } else if (targetTypeInfo && targetTypeInfo->getKind() == TypeKind::String) {

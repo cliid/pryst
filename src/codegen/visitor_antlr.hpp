@@ -1,13 +1,13 @@
 #pragma once
 
 #include "visitor_base.hpp"
-#include "../generated/PrystBaseVisitor.h"
+#include "../generated/PrystParserBaseVisitor.h"
 #include <any>
 #include <llvm/IR/Type.h>
 #include <unordered_map>
 #include <string>
 
-class VisitorANTLR : public PrystBaseVisitor, public VisitorBase {
+class VisitorANTLR : public PrystParserVisitor, public VisitorBase {
 public:
     VisitorANTLR() = default;
     virtual ~VisitorANTLR() = default;

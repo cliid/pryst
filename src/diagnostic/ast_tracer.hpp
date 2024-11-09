@@ -1,13 +1,13 @@
 #pragma once
 
 #include "antlr4-runtime.h"
-#include "../generated/PrystBaseVisitor.h"
+#include "../generated/PrystParserBaseVisitor.h"
 #include "../generated/PrystParser.h"
 #include <iostream>
 #include <string>
 #include <any>
 
-class ASTTracer : public PrystBaseVisitor {
+class ASTTracer : public PrystParserVisitor {
 public:
     virtual std::any visitProgram(PrystParser::ProgramContext* ctx) override;
     virtual std::any visitDeclaration(PrystParser::DeclarationContext* ctx) override;
@@ -29,9 +29,8 @@ public:
     virtual std::any visitPrimary(PrystParser::PrimaryContext* ctx) override;
     virtual std::any visitNamedFunction(PrystParser::NamedFunctionContext* ctx) override;
     virtual std::any visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx) override;
-    virtual std::any visitTypeCastExpr(PrystParser::TypeCastExprContext* ctx) override;
-    virtual std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) override;
-    virtual std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext* ctx) override;
+    virtual std::any visitParenthesizedCast(PrystParser::ParenthesizedCastContext* ctx) override;
+    virtual std::any visitConstructorCast(PrystParser::ConstructorCastContext* ctx) override;
     virtual std::any visitSimpleString(PrystParser::SimpleStringContext* ctx) override;
 
 private:

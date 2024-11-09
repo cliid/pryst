@@ -279,6 +279,19 @@ void SymbolTable::addFunction(const std::string& name, std::shared_ptr<FunctionI
     if (scopes.empty()) {
         throw std::runtime_error("No active scope");
     }
+
+    // Check if this is implementing a forward declaration
+    auto existingOverloads = getAllFunctionOverloads(name);
+    for (auto& existing : existingOverloads) {
+        if (existing->isForwardDeclaration &&
+            existing->returnType == funcInfo->returnType &&
+            existing->paramTypes == funcInfo->paramTypes) {
+            existing->isForwardDeclaration = false;
+            existing->isImplemented = true;
+            return;
+        }
+    }
+
     scopes.back()->functions[name].push_back(funcInfo);
 }
 
@@ -289,6 +302,8 @@ void SymbolTable::addFunction(const std::string& name, const std::string& return
     funcInfo->scopeLevel = static_cast<int>(getCurrentScopeLevel());
     funcInfo->isAnonymous = false;
     funcInfo->hasExplicitReturnType = true;
+    funcInfo->isForwardDeclaration = false;
+    funcInfo->isImplemented = true;
     addFunction(name, funcInfo);
 }
 
@@ -419,6 +434,100 @@ void SymbolTable::clearCurrentScopeFunctions() {
         scopes.back()->functions.clear();
         PRYST_DEBUG("Cleared functions in current scope");
     }
+}
+
+// Forward declaration and function reference methods
+void SymbolTable::addForwardDeclaration(const std::string& name, const std::string& returnType,
+                                      const std::vector<std::string>& paramTypes, const std::string& location) {
+    PRYST_DEBUG("Adding forward declaration for function: " + name);
+    auto funcInfo = std::make_shared<FunctionInfo>();
+    funcInfo->returnType = returnType;
+    funcInfo->paramTypes = paramTypes;
+    funcInfo->scopeLevel = static_cast<int>(getCurrentScopeLevel());
+    funcInfo->isAnonymous = false;
+    funcInfo->hasExplicitReturnType = true;
+    funcInfo->isForwardDeclaration = true;
+    funcInfo->isImplemented = false;
+    funcInfo->declarationLocation = location;
+    addFunction(name, funcInfo);
+}
+
+void SymbolTable::implementFunction(const std::string& name, const std::vector<std::string>& paramTypes) {
+    PRYST_DEBUG("Implementing previously declared function: " + name);
+    auto overloads = getAllFunctionOverloads(name);
+    for (auto& func : overloads) {
+        if (func->isForwardDeclaration && func->paramTypes == paramTypes) {
+            func->isForwardDeclaration = false;
+            func->isImplemented = true;
+            return;
+        }
+    }
+    throw std::runtime_error("No matching forward declaration found for function: " + name);
+}
+
+void SymbolTable::addFunctionReference(const std::string& caller, const std::string& callee) {
+    PRYST_DEBUG("Adding function reference: " + caller + " -> " + callee);
+    auto callerOverloads = getAllFunctionOverloads(caller);
+    if (callerOverloads.empty()) {
+        throw std::runtime_error("Caller function not found: " + caller);
+    }
+
+    // Add reference to the most recently added overload
+    auto& callerInfo = callerOverloads.back();
+    callerInfo->referencedFunctions.push_back(callee);
+}
+
+bool SymbolTable::validateFunctionReferences(const std::string& name, std::string& error) const {
+    PRYST_DEBUG("Validating function references for: " + name);
+    auto overloads = getAllFunctionOverloads(name);
+    if (overloads.empty()) {
+        error = "Function not found: " + name;
+        return false;
+    }
+
+    for (const auto& func : overloads) {
+        for (const auto& ref : func->referencedFunctions) {
+            auto refOverloads = getAllFunctionOverloads(ref);
+            if (refOverloads.empty()) {
+                error = "Referenced function not found: " + ref;
+                return false;
+            }
+
+            bool hasImplementation = false;
+            for (const auto& refFunc : refOverloads) {
+                if (refFunc->isImplemented) {
+                    hasImplementation = true;
+                    break;
+                }
+            }
+
+            if (!hasImplementation) {
+                error = "Referenced function has no implementation: " + ref;
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool SymbolTable::isForwardDeclared(const std::string& name) const {
+    auto overloads = getAllFunctionOverloads(name);
+    for (const auto& func : overloads) {
+        if (func->isForwardDeclaration) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SymbolTable::isImplemented(const std::string& name) const {
+    auto overloads = getAllFunctionOverloads(name);
+    for (const auto& func : overloads) {
+        if (func->isImplemented) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Class-related methods
