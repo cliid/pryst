@@ -1,24 +1,9 @@
 #include "diagnostic_visitor.hpp"
-#include "utils/debug.hpp"
+#include "../utils/logger.hpp"
 #include <sstream>
-#include <stdexcept>
 
-namespace pryst {
-
-DiagnosticVisitor::DiagnosticVisitor() : currentFunction(""), inLoop(false) {}
-
-std::any DiagnosticVisitor::visitProgram(PrystParser::ProgramContext* ctx) {
-    PRYST_DEBUG("Diagnosing program");
-    try {
-        for (auto decl : ctx->declaration()) {
-            visit(decl);
-        }
-        return nullptr;
-    } catch (const std::exception& ex) {
-        PRYST_ERROR("Error in program: " + std::string(ex.what()));
-        throw;
-    }
-}
+DiagnosticVisitor::DiagnosticVisitor(SymbolTable& symbolTable)
+    : symbolTable(symbolTable) {}
 
 std::any DiagnosticVisitor::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
     PRYST_DEBUG("Diagnosing function declaration");
@@ -45,7 +30,7 @@ std::any DiagnosticVisitor::visitFunctionDecl(PrystParser::FunctionDeclContext* 
         currentFunction.clear();
         return nullptr;
     } catch (const std::exception& ex) {
-        PRYST_ERROR("Error in function declaration: " + std::string(ex.what()));
+        reportError(ctx, "Error in function declaration: " + std::string(ex.what()));
         throw;
     }
 }
@@ -69,7 +54,7 @@ std::any DiagnosticVisitor::visitVariableDecl(PrystParser::VariableDeclContext* 
         symbolTable.addVariable(name, type);
         return nullptr;
     } catch (const std::exception& ex) {
-        PRYST_ERROR("Error in variable declaration: " + std::string(ex.what()));
+        reportError(ctx, "Error in variable declaration: " + std::string(ex.what()));
         throw;
     }
 }
@@ -122,7 +107,7 @@ std::any DiagnosticVisitor::visitBinary(PrystParser::BinaryContext* ctx) {
 
         throw std::runtime_error("Unknown binary operator: " + op);
     } catch (const std::exception& ex) {
-        PRYST_ERROR("Error in binary expression: " + std::string(ex.what()));
+        reportError(ctx, "Error in binary expression: " + std::string(ex.what()));
         throw;
     }
 }
@@ -151,7 +136,7 @@ std::any DiagnosticVisitor::visitUnary(PrystParser::UnaryContext* ctx) {
 
         throw std::runtime_error("Unknown unary operator: " + op);
     } catch (const std::exception& ex) {
-        PRYST_ERROR("Error in unary expression: " + std::string(ex.what()));
+        reportError(ctx, "Error in unary expression: " + std::string(ex.what()));
         throw;
     }
 }
@@ -193,7 +178,7 @@ std::any DiagnosticVisitor::visitCall(PrystParser::CallContext* ctx) {
 
         return std::any(funcInfo->returnType);
     } catch (const std::exception& ex) {
-        PRYST_ERROR("Error in function call: " + std::string(ex.what()));
+        reportError(ctx, "Error in function call: " + std::string(ex.what()));
         throw;
     }
 }
@@ -207,7 +192,7 @@ std::any DiagnosticVisitor::visitVariable(PrystParser::VariableContext* ctx) {
         }
         return std::any(symbolTable.getVariableType(name));
     } catch (const std::exception& ex) {
-        PRYST_ERROR("Error in variable reference: " + std::string(ex.what()));
+        reportError(ctx, "Error in variable reference: " + std::string(ex.what()));
         throw;
     }
 }
@@ -233,11 +218,48 @@ std::any DiagnosticVisitor::visitAssignment(PrystParser::AssignmentContext* ctx)
 
         return std::any(varType);
     } catch (const std::exception& ex) {
-        PRYST_ERROR("Error in assignment: " + std::string(ex.what()));
+        reportError(ctx, "Error in assignment: " + std::string(ex.what()));
         throw;
     }
 }
 
+// Module and namespace support
+std::any DiagnosticVisitor::visitModuleDecl(PrystParser::ModuleDeclContext* ctx) {
+    PRYST_DEBUG("Visiting module declaration");
+    auto qualifiedId = visit(ctx->qualifiedIdentifier());
+    std::string name = std::any_cast<std::string>(qualifiedId);
+    currentModule = name;
+    auto result = visitChildren(ctx);
+    currentModule.clear();
+    return result;
+}
+
+std::any DiagnosticVisitor::visitNamespaceDecl(PrystParser::NamespaceDeclContext* ctx) {
+    PRYST_DEBUG("Visiting namespace declaration");
+    auto qualifiedId = visit(ctx->qualifiedIdentifier());
+    std::string name = std::any_cast<std::string>(qualifiedId);
+    currentNamespace.push_back(name);
+    auto result = visitChildren(ctx);
+    currentNamespace.pop_back();
+    return result;
+}
+
+std::any DiagnosticVisitor::visitImportDecl(PrystParser::ImportDeclContext* ctx) {
+    PRYST_DEBUG("Visiting import declaration");
+    return visitChildren(ctx);
+}
+
+std::any DiagnosticVisitor::visitQualifiedIdentifier(PrystParser::QualifiedIdentifierContext* ctx) {
+    PRYST_DEBUG("Visiting qualified identifier");
+    std::string identifier;
+    for (auto id : ctx->IDENTIFIER()) {
+        if (!identifier.empty()) identifier += "::";
+        identifier += id->getText();
+    }
+    return identifier;
+}
+
+// Helper methods
 bool DiagnosticVisitor::isNumericType(const std::string& type) {
     return type == "int" || type == "float";
 }

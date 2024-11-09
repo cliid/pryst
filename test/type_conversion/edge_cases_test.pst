@@ -1,0 +1,24 @@
+// Edge cases for type conversion
+fn main() -> int {
+    // Test boundary values
+    print(toString(2147483647));  // MAX_INT
+    print(toString(-2147483648)); // MIN_INT
+    print(toString(1.7976931348623157e+308)); // MAX_DOUBLE
+    print(toString(2.2250738585072014e-308)); // MIN_DOUBLE
+
+    // Test special float values
+    print(toFloat("inf"));     // infinity
+    print(toFloat("-inf"));    // negative infinity
+    print(toFloat("nan"));     // not a number
+
+    // Test whitespace handling
+    print(toInt("  123  "));   // leading/trailing spaces
+    print(toFloat(" 3.14 "));  // leading/trailing spaces
+
+    // Test empty and special strings
+    print(toInt(""));          // empty string
+    print(toFloat(""));        // empty string
+    print(toString(""));       // empty string
+
+    return 0;
+}

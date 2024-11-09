@@ -1,0 +1,23 @@
+// Test chained type conversions
+fn main() -> int {
+    // Int -> String -> Int
+    let x = 42;
+    let s = toString(x);
+    let y = toInt(s);
+    print(x == y);  // Should print true
+
+    // Float -> String -> Float
+    let f = 3.14159;
+    let fs = toString(f);
+    let f2 = toFloat(fs);
+    print(f == f2); // Should print true
+
+    // Bool -> String -> Int -> Float
+    let b = true;
+    let bs = toString(b);
+    let bi = toInt(bs);
+    let bf = toFloat(bi);
+    print(bf == 1.0); // Should print true
+
+    return 0;
+}
