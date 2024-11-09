@@ -1,92 +1,108 @@
-// Test file for type registry functionality
+// Test basic type handling and LLVM 20.0.0 compatibility
+fn testBasicTypes() -> void {
+    // Test integer types
+    let i8_val: i8 = 127;
+    let i16_val: i16 = 32767;
+    let i32_val: i32 = 2147483647;
+    let i64_val: i64 = 9223372036854775807;
 
-// Test primitive type declarations
-fn testPrimitiveTypes() {
-    let i: int = 42;
-    let f: float = 3.14;
-    let b: bool = true;
-    let s: string = "test";
+    // Test unsigned integer types
+    let u8_val: u8 = 255;
+    let u16_val: u16 = 65535;
+    let u32_val: u32 = 4294967295;
+    let u64_val: u64 = 18446744073709551615;
 
-    print("Int value: " + i);
-    print("Float value: " + f);
-    print("Bool value: " + b);
-    print("String value: " + s);
+    // Test floating point types
+    let f32_val: f32 = 3.14159;
+    let f64_val: f64 = 2.718281828459045;
+
+    // Test boolean type
+    let bool_val: bool = true;
+
+    // Test string type with opaque pointer handling
+    let str_val: string = "Test string";
+    print("String length: ${str_val.length()}");
 }
 
-// Test pointer types and opaque pointer handling
-class TestClass {
-    value: int;
+// Test nullable types and runtime checks
+fn testNullableTypes() -> void {
+    // Test nullable primitive types
+    let nullable_int: int? = null;
+    let nullable_float: float? = 3.14;
+    let nullable_bool: bool? = null;
 
-    fn init(v: int) {
-        this.value = v;
+    // Test nullable string
+    let nullable_str: string? = "Can be null";
+    nullable_str = null;
+
+    // Test null checks
+    try {
+        print(nullable_int.toString());
+    } catch (NullPointerException e) {
+        print("Caught null pointer exception as expected");
+    }
+
+    // Test non-null assertion
+    nullable_float = 42.0;
+    let non_null = nullable_float!;
+    print("Non-null value: ${non_null}");
+}
+
+// Test function types and type signatures
+fn testFunctionTypes() -> void {
+    // Define function type variables
+    let binary_op: fn(int, int) -> int;
+    let unary_op: fn(float) -> float;
+    let void_func: fn() -> void;
+
+    // Test function assignment
+    binary_op = fn(int x, int y) -> int { return x + y; };
+    unary_op = fn(float x) -> float { return x * x; };
+    void_func = fn() -> void { print("void function"); };
+
+    // Test function calls
+    print("Binary op result: ${binary_op(5, 3)}");
+    print("Unary op result: ${unary_op(2.5)}");
+    void_func();
+}
+
+// Test type conversion and promotion
+fn testTypeConversion() -> void {
+    // Test numeric conversions
+    let int_val: int = 42;
+    let float_val: float = float(int_val);
+    let str_val: string = string(int_val);
+
+    // Test type promotion
+    let promoted = int_val + 3.14;  // Should promote to float
+    print("Promoted value: ${promoted}");
+
+    // Test explicit conversions
+    let explicit_int = int("42");
+    let explicit_float = float("3.14");
+    let explicit_bool = bool("true");
+
+    // Test conversion errors
+    try {
+        let invalid = int("not a number");
+    } catch (TypeConversionException e) {
+        print("Caught conversion error: ${e.getMessage()}");
     }
 }
 
-// Test function types
-fn functionTypeTest(callback: fn<int>(int, int)) -> int {
-    return callback(10, 20);
+// Test type metadata and reflection
+fn testTypeMetadata() -> void {
+    let val: any = 42;
+    print("Type of val: ${typeof(val)}");
+    print("Is number: ${is_number(val)}");
+    print("Is nullable: ${is_nullable(val)}");
 }
 
-// Test type conversions
-fn testTypeConversions() {
-    // Numeric conversions
-    let i: int = 42;
-    let f: float = i;  // Implicit int to float
-    print("Int to float: " + f);
-
-    // String conversions
-    let num_str: string = i;  // Implicit int to string
-    print("Int to string: " + num_str);
-
-    let float_str: string = f;  // Implicit float to string
-    print("Float to string: " + float_str);
-}
-
-// Test array types
-fn testArrayTypes() {
-    let numbers: int[] = [1, 2, 3, 4, 5];
-    let strings: string[] = ["one", "two", "three"];
-
-    print("First number: " + numbers[0]);
-    print("First string: " + strings[0]);
-}
-
-// Test class inheritance and type checking
-class BaseClass {
-    x: int;
-    fn init(x: int) { this.x = x; }
-}
-
-class DerivedClass : BaseClass {
-    y: int;
-    fn init(x: int, y: int) {
-        super.init(x);
-        this.y = y;
-    }
-}
-
-fn testInheritance() {
-    let base = new BaseClass(10);
-    let derived = new DerivedClass(20, 30);
-
-    // Test type relationships
-    print("Derived is instance of Base: " + derived.isInstance("BaseClass"));
-}
-
-fn main() {
-    print("=== Testing Primitive Types ===");
-    testPrimitiveTypes();
-
-    print("\n=== Testing Type Conversions ===");
-    testTypeConversions();
-
-    print("\n=== Testing Array Types ===");
-    testArrayTypes();
-
-    print("\n=== Testing Inheritance ===");
-    testInheritance();
-
-    print("\n=== Testing Function Types ===");
-    let add = (a: int, b: int) -> int { return a + b; };
-    print("Function result: " + functionTypeTest(add));
+// Entry point
+fn main() -> void {
+    testBasicTypes();
+    testNullableTypes();
+    testFunctionTypes();
+    testTypeConversion();
+    testTypeMetadata();
 }
