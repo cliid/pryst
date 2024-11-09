@@ -57,12 +57,13 @@ functionBody
     ;
 
 variableDecl
-    : LET IDENTIFIER (EQUAL expression)? SEMICOLON                                # inferredVariableDecl
-    | CONST IDENTIFIER (EQUAL expression)? SEMICOLON                             # inferredConstVariableDecl
-    | type IDENTIFIER (EQUAL expression)? SEMICOLON                              # typedVariableDecl
-    | CONST type IDENTIFIER (EQUAL expression)? SEMICOLON                        # typedConstVariableDecl
-    | CONST_EXPR IDENTIFIER (EQUAL expression)? SEMICOLON                        # constExprVariableDecl
-    | type IDENTIFIER SEMICOLON                                                  # uninitializedVariableDecl
+    : LET IDENTIFIER EQUAL expression SEMICOLON                    # inferredVariableDecl
+    | type IDENTIFIER EQUAL expression SEMICOLON                   # typedVariableDecl
+    | type IDENTIFIER SEMICOLON                                    # uninitializedVariableDecl
+    | CONST IDENTIFIER EQUAL expression SEMICOLON                  # classInferredVariableDecl
+    | CONST type IDENTIFIER EQUAL expression SEMICOLON            # classTypedVariableDecl
+    | CONST_EXPR IDENTIFIER EQUAL expression SEMICOLON            # classConstInferredDecl
+    | CONST_EXPR type IDENTIFIER EQUAL expression SEMICOLON       # classConstTypedDecl
     ;
 
 classDeclaration
@@ -74,11 +75,8 @@ classBody
     ;
 
 classMember
-    : type IDENTIFIER (EQUAL expression)? SEMICOLON                              # classMemberDecl
-    | LET IDENTIFIER (EQUAL expression)? SEMICOLON                               # classMemberInferredDecl
-    | CONST IDENTIFIER (EQUAL expression)? SEMICOLON                             # classMemberConstInferredDecl
-    | CONST type IDENTIFIER (EQUAL expression)? SEMICOLON                        # classMemberConstTypedDecl
-    | IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody                # classMemberFunctionDecl
+    : type IDENTIFIER (EQUAL expression)? SEMICOLON  # classVariableDecl
+    | IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody # classFunctionDecl
     ;
 
 paramList
@@ -114,18 +112,10 @@ statement
       expression? SEMICOLON
       expression? RPAREN statement                  # forStatement
     | RETURN expression? SEMICOLON                  # returnStatement
-    | TRY statement (CATCH LPAREN type IDENTIFIER RPAREN statement)* # tryCatchStatement
     | LBRACE statement* RBRACE                    # blockStatement
     | PRINT LPAREN expression RPAREN SEMICOLON      # printStatement
-    | tryStmtWrapper                                # tryStmt
-    ;
-
-tryStmtWrapper
-    : TRY statement catchBlock+                     # tryStatement
-    ;
-
-catchBlock
-    : CATCH LPAREN type IDENTIFIER RPAREN statement # catchStatement
+    | TRY statement (CATCH LPAREN type IDENTIFIER RPAREN statement)*  # tryStatement
+    | TRY LBRACE statement* RBRACE (CATCH LPAREN type IDENTIFIER RPAREN LBRACE statement* RBRACE)*  # tryCatchStatement
     ;
 
 expression
@@ -134,12 +124,13 @@ expression
     | typeCastExpr
     | typeConversionExpr
     | classConversionExpr
-    | stringLiteralRule
+    | stringLiteral
     | logicOr
     ;
 
-stringLiteralRule
-    : STRING_START stringPart* STRING_END           # stringLiteralExpr
+stringLiteral
+    : STRING_START stringPart* STRING_END           # interpolatedString
+    | STRING_START STRING_CONTENT? STRING_END       # simpleString
     ;
 
 stringPart

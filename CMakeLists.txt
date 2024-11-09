@@ -1,223 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
-project(PrystCompiler)
-
-# Use environment variables for compiler settings if available
-if(DEFINED ENV{CC})
-    set(CMAKE_C_COMPILER $ENV{CC})
-else()
-    set(CMAKE_C_COMPILER clang)
-endif()
-
-if(DEFINED ENV{CXX})
-    set(CMAKE_CXX_COMPILER $ENV{CXX})
-else()
-    set(CMAKE_CXX_COMPILER clang++)
-endif()
+project(pryst)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
-
-# Create lists of source files that need different RTTI settings
-set(LLVM_SOURCES
-    # Empty - all files need RTTI for our type system
-)
-
-set(ANTLR_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/main.cpp
-    ${CMAKE_SOURCE_DIR}/src/aot/aot_compiler.cpp
-    ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.cpp
-    ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.cpp
-    ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.cpp
-    ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.cpp
-    ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/llvm_codegen.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/builtin_functions.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/visitor_antlr.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/string_utils.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/string_builder.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/reflection_api.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/type_utils.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/type_registry.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/type_metadata.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/llvm_utils.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/type_conversion.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/type_visitors.cpp
-    ${CMAKE_SOURCE_DIR}/src/codegen/visitor_methods.cpp
-    ${CMAKE_SOURCE_DIR}/src/diagnostic/ast_tracer.cpp
-    ${CMAKE_SOURCE_DIR}/src/diagnostic/diagnostic_visitor.cpp
-    ${CMAKE_SOURCE_DIR}/src/semantic/semantic_analyzer.cpp
-    ${CMAKE_SOURCE_DIR}/src/semantic/symbol_table.cpp
-    ${CMAKE_SOURCE_DIR}/src/semantic/type_info.cpp
-    ${CMAKE_SOURCE_DIR}/src/semantic/module_loader.cpp
-    ${CMAKE_SOURCE_DIR}/src/semantic/type_registry.cpp
-    ${CMAKE_SOURCE_DIR}/src/utils/logger.cpp
-)
-
-# Set RTTI flags based on file types
-set_source_files_properties(
-    ${LLVM_SOURCES}
-    PROPERTIES COMPILE_FLAGS "-fno-rtti"
-)
-
-set_source_files_properties(
-    ${ANTLR_SOURCES}
-    PROPERTIES COMPILE_FLAGS "-frtti"
-)
-
-# Use LLVM_DIR from environment if available
-if(DEFINED ENV{LLVM_DIR})
-    set(LLVM_DIR "$ENV{LLVM_DIR}" CACHE PATH "Path to LLVM CMake config")
-    message(STATUS "Using LLVM_DIR from environment: $ENV{LLVM_DIR}")
-    # Try to find LLVMConfig.cmake in common locations relative to LLVM_DIR
-    list(APPEND CMAKE_PREFIX_PATH
-        "$ENV{LLVM_DIR}"
-        "$ENV{LLVM_DIR}/lib/cmake/llvm"
-        "$ENV{LLVM_DIR}/lib/cmake"
-        "$ENV{LLVM_DIR}/share/llvm/cmake"
-        "/usr/lib/llvm-20/lib/cmake/llvm"
-        "/usr/local/llvm-20/lib/cmake/llvm"
-        "/opt/llvm-20/lib/cmake/llvm"
-    )
-else()
-    if(APPLE)
-        set(LLVM_DIR "/usr/local" CACHE PATH "Path to LLVM CMake config")
-    else()
-        set(LLVM_DIR "/usr/lib/llvm-20/lib/cmake/llvm" CACHE PATH "Path to LLVM CMake config")
-    endif()
-endif()
-
-# Find LLVM package and check version
-find_package(LLVM REQUIRED CONFIG)
-
-# Verify LLVM version is 20.0.0
-if(NOT LLVM_PACKAGE_VERSION VERSION_EQUAL "20.0.0")
-    message(FATAL_ERROR "LLVM 20.0.0 is required. Found version ${LLVM_PACKAGE_VERSION}")
-endif()
-
+# Find LLVM
+find_package(LLVM 20.0.0 REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-add_definitions(${LLVM_DEFINITIONS})
-include_directories(${LLVM_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/src)
-link_directories(${LLVM_LIBRARY_DIRS})
+# Find ANTLR
+set(ANTLR4_ROOT /usr/local)
+set(ANTLR4_INCLUDE_DIR ${ANTLR4_ROOT}/include/antlr4-runtime)
+set(ANTLR4_LIBRARY_DIR ${ANTLR4_ROOT}/lib)
+set(ANTLR4_EXECUTABLE ${ANTLR4_ROOT}/bin/antlr4)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-
-# Set ANTLR paths based on platform and try multiple common locations
-if(APPLE)
-    set(ANTLR4_SEARCH_PATHS
-        "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2"
-        "/usr/local/opt/antlr4-cpp-runtime"
-        "/opt/homebrew/opt/antlr4-cpp-runtime"
-        "/usr/local"
-    )
-else()
-    set(ANTLR4_SEARCH_PATHS
-        "/usr/local"
-        "/usr"
-        "/usr/local/opt/antlr4-cpp-runtime"
-    )
-endif()
-
-# Add custom command to generate ANTLR files
-add_custom_command(
-    OUTPUT
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.h
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.h
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.h
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.h
-    COMMAND
-        java -jar /usr/local/lib/antlr-4.13.2-complete.jar -Dlanguage=Cpp -no-listener -visitor -o "${CMAKE_SOURCE_DIR}/src/generated" "${CMAKE_SOURCE_DIR}/PrystLexer.g4" "${CMAKE_SOURCE_DIR}/PrystParser.g4"
-    DEPENDS
-        ${CMAKE_SOURCE_DIR}/PrystLexer.g4
-        ${CMAKE_SOURCE_DIR}/PrystParser.g4
-    COMMENT "Generating ANTLR parser files"
-)
-
-# Add custom target for parser generation
-add_custom_target(
-    GenerateParser
-    DEPENDS
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.cpp
-)
-
-# Find ANTLR4 runtime in search paths
-foreach(base_path ${ANTLR4_SEARCH_PATHS})
-    if(EXISTS "${base_path}/include/antlr4-runtime")
-        set(ANTLR4_INCLUDE_DIR "${base_path}/include/antlr4-runtime" CACHE PATH "ANTLR4 include directory")
-        set(ANTLR4_LIBRARY_DIR "${base_path}/lib" CACHE PATH "ANTLR4 library directory")
-        break()
-    endif()
-endforeach()
-
-# Allow override through environment variables
-if(DEFINED ENV{ANTLR4_INCLUDE_DIR})
-    set(ANTLR4_INCLUDE_DIR "$ENV{ANTLR4_INCLUDE_DIR}" CACHE PATH "ANTLR4 include directory" FORCE)
-endif()
-if(DEFINED ENV{ANTLR4_LIBRARY_DIR})
-    set(ANTLR4_LIBRARY_DIR "$ENV{ANTLR4_LIBRARY_DIR}" CACHE PATH "ANTLR4 library directory" FORCE)
-endif()
-
-include_directories(${ANTLR4_INCLUDE_DIR})
-link_directories(${ANTLR4_LIBRARY_DIR})
-
-# Verify ANTLR4 runtime library exists
-find_library(ANTLR4_RUNTIME_LIBRARY antlr4-runtime HINTS ${ANTLR4_LIBRARY_DIR})
-if(NOT ANTLR4_RUNTIME_LIBRARY)
-include_directories(${CMAKE_SOURCE_DIR}/include)
-    message(FATAL_ERROR "ANTLR4 runtime library not found. Please install or set ANTLR4_LIBRARY_DIR to the correct path.")
-endif()
-
-# Check for ANTLR4 executable
-find_program(ANTLR4_EXECUTABLE antlr4)
-if(NOT ANTLR4_EXECUTABLE)
-    message(FATAL_ERROR "ANTLR4 executable not found. Please ensure it is installed and in your PATH.")
-endif()
-
-file(GLOB GENERATED_SRC
-    "${CMAKE_SOURCE_DIR}/src/generated/*.cpp"
-    "${CMAKE_SOURCE_DIR}/src/generated/*.h"
-)
-
-# Create executable target
-add_executable(pryst ${ANTLR_SOURCES})
-
-# Add dependencies
-add_dependencies(pryst GenerateParser)
-
-# Link against LLVM libraries
-llvm_map_components_to_libnames(llvm_libs
-    core
-    support
-    irreader
-    passes
-    target
-    executionengine
-    mcjit
-    native
-    option
-    bitwriter
-    analysis
-    transformutils
-)
-
-# Link against required libraries
-target_link_libraries(pryst
-    ${ANTLR4_RUNTIME_LIBRARY}
-    ${llvm_libs}
-)
-
-# Print configuration summary
 message(STATUS "Configuration Summary:")
 message(STATUS "  C++ Compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "  LLVM Version: ${LLVM_PACKAGE_VERSION}")
@@ -225,3 +22,53 @@ message(STATUS "  LLVM Directory: ${LLVM_DIR}")
 message(STATUS "  ANTLR4 Include Directory: ${ANTLR4_INCLUDE_DIR}")
 message(STATUS "  ANTLR4 Library Directory: ${ANTLR4_LIBRARY_DIR}")
 message(STATUS "  ANTLR4 Executable: ${ANTLR4_EXECUTABLE}")
+
+# Add LLVM includes and definitions
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
+# Add ANTLR includes
+include_directories(${ANTLR4_INCLUDE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/generated)
+link_directories(${ANTLR4_LIBRARY_DIR})
+
+# Generate ANTLR parser
+add_custom_target(GenerateParser
+    COMMAND ${ANTLR4_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o ${CMAKE_CURRENT_SOURCE_DIR}/src/generated ${CMAKE_CURRENT_SOURCE_DIR}/PrystLexer.g4 ${CMAKE_CURRENT_SOURCE_DIR}/PrystParser.g4
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/PrystLexer.g4 ${CMAKE_CURRENT_SOURCE_DIR}/PrystParser.g4
+)
+
+# Add source files
+file(GLOB_RECURSE SOURCES
+    "src/*.cpp"
+    "src/codegen/*.cpp"
+    "src/semantic/*.cpp"
+    "src/utils/*.cpp"
+    "src/generated/*.cpp"
+)
+
+# Create executable
+add_executable(pryst ${SOURCES})
+add_dependencies(pryst GenerateParser)
+
+# Link libraries
+llvm_map_components_to_libnames(LLVM_LIBS
+    core
+    support
+    irreader
+    codegen
+    target
+    mcjit
+    native
+)
+
+target_link_libraries(pryst
+    antlr4-runtime
+    ${LLVM_LIBS}
+)
+
+# Include directories
+target_include_directories(pryst PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/generated
+)
