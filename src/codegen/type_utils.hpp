@@ -1,17 +1,15 @@
 #pragma once
 
-#include "type_registry.hpp"
-#include "type_metadata.hpp"
+#include <memory>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/LLVMContext.h>
+#include "../semantic/type_info.hpp"
+#include "../semantic/basic_type_info.hpp"
 
 namespace pryst {
 
-// Forward declarations
-class TypeInfo;
-using TypeInfoPtr = std::shared_ptr<TypeInfo>;
-
-// Global type conversion function - declared here, defined in type_utils.cpp
-llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& context);
+llvm::Type* getLLVMTypeFromTypeInfo(const TypeInfoPtr& typeInfo, llvm::LLVMContext& context);
+llvm::Type* getBasicLLVMType(BasicTypeInfo::BasicKind kind, llvm::LLVMContext& context);
+bool isConvertibleTypes(const TypeInfo* from, const TypeInfo* to);
 
 } // namespace pryst
