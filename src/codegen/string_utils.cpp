@@ -5,6 +5,9 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IntrinsicInst.h>
 
+using pryst::LLVMCodegen;
+using pryst::LLVMTypeRegistry;
+
 namespace string_utils {
 
 llvm::Function* declareStrlen(pryst::LLVMCodegen* codegen) {
@@ -197,28 +200,7 @@ llvm::Value* interpolateString(pryst::LLVMCodegen* codegen, const std::string& f
         auto& spec = specs[i];
 
         // Format the value based on its type and spec
-        llvm::Value* formattedValue = nullptr;
-        if (value->getType()->isFloatingPointTy()) {
-            auto formatFloatFunc = declareFormatFloat(codegen);
-            formattedValue = builder->CreateCall(formatFloatFunc, {
-                value,
-                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), spec.precision),
-                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), spec.width),
-                llvm::ConstantInt::get(llvm::Type::getInt8Ty(*context), spec.fill),
-                llvm::ConstantInt::get(llvm::Type::getInt1Ty(*context), spec.leftAlign)
-            });
-        } else if (value->getType()->isIntegerTy()) {
-            auto formatIntFunc = declareFormatInt(codegen);
-            formattedValue = builder->CreateCall(formatIntFunc, {
-                value,
-                llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), spec.width),
-                llvm::ConstantInt::get(llvm::Type::getInt8Ty(*context), spec.fill),
-                llvm::ConstantInt::get(llvm::Type::getInt1Ty(*context), spec.leftAlign)
-            });
-        } else if (value->getType()->isIntegerTy(1)) {  // Boolean
-            auto formatBoolFunc = declareFormatBool(codegen);
-            formattedValue = builder->CreateCall(formatBoolFunc, {value});
-        }
+        llvm::Value* formattedValue = formatValue(codegen, value, spec);
 
         // Replace placeholder with formatted value
         auto strcatFunc = declareStrcat(codegen);

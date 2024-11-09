@@ -1,5 +1,7 @@
 #include "llvm_codegen.hpp"
 #include "utils/debug.hpp"
+#include "../generated/PrystLexer.h"
+#include "../generated/PrystParser.h"
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>

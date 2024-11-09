@@ -1,13 +1,9 @@
 #include "string_builder.hpp"
-#include "../utils/debug.hpp"
-#include <regex>
+#include "string_utils.hpp"
 #include <vector>
-#include <sstream>
-#include <cstdio>
+#include <regex>
 
 namespace pryst {
-
-
 
 void StringBuilder::initializeStringFunctions() {
     PRYST_DEBUG("Initializing string builder functions");
@@ -94,10 +90,25 @@ llvm::Value* StringBuilder::appendLiteral(const std::string& str) {
 }
 
 llvm::Value* StringBuilder::appendFormatted(llvm::Value* value, const std::string& format) {
-    PRYST_DEBUG("Formatting value with format: " + format);
+    if (!value) {
+        // Handle null value case
+        auto& typeRegistry = codegen->getTypeRegistry();
+        auto charPtrTy = typeRegistry.getPointerType();
+        auto builder = codegen->getBuilder();
+        auto nullStr = builder->CreateGlobalString("null");
+        auto size = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), 5); // "null\0"
+        auto buffer = builder->CreateCall(mallocFunc, {size});
+        builder->CreateCall(strcpyFunc, {buffer, nullStr});
+        parts.push_back(buffer);
+        return buffer;
+    }
 
-    // Allocate buffer for formatted output
-    auto bufferSize = builder->getInt64(64); // Reasonable size for most values
+    auto& typeRegistry = codegen->getTypeRegistry();
+    auto charPtrTy = typeRegistry.getPointerType();
+    auto builder = codegen->getBuilder();
+
+    // Allocate buffer for the formatted string
+    auto bufferSize = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), 64);
     auto buffer = builder->CreateCall(mallocFunc, {bufferSize});
 
     // Create format string based on value type and format specifier
@@ -145,37 +156,37 @@ llvm::Value* StringBuilder::appendInterpolatedString(
     const std::string& format,
     const std::unordered_map<std::string, llvm::Value*>& values
 ) {
-    PRYST_DEBUG("Processing interpolated string: " + format);
-
     std::regex pattern("\\{([^:}]+)(?::([^}]+))?\\}");
     std::string::const_iterator searchStart(format.cbegin());
     std::smatch matches;
+    std::string::const_iterator lastEnd = format.cbegin();
 
     while (std::regex_search(searchStart, format.cend(), matches, pattern)) {
-        // Add literal text before the placeholder
-        std::string literal(searchStart, matches[0].first);
+        // Append literal text before the match
+        std::string literal(lastEnd, matches[0].first);
         if (!literal.empty()) {
             appendLiteral(literal);
         }
 
         // Get variable name and format specifier
         std::string varName = matches[1].str();
-        std::string formatSpec = matches[2].str();
+        std::string formatSpec = matches[2].matched ? matches[2].str() : "";
 
-        // Find and format the value
+        // Look up and append the variable value
         auto it = values.find(varName);
         if (it != values.end()) {
             appendFormatted(it->second, formatSpec);
         } else {
-            PRYST_ERROR("Variable not found in interpolation: " + varName);
             appendLiteral("{" + varName + "}");
         }
 
+        // Update search position
+        lastEnd = matches[0].second;
         searchStart = matches[0].second;
     }
 
-    // Add remaining literal text
-    std::string remaining(searchStart, format.cend());
+    // Append any remaining literal text
+    std::string remaining(lastEnd, format.cend());
     if (!remaining.empty()) {
         appendLiteral(remaining);
     }
@@ -184,35 +195,38 @@ llvm::Value* StringBuilder::appendInterpolatedString(
 }
 
 llvm::Value* StringBuilder::build() {
-    PRYST_DEBUG("Building final string");
-
     if (parts.empty()) {
         auto emptyStr = builder->CreateGlobalString("");
         auto charPtrTy = typeRegistry.getPointerType();
         return builder->CreateBitCast(emptyStr, charPtrTy);
     }
 
-    // Calculate total length needed
-    llvm::Value* totalLen = builder->getInt64(1); // Start with 1 for null terminator
+    // Calculate total length
+    llvm::Value* totalLen = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), 1); // for null terminator
+    auto builder = codegen->getBuilder();
+
     for (auto part : parts) {
         auto len = builder->CreateCall(strlenFunc, {part});
         totalLen = builder->CreateAdd(totalLen, len);
     }
 
-    // Allocate buffer
+    // Allocate final buffer
     auto buffer = builder->CreateCall(mallocFunc, {totalLen});
 
     // Copy first part
     builder->CreateCall(strcpyFunc, {buffer, parts[0]});
 
     // Concatenate remaining parts
-    for (size_t i = 1; i < parts.size(); i++) {
+    for (size_t i = 1; i < parts.size(); ++i) {
         builder->CreateCall(strcatFunc, {buffer, parts[i]});
     }
 
-    // Clear parts for next use
-    parts.clear();
+    // Free intermediate buffers
+    for (auto part : parts) {
+        builder->CreateCall(freeFunc, {part});
+    }
 
+    parts.clear();
     return buffer;
 }
 

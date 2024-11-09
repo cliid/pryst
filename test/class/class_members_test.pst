@@ -1,0 +1,31 @@
+// Test file for class member declarations
+class TestClass {
+    // Test typed variable declaration
+    int x = 42;
+
+    // Test inferred variable declaration
+    let y = 3.14;
+
+    // Test const inferred declaration
+    const z = true;
+
+    // Test const typed declaration
+    const str message = "Hello, World!";
+
+    // Test class function declaration
+    printValues() -> void {
+        print("x: {x}, y: {y}, z: {z}");
+        print("message: {message}");
+    }
+
+    // Test function with parameters
+    add(int a, int b) -> int {
+        return a + b;
+    }
+}
+
+fn main() -> void {
+    let test = new TestClass();
+    test.printValues();
+    print("Sum: {test.add(10, 20)}");
+}

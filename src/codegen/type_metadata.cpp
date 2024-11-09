@@ -1,4 +1,6 @@
 #include "type_metadata.hpp"
+#include "../utils/logger.hpp"
+#include "../utils/debug.hpp"
 #include <llvm/IR/DerivedTypes.h>
 #include <stdexcept>
 
@@ -34,11 +36,7 @@ size_t getMemberIndexInHierarchy(const ClassTypeInfoPtr& classInfo, const std::s
         return llvmClassInfo->getMemberIndex(memberName);
     } catch (const std::runtime_error&) {
         if (auto baseClass = classInfo->getParent()) {
-            auto llvmBaseClass = std::dynamic_pointer_cast<LLVMClassTypeInfo>(baseClass);
-            if (!llvmBaseClass) {
-                throw std::runtime_error("Expected LLVM class type info for base class");
-            }
-            return getMemberIndexInHierarchy(llvmBaseClass, memberName);
+            return getMemberIndexInHierarchy(baseClass, memberName);
         }
         throw;
     }

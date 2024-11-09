@@ -248,7 +248,7 @@ std::any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
     llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(*context, "or.merge", function);
 
     // Visit left operand
-    std::any leftResult = visit(ctx->expression(0));
+    std::any leftResult = visit(ctx->logicAnd(0));
     llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
 
     // Short circuit: if left is true, skip right operand
@@ -256,14 +256,14 @@ std::any LLVMCodegen::visitLogicOr(PrystParser::LogicOrContext* ctx) {
 
     // Right operand
     builder->SetInsertPoint(rightBB);
-    std::any rightResult = visit(ctx->expression(1));
+    std::any rightResult = visit(ctx->logicAnd(1));
     llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
     builder->CreateBr(mergeBB);
 
     // Merge block
     builder->SetInsertPoint(mergeBB);
     llvm::PHINode* phi = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2, "or.result");
-    phi->addIncoming(leftValue, builder->GetInsertBlock()->getParent()->getEntryBlock());
+    phi->addIncoming(leftValue, builder->GetInsertBlock());
     phi->addIncoming(rightValue, rightBB);
 
     return phi;
@@ -278,7 +278,7 @@ std::any LLVMCodegen::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
     llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(*context, "and.merge", function);
 
     // Visit left operand
-    std::any leftResult = visit(ctx->expression(0));
+    std::any leftResult = visit(ctx->logicOr(0));
     llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
 
     // Short circuit: if left is false, skip right operand
@@ -286,14 +286,14 @@ std::any LLVMCodegen::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
 
     // Right operand
     builder->SetInsertPoint(rightBB);
-    std::any rightResult = visit(ctx->expression(1));
+    std::any rightResult = visit(ctx->logicOr(1));
     llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
     builder->CreateBr(mergeBB);
 
     // Merge block
     builder->SetInsertPoint(mergeBB);
     llvm::PHINode* phi = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2, "and.result");
-    phi->addIncoming(llvm::ConstantInt::getFalse(*context), builder->GetInsertBlock()->getParent()->getEntryBlock());
+    phi->addIncoming(llvm::ConstantInt::getFalse(*context), builder->GetInsertBlock());
     phi->addIncoming(rightValue, rightBB);
 
     return phi;
@@ -303,8 +303,8 @@ std::any LLVMCodegen::visitLogicAnd(PrystParser::LogicAndContext* ctx) {
 std::any LLVMCodegen::visitAddition(PrystParser::AdditionContext* ctx) {
     PRYST_DEBUG("Visiting addition");
 
-    std::any leftResult = visit(ctx->expression(0));
-    std::any rightResult = visit(ctx->expression(1));
+    std::any leftResult = visit(ctx->multiplication(0));
+    std::any rightResult = visit(ctx->multiplication(1));
 
     llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
     llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
@@ -342,8 +342,8 @@ std::any LLVMCodegen::visitAddition(PrystParser::AdditionContext* ctx) {
 std::any LLVMCodegen::visitMultiplication(PrystParser::MultiplicationContext* ctx) {
     PRYST_DEBUG("Visiting multiplication");
 
-    std::any leftResult = visit(ctx->expression(0));
-    std::any rightResult = visit(ctx->expression(1));
+    std::any leftResult = visit(ctx->unary(0));
+    std::any rightResult = visit(ctx->unary(1));
 
     llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
     llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
@@ -367,7 +367,7 @@ std::any LLVMCodegen::visitMultiplication(PrystParser::MultiplicationContext* ct
     return builder->CreateMul(leftValue, rightValue, "multmp");
 }
 
-std::any LLVMCodegen::visitTryCatchStatement(PrystParser::TryCatchStatementContext* ctx) {
+std::any LLVMCodegen::visitTryStmtWrapper(PrystParser::TryStmtWrapperContext* ctx) {
     PRYST_DEBUG("Visiting try-catch statement");
 
     // Create basic blocks for try, catch, and continue
@@ -381,29 +381,14 @@ std::any LLVMCodegen::visitTryCatchStatement(PrystParser::TryCatchStatementConte
     builder->SetInsertPoint(tryBlock);
 
     // Visit try block
-    visit(ctx->statement(0));
+    visit(ctx->statement());
     if (!builder->GetInsertBlock()->getTerminator()) {
         builder->CreateBr(continueBlock);
     }
 
-    // Set up catch block
-    builder->SetInsertPoint(catchBlock);
-    if (ctx->IDENTIFIER()) {
-        std::string errorVar = ctx->IDENTIFIER()->getText();
-        llvm::AllocaInst* errorAlloca = builder->CreateAlloca(
-            llvm::Type::getInt8PtrTy(*context),
-            nullptr,
-            errorVar
-        );
-        namedValues[errorVar] = errorAlloca;
-    }
-
-    // Visit catch block if it exists
-    if (ctx->statement(1)) {
-        visit(ctx->statement(1));
-    }
-    if (!builder->GetInsertBlock()->getTerminator()) {
-        builder->CreateBr(continueBlock);
+    // Visit catch blocks
+    for (auto catchCtx : ctx->catchBlock()) {
+        visit(catchCtx);
     }
 
     // Continue block
@@ -411,25 +396,15 @@ std::any LLVMCodegen::visitTryCatchStatement(PrystParser::TryCatchStatementConte
     return nullptr;
 }
 
-std::any LLVMCodegen::visitStringInterpolation(PrystParser::StringInterpolationContext* ctx) {
-    PRYST_DEBUG("Visiting string interpolation");
+std::any LLVMCodegen::visitStringLiteralRule(PrystParser::StringLiteralRuleContext* ctx) {
+    PRYST_DEBUG("Visiting string literal");
 
     std::vector<llvm::Value*> parts;
 
-    // Process string parts and expressions
-    for (size_t i = 0; i < ctx->stringPart().size(); i++) {
-        // Add string part
-        parts.push_back(builder->CreateGlobalStringPtr(
-            ctx->stringPart(i)->getText(),
-            "str_part"
-        ));
-
-        // Add interpolated expression if exists
-        if (i < ctx->expression().size()) {
-            std::any exprResult = visit(ctx->expression(i));
-            llvm::Value* exprValue = std::any_cast<llvm::Value*>(exprResult);
-            parts.push_back(convertToString(exprValue));
-        }
+    // Process string parts
+    for (auto part : ctx->stringPart()) {
+        std::any partResult = visit(part);
+        parts.push_back(std::any_cast<llvm::Value*>(partResult));
     }
 
     // Concatenate all parts
@@ -504,8 +479,8 @@ std::any LLVMCodegen::visitUsingDecl(PrystParser::UsingDeclContext* ctx) {
 std::any LLVMCodegen::visitEquality(PrystParser::EqualityContext* ctx) {
     PRYST_DEBUG("Visiting equality");
 
-    std::any leftResult = visit(ctx->expression(0));
-    std::any rightResult = visit(ctx->expression(1));
+    std::any leftResult = visit(ctx->comparison(0));
+    std::any rightResult = visit(ctx->comparison(1));
 
     llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
     llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);
@@ -554,8 +529,8 @@ std::any LLVMCodegen::visitEquality(PrystParser::EqualityContext* ctx) {
 std::any LLVMCodegen::visitComparison(PrystParser::ComparisonContext* ctx) {
     PRYST_DEBUG("Visiting comparison");
 
-    std::any leftResult = visit(ctx->expression(0));
-    std::any rightResult = visit(ctx->expression(1));
+    std::any leftResult = visit(ctx->addition(0));
+    std::any rightResult = visit(ctx->addition(1));
 
     llvm::Value* leftValue = std::any_cast<llvm::Value*>(leftResult);
     llvm::Value* rightValue = std::any_cast<llvm::Value*>(rightResult);

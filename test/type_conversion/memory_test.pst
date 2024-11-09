@@ -1,0 +1,31 @@
+// Memory management test for type conversions
+fn main() -> int {
+    // Test repeated conversions to check for memory leaks
+    for (let i = 0; i < 1000; i = i + 1) {
+        let str = toString(i);
+        let num = toInt(str);
+        let fnum = toFloat(str);
+        print(toString(num));
+        print(toString(fnum));
+    }
+
+    // Test large string handling
+    let largeStr = "";
+    for (let i = 0; i < 1000; i = i + 1) {
+        largeStr = largeStr + toString(i);
+    }
+    print(toString(toInt(largeStr)));
+
+    // Test string concatenation with conversions
+    let result = "";
+    for (let i = 0; i < 100; i = i + 1) {
+        result = result + toString(toFloat(i)) + " ";
+    }
+    print(result);
+
+    // Test nested conversions
+    let nested = toString(toInt(toString(toFloat("42.5"))));
+    print(nested);
+
+    return 0;
+}
