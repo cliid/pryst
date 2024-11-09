@@ -9,9 +9,11 @@ namespace pryst {
 
 // Forward declare TypeInfo class
 class TypeInfo;
+class ClassTypeInfo;
 
 // Define TypeInfoPtr type alias
 using TypeInfoPtr = std::shared_ptr<TypeInfo>;
+using ClassTypeInfoPtr = std::shared_ptr<ClassTypeInfo>;
 
 class TypeInfo {
 public:
@@ -31,6 +33,13 @@ public:
     const std::string& getName() const { return name; }
     virtual std::string toString() const { return name; }
     virtual bool isConvertibleTo(const TypeInfoPtr& other) const = 0;
+
+    bool isClass() const { return kind == Kind::Class; }
+    bool isFunction() const { return kind == Kind::Function; }
+    bool isArray() const { return kind == Kind::Array; }
+    bool isPointer() const { return kind == Kind::Pointer; }
+    bool isModule() const { return kind == Kind::Module; }
+    bool isBasic() const { return kind == Kind::Basic; }
 
 protected:
     Kind kind;
@@ -66,8 +75,8 @@ private:
 // Class types with methods and fields
 class ClassTypeInfo : public TypeInfo {
 public:
-    ClassTypeInfo(const std::string& name, std::shared_ptr<ClassTypeInfo> parent = nullptr)
-        : TypeInfo(Kind::Class, name), parentClass(parent) {}
+    ClassTypeInfo(const std::string& name, ClassTypeInfoPtr parent = nullptr)
+        : TypeInfo(Kind::Class, name), parent(parent) {}
 
     void addMethod(const std::string& name, TypeInfoPtr methodType) {
         methods[name] = methodType;
@@ -89,33 +98,20 @@ public:
         return result;
     }
 
-    virtual TypeInfoPtr getMemberTypeInfo(const std::string& memberName) const {
-        auto it = fields.find(memberName);
+    // Add parent class access methods
+    ClassTypeInfoPtr getParent() const { return parent; }
+    bool isConvertibleTo(const TypeInfoPtr& other) const override;
+
+    // Add field type access method
+    TypeInfoPtr getFieldType(const std::string& fieldName) const {
+        auto it = fields.find(fieldName);
         if (it != fields.end()) {
             return it->second;
         }
-        if (parentClass) {
-            return parentClass->getMemberTypeInfo(memberName);
+        if (parent) {
+            return parent->getFieldType(fieldName);
         }
         return nullptr;
-    }
-
-    bool isConvertibleTo(const TypeInfoPtr& other) const override {
-        if (other->getKind() != Kind::Class) {
-            return false;
-        }
-        auto otherClass = std::dynamic_pointer_cast<ClassTypeInfo>(other);
-        if (!otherClass) {
-            return false;
-        }
-        const ClassTypeInfo* current = this;
-        while (current) {
-            if (current->getName() == otherClass->getName()) {
-                return true;
-            }
-            current = current->getParent().get();
-        }
-        return false;
     }
 
     std::string toString() const override {
@@ -125,7 +121,7 @@ public:
 private:
     std::map<std::string, TypeInfoPtr> methods;
     std::map<std::string, TypeInfoPtr> fields;
-    std::shared_ptr<ClassTypeInfo> parentClass;
+    ClassTypeInfoPtr parent;
 };
 
 // Module types for handling module-level type information

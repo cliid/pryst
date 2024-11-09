@@ -41,7 +41,7 @@ llvm::Type* getLLVMTypeFromTypeInfoImpl(TypeInfoPtr typeInfo, llvm::LLVMContext&
 }
 } // anonymous namespace
 
-llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) {
+llvm::Type* LLVMCodegen::getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) const {
     if (!typeInfo) {
         throw std::runtime_error("Invalid type info");
     }

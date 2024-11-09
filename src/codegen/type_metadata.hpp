@@ -22,10 +22,18 @@ using ClassTypeInfoPtr = std::shared_ptr<ClassTypeInfo>;
 
 namespace pryst {
 
-// Helper functions declarations
-bool isSubclassOf(const ClassTypeInfoPtr& derived, const ClassTypeInfoPtr& base);
-size_t getMemberIndexInHierarchy(const ClassTypeInfoPtr& classInfo, const std::string& memberName);
-bool isInstanceOf(const TypeInfoPtr& type, const ClassTypeInfoPtr& classType);
+namespace pryst {
+
+// Forward declarations
+class TypeInfo;
+class FunctionTypeInfo;
+class ClassTypeInfo;
+using TypeInfoPtr = std::shared_ptr<TypeInfo>;
+using FunctionTypeInfoPtr = std::shared_ptr<FunctionTypeInfo>;
+using ClassTypeInfoPtr = std::shared_ptr<ClassTypeInfo>;
+
+// Forward declaration of type conversion function
+llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo, llvm::LLVMContext& context);
 
 // LLVM-specific type information that extends semantic types
 
@@ -52,7 +60,17 @@ public:
     llvm::FunctionType* getFunctionType(llvm::LLVMContext& context) const;
 
 private:
-    llvm::FunctionType* createFunctionType(llvm::LLVMContext& context) const;
+    llvm::FunctionType* createFunctionType(llvm::LLVMContext& context) const {
+        std::vector<llvm::Type*> paramLLVMTypes;
+        for (const auto& paramType : getParamTypes()) {
+            paramLLVMTypes.push_back(getLLVMTypeFromTypeInfo(paramType, context));
+        }
+        return llvm::FunctionType::get(
+            getLLVMTypeFromTypeInfo(getReturnType(), context),
+            paramLLVMTypes,
+            false
+        );
+    }
     llvm::FunctionType* llvmType;
 };
 
