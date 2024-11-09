@@ -1,20 +1,15 @@
 #pragma once
 
-// Include project headers first
-#include "../semantic/type_info.hpp"
-#include "../utils/debug.hpp"
-
-// Then include LLVM headers
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Value.h>
-
-// Standard library headers
-#include <unordered_map>
+#include <antlr4-runtime.h>
+#include "../semantic/type_info.hpp"
+#include <memory>
 #include <string>
 #include <memory>
 
@@ -244,141 +239,33 @@ public:
         typeCache[type->getName()] = getLLVMType(type, *context);
     }
 
-    llvm::Type* getType(const std::string& name) {
-        auto it = typeCache.find(name);
-        if (it != typeCache.end()) {
-            return it->second;
-        }
-        PRYST_DEBUG("Type not found in cache: " + name);
-        return nullptr;
+    // Type registration and lookup
+    void registerType(const std::string& name, TypeInfoPtr typeInfo, llvm::Type* llvmType) {
+        typeInfoMap[name] = typeInfo;
+        llvmTypeMap[name] = llvmType;
     }
 
-    llvm::Type* getLoadStoreType(TypeInfoPtr type, llvm::LLVMContext& context) {
-        if (!type) {
-            PRYST_ERROR("Attempted to get load/store type for null TypeInfo");
-            return nullptr;
-        }
-        PRYST_DEBUG("Getting load/store type for " + type->getName());
-        return getLLVMType(type, context);
+    TypeInfoPtr lookupType(const std::string& name) {
+        auto it = typeInfoMap.find(name);
+        return (it != typeInfoMap.end()) ? it->second : nullptr;
     }
 
-    // Convert a value from one type to another
-    llvm::Value* convertValue(llvm::Value* value, TypeInfoPtr fromType, TypeInfoPtr toType, llvm::IRBuilder<>& builder) {
-        if (!value || !fromType || !toType) {
-            PRYST_ERROR("Invalid arguments for type conversion");
-            return nullptr;
-        }
-
-        // If types are the same, no conversion needed
-        if (isSameType(fromType, toType)) {
-            return value;
-        }
-
-        // Handle basic type conversions
-        if (fromType->getKind() == TypeInfo::Kind::Basic && toType->getKind() == TypeInfo::Kind::Basic) {
-            const std::string& fromName = fromType->getName();
-            const std::string& toName = toType->getName();
-
-            // Integer to float conversion
-            if (fromName == "int" && toName == "float") {
-                return builder.CreateSIToFP(value, llvm::Type::getFloatTy(builder.getContext()), "int_to_float");
-            }
-
-            // Float to integer conversion
-            if (fromName == "float" && toName == "int") {
-                return builder.CreateFPToSI(value, llvm::Type::getInt32Ty(builder.getContext()), "float_to_int");
-            }
-
-            // Integer to boolean conversion
-            if (fromName == "int" && toName == "bool") {
-                return builder.CreateICmpNE(value, llvm::ConstantInt::get(llvm::Type::getInt32Ty(builder.getContext()), 0), "int_to_bool");
-            }
-
-            // Boolean to integer conversion
-            if (fromName == "bool" && toName == "int") {
-                return builder.CreateZExt(value, llvm::Type::getInt32Ty(builder.getContext()), "bool_to_int");
-            }
-        }
-
-        PRYST_ERROR("Unsupported type conversion from " + fromType->getName() + " to " + toType->getName());
-        return nullptr;
+    llvm::Type* lookupLLVMType(const std::string& name) {
+        auto it = llvmTypeMap.find(name);
+        return (it != llvmTypeMap.end()) ? it->second : nullptr;
     }
 
-    // Get default value for a type
-    llvm::Value* getDefaultValue(TypeInfoPtr type) {
-        if (!type) {
-            PRYST_ERROR("Attempted to get default value for null type");
-            return nullptr;
-        }
-
-        const std::string& typeName = type->getName();
-        if (typeName == "int") return llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0);
-        if (typeName == "float") return llvm::ConstantFP::get(llvm::Type::getFloatTy(*context), 0.0);
-        if (typeName == "bool") return llvm::ConstantInt::get(llvm::Type::getInt1Ty(*context), 0);
-        if (typeName == "string") return llvm::ConstantPointerNull::get(llvm::PointerType::get(*context, 0));
-
-        PRYST_ERROR("No default value implemented for type: " + typeName);
-        return nullptr;
-    }
-
-    // Get TypeInfo from LLVM Type
-    TypeInfoPtr getTypeInfoFromLLVMType(llvm::Type* type) {
-        if (!type) {
-            PRYST_ERROR("Attempted to get TypeInfo for null LLVM type");
-            return nullptr;
-        }
-
-        std::string typeName = getLLVMTypeName(type);
-        if (typeName.empty()) {
-            PRYST_ERROR("Could not determine type name for LLVM type");
-            return nullptr;
-        }
-
-        return getTypeInfo(typeName);
-    }
+    // Type conversion and parsing methods
+    llvm::Type* getType(antlr4::tree::ParseTree* typeContext);
+    llvm::Type* getClassType(const std::string& className);
+    llvm::Value* convertType(llvm::Value* value, llvm::Type* targetType, llvm::IRBuilder<>* builder);
+    llvm::Value* convertClassType(llvm::Value* value, llvm::Type* targetType, llvm::IRBuilder<>* builder);
+    llvm::Type* getLLVMType(TypeInfoPtr typeInfo);
 
 private:
-    // Helper method to get type name from LLVM type
-    std::string getLLVMTypeName(llvm::Type* type) {
-        if (!type) return "";
-
-        if (type->isVoidTy()) return "void";
-        if (type->isIntegerTy(32)) return "int";
-        if (type->isFloatTy()) return "float";
-        if (type->isIntegerTy(1)) return "bool";
-        if (type->isPointerTy()) return "string";
-
-        PRYST_ERROR("Unknown LLVM type encountered");
-        return "";
-    }
-
-    llvm::LLVMContext* context;
-    llvm::IRBuilder<>& builder;
-    llvm::Module& module;
-    std::unordered_map<std::string, llvm::Type*> typeCache;
-    std::unordered_map<std::string, TypeInfoPtr> typeInfoCache;
-
-public:
-    // Semantic type info management
-    TypeInfoPtr getTypeInfo(const std::string& name) {
-        auto it = typeInfoCache.find(name);
-        if (it != typeInfoCache.end()) {
-            return it->second;
-        }
-        PRYST_DEBUG("Type info not found in cache: " + name);
-        return nullptr;
-    }
-
-    void registerTypeInfo(TypeInfoPtr typeInfo) {
-        if (!typeInfo) {
-            PRYST_ERROR("Attempted to register null type info");
-            return;
-        }
-        PRYST_DEBUG("Registering type info: " + typeInfo->getName());
-        typeInfoCache[typeInfo->getName()] = typeInfo;
-        // Also register corresponding LLVM type
-        registerType(typeInfo);
-    }
+    llvm::LLVMContext& context;
+    std::map<std::string, TypeInfoPtr> typeInfoMap;
+    std::map<std::string, llvm::Type*> llvmTypeMap;
 };
 
 } // namespace pryst

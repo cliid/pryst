@@ -9,7 +9,7 @@ void StringBuilder::initializeStringFunctions() {
     PRYST_DEBUG("Initializing string builder functions");
 
     // Get types we'll need using TypeRegistry
-    auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+    auto charPtrTy = typeRegistry.getPointerType();
     auto int32Ty = builder->getInt32Ty();
     auto int64Ty = builder->getInt64Ty();
     auto voidTy = builder->getVoidTy();
@@ -83,7 +83,7 @@ void StringBuilder::initializeStringFunctions() {
 llvm::Value* StringBuilder::appendLiteral(const std::string& str) {
     PRYST_DEBUG("Appending literal: " + str);
     auto globalStr = builder->CreateGlobalString(str);
-    auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+    auto charPtrTy = typeRegistry.getPointerType();
     auto globalStrPtr = builder->CreateBitCast(globalStr, charPtrTy);
     parts.push_back(globalStrPtr);
     return globalStrPtr;
@@ -128,7 +128,7 @@ llvm::Value* StringBuilder::appendFormatted(llvm::Value* value, const std::strin
         formatStr = "%s";
         auto trueStr = builder->CreateGlobalString("true");
         auto falseStr = builder->CreateGlobalString("false");
-        auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+        auto charPtrTy = typeRegistry.getPointerType();
         auto trueStrPtr = builder->CreateBitCast(trueStr, charPtrTy);
         auto falseStrPtr = builder->CreateBitCast(falseStr, charPtrTy);
         value = builder->CreateSelect(value, trueStrPtr, falseStrPtr);
@@ -138,7 +138,7 @@ llvm::Value* StringBuilder::appendFormatted(llvm::Value* value, const std::strin
 
     // Create format string constant
     auto formatStrGlobal = builder->CreateGlobalString(formatStr);
-    auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+    auto charPtrTy = typeRegistry.getPointerType();
     auto formatStrPtr = builder->CreateBitCast(formatStrGlobal, charPtrTy);
 
     // Call sprintf with appropriate arguments
@@ -197,7 +197,7 @@ llvm::Value* StringBuilder::appendInterpolatedString(
 llvm::Value* StringBuilder::build() {
     if (parts.empty()) {
         auto emptyStr = builder->CreateGlobalString("");
-        auto charPtrTy = typeRegistry.getPointerType(llvm::Type::getInt8Ty(context));
+        auto charPtrTy = typeRegistry.getPointerType();
         return builder->CreateBitCast(emptyStr, charPtrTy);
     }
 

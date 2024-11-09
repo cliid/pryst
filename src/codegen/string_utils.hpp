@@ -6,6 +6,8 @@
 #include "llvm_codegen.hpp"
 #include "type_registry.hpp"
 
+// String utility function declarations
+
 namespace string_utils {
     // Basic string operations
     llvm::Function* declareStrlen(pryst::LLVMCodegen* codegen);

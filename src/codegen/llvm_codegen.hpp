@@ -4,8 +4,6 @@
 #include "../generated/PrystParser.h"
 #include "type_registry.hpp"
 #include "type_metadata.hpp"
-#include "type_utils.hpp"
-#include "reflection_api.hpp"
 #include "class_info.hpp"
 #include "string_interpolation.hpp"
 #include "type_metadata.hpp"
@@ -24,36 +22,31 @@
 
 namespace pryst {
 
-class LLVMCodegen : public PrystBaseVisitor, public ReflectionAPI {
+// Forward declarations
+class TypeMetadata;
+
+class LLVMCodegen : public PrystBaseVisitor {
 public:
-    LLVMCodegen() : context(std::make_unique<llvm::LLVMContext>()) {
-        module = std::make_unique<llvm::Module>("pryst", *context);
-        builder = std::make_unique<llvm::IRBuilder<>>(*context);
-        typeRegistry = std::make_unique<LLVMTypeRegistry>(*context, *builder, *module);
-        stringInterp = std::make_unique<codegen::StringInterpolation>(builder.get(), module.get(), typeRegistry.get());
-        typeMetadata = std::make_unique<TypeMetadata>(*context, *module);
+    LLVMCodegen() {
+        initializeModule();
     }
     virtual ~LLVMCodegen() = default;
 
-    // Getter methods for private members
-    llvm::LLVMContext* getContext() const { return context.get(); }
-    llvm::Module* getModule() const { return module.get(); }
-    llvm::IRBuilder<>* getBuilder() const { return builder.get(); }
-    LLVMTypeRegistry* getTypeRegistry() const { return typeRegistry.get(); }
+    // Public accessors
+    llvm::LLVMContext* getContext() const { return context_.get(); }
+    llvm::Module* getModule() const { return module_.get(); }
+    llvm::IRBuilder<>* getBuilder() const { return builder_.get(); }
+    LLVMTypeRegistry* getTypeRegistry() const { return typeRegistry_.get(); }
+    void registerFunction(const std::string& name, llvm::Function* func) {
+        module_->getOrInsertFunction(name, func->getFunctionType());
+    }
 
     // Reflection API methods
     llvm::Value* generateGetType(llvm::Value* value);
     llvm::Value* generateIsInstance(llvm::Value* value, const std::string& typeName);
-    TypeInfoPtr getTypeInfo(llvm::Value* value);
+    TypeInfoPtr getTypeInfo(llvm::Value* value) const;
     void attachTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo);
-    llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo);
-
-    // Function registration
-    void registerFunction(const std::string& name, llvm::Function* func) {
-        if (func) {
-            module->getOrInsertFunction(name, func->getFunctionType());
-        }
-    }
+    llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo) const;
 
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* ctx);
 
@@ -104,11 +97,19 @@ public:
     // Class members
     std::any visitClassDeclaration(PrystParser::ClassDeclarationContext *ctx) override;
     std::any visitClassBody(PrystParser::ClassBodyContext *ctx) override;
-    std::any visitClassMemberDecl(PrystParser::ClassMemberDeclContext *ctx) override;
-    std::any visitClassMemberInferredDecl(PrystParser::ClassMemberInferredDeclContext *ctx) override;
-    std::any visitClassMemberConstInferredDecl(PrystParser::ClassMemberConstInferredDeclContext *ctx) override;
-    std::any visitClassMemberConstTypedDecl(PrystParser::ClassMemberConstTypedDeclContext *ctx) override;
-    std::any visitClassMemberFunctionDecl(PrystParser::ClassMemberFunctionDeclContext *ctx) override;
+    std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *ctx) override;
+    std::any visitClassTypedVariableDecl(PrystParser::ClassTypedVariableDeclContext *ctx) override;
+    std::any visitClassConstTypedDecl(PrystParser::ClassConstTypedDeclContext *ctx) override;
+    std::any visitClassInferredVariableDecl(PrystParser::ClassInferredVariableDeclContext *ctx) override;
+    std::any visitClassConstInferredDecl(PrystParser::ClassConstInferredDeclContext *ctx) override;
+
+    // String handling
+    std::any visitSimpleString(PrystParser::SimpleStringContext *ctx) override;
+
+    // Type conversions
+    std::any visitTypeCastExpr(PrystParser::TypeCastExprContext *ctx) override;
+    std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext *ctx) override;
+    std::any visitClassConversionExpr(PrystParser::ClassConversionExprContext *ctx) override;
 
     // Expressions
     std::any visitExpression(PrystParser::ExpressionContext *ctx) override;
@@ -137,10 +138,11 @@ public:
 
 private:
     // Helper methods
+    void initializeModule();
     llvm::AllocaInst* createEntryBlockAlloca(llvm::Function* function, const std::string& varName, llvm::Type* type);
     void declarePrintFunctions();
 
-    // Builtin function declarations
+    // Built-in function declarations
     llvm::Function* declareBoolToStr();
     llvm::Function* declareIntToStr();
     llvm::Function* declareFloatToStr();
@@ -149,22 +151,19 @@ private:
     llvm::Function* declareMathAbs();
     llvm::Function* declareStrConcat();
     llvm::Function* declareStrSubstr();
-    llvm::Function* declareMalloc();
-
-    // Type conversion functions
     llvm::Function* declareToString();
     llvm::Function* declareToInt();
     llvm::Function* declareToFloat();
+    llvm::Function* declareMalloc();
 
     // Private members
-    std::unique_ptr<llvm::LLVMContext> context;
-    std::unique_ptr<llvm::Module> module;
-    std::unique_ptr<llvm::IRBuilder<>> builder;
-    std::unique_ptr<LLVMTypeRegistry> typeRegistry;
-    std::unique_ptr<codegen::StringInterpolation> stringInterp;
-    std::map<std::string, llvm::AllocaInst*> namedValues;
-    std::map<std::string, llvm::Function*> functions;  // Store function declarations
-    llvm::Function* currentFunction;
-    std::unique_ptr<TypeMetadata> typeMetadata;
+    std::unique_ptr<llvm::LLVMContext> context_;
+    std::unique_ptr<llvm::Module> module_;
+    std::unique_ptr<llvm::IRBuilder<>> builder_;
+    std::unique_ptr<LLVMTypeRegistry> typeRegistry_;
+    std::unique_ptr<TypeMetadata> typeMetadata_;
+    std::map<std::string, llvm::Value*> namedValues_;
+    std::map<std::string, llvm::Function*> functions_;
+    llvm::Function* currentFunction_;
 };
 } // namespace pryst
