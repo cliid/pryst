@@ -1,90 +1,72 @@
+#include <iostream>
+#include <fstream>
+#include <memory>
+#include <string>
 #include <antlr4-runtime.h>
 #include "generated/PrystLexer.h"
 #include "generated/PrystParser.h"
-#include "semantic/semantic_analyzer.hpp"
 #include "codegen/llvm_codegen.hpp"
-#include "jit/jit_compiler.hpp"
 #include "utils/logger.hpp"
-#include <llvm/Support/Error.h>
-#include <memory>
-#include <iostream>
-#include <fstream>
+#include <llvm/IR/Module.h>
 
-using std::string;
-using std::unique_ptr;
-using std::make_unique;
-using std::ifstream;
-
-using llvm::Module;
-using llvm::Error;
-
-namespace pryst {
-class Logger;
-}
+using namespace antlr4;
+using namespace llvm;
+using namespace std;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <input_file> [--debug] [--jit]" << std::endl;
+        cerr << "Usage: " << argv[0] << " <input-file> [--debug]" << endl;
         return 1;
     }
 
-    string inputFile = argv[1];
-    bool debugMode = false;
-    string mode = "aot";  // Default to AOT compilation
+    bool debug = false;
+    string inputFile;
 
-    // Parse command line arguments
-    for (int i = 2; i < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
         string arg = argv[i];
         if (arg == "--debug") {
-            debugMode = true;
-        } else if (arg == "--jit") {
-            mode = "jit";
+            debug = true;
+        } else {
+            inputFile = arg;
         }
     }
 
     try {
-        auto& logger = pryst::Logger::getInstance();
-        logger.setDebugEnabled(debugMode);
+        ifstream stream;
+        stream.open(inputFile);
 
-        // Read input file
-        ifstream input(inputFile);
-        if (!input.is_open()) {
-            PRYST_ERROR("Could not open input file: " + inputFile);
-            return 1;
-        }
-
-        antlr4::ANTLRInputStream inputStream(input);
-        PrystLexer lexer(&inputStream);
-        antlr4::CommonTokenStream tokens(&lexer);
+        ANTLRInputStream input(stream);
+        PrystLexer lexer(&input);
+        CommonTokenStream tokens(&lexer);
         PrystParser parser(&tokens);
 
-        auto* programContext = parser.program();
+        auto programContext = parser.program();
+
         if (parser.getNumberOfSyntaxErrors() > 0) {
-            PRYST_ERROR("Syntax errors found during parsing");
+            cerr << "Parsing failed." << endl;
             return 1;
         }
 
-        // Semantic analysis
-        pryst::SemanticAnalyzer semanticAnalyzer;
-        semanticAnalyzer.visitProgram(programContext);
+        // Create LLVM context and initialize code generator
+        LLVMContext context;
+        pryst::LLVMCodegen codegen(context);
 
-        // Code generation
-        pryst::LLVMCodegen codegen;
-        unique_ptr<Module> module = codegen.generateModule(programContext);
-
-        if (mode == "jit") {
-            pryst::JITCompiler jit;
-            jit.compileAndRun(std::move(module));
-        } else {
-            // AOT compilation (to be implemented)
-            PRYST_ERROR("AOT compilation not yet implemented");
+        // Generate LLVM module
+        auto module = codegen.getModule();
+        if (!module) {
+            cerr << "Failed to generate module." << endl;
             return 1;
         }
 
-    } catch (const std::exception& e) {
-        PRYST_ERROR(string("Exception: ") + e.what());
+        // Visit the parse tree
+        codegen.visit(programContext);
+
+        // Output LLVM IR
+        module->print(outs(), nullptr);
+
+        return 0;
+    } catch (exception& e) {
+        cerr << "Error: " << e.what() << endl;
         return 1;
     }
-
-    return 0;
 }

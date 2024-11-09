@@ -1,0 +1,108 @@
+// Test namespace and module declarations
+namespace test::visitor {
+    module math {
+        fn add(int a, int b) -> int {
+            return a + b;
+        }
+    }
+}
+
+// Test class declarations and inheritance
+class Base {
+    protected int value;
+
+    fn getValue() -> int {
+        return this.value;
+    }
+
+    fn setValueProtected(int v) -> void {
+        this.value = v;
+    }
+}
+
+class Derived extends Base {
+    private string name;
+
+    fn setValue(int v, string n) -> void {
+        super.setValueProtected(v);
+        this.name = n;
+    }
+
+    fn getName() -> string {
+        return this.name;
+    }
+
+    fn getFullInfo() -> string {
+        return "Name: ${this.name}, Value: ${super.getValue()}";
+    }
+}
+
+// Test function declarations and calls with qualified identifiers
+fn testFunction() -> void {
+    // Test variable declarations and type inference
+    let x = 42;
+    const float y = 3.14;
+
+    // Test expressions and type conversions
+    let z = x + float_to_int(y);
+    print("Result: ${z}");
+
+    // Test class instantiation and method calls
+    let obj = new Derived();
+    obj.setValue(100, "test");
+    print("Object info: ${obj.getFullInfo()}");
+
+    // Test string interpolation with expressions
+    print("Value of x is ${x}, y is ${y}, sum is ${x + float_to_int(y)}");
+
+    // Test module imports and qualified identifiers
+    using module test::visitor::math;
+    let result = math::add(5, 3);
+    print("Math result: ${result}");
+
+    // Test error handling with null checks
+    try {
+        let nullable: string? = null;
+        print(nullable.toString());
+    } catch (NullPointerException e) {
+        print("Caught expected null error: ${e.getMessage()}");
+    }
+
+    // Test type conversion errors
+    try {
+        let invalid = "not a number";
+        let num = int(invalid);
+    } catch (TypeConversionException e) {
+        print("Caught expected conversion error: ${e.getMessage()}");
+    }
+}
+
+// Test block-scoped using declarations
+{
+    using module test::visitor::math;
+    let sum = math::add(10, 20);
+    print("Block scope sum: ${sum}");
+}
+
+// Test type registry functionality
+fn testTypeRegistry() -> void {
+    // Test basic types
+    let int_val: int = 42;
+    let float_val: float = 3.14;
+    let string_val: string = "test";
+    let bool_val: bool = true;
+
+    // Test nullable types
+    let nullable_int: int? = null;
+    let nullable_string: string? = "can be null";
+
+    // Test function types
+    let func: fn(int, int) -> int = math::add;
+    print("Function result: ${func(2, 3)}");
+}
+
+// Entry point
+fn main() -> void {
+    testFunction();
+    testTypeRegistry();
+}

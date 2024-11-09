@@ -1,159 +1,74 @@
 #include "type_registry.hpp"
-#include "../utils/logger.hpp"
-#include "llvm/IR/DerivedTypes.h"
-#include <sstream>
+#include "../semantic/basic_type_info.hpp"
+#include "../utils/debug.hpp"
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/IRBuilder.h>
 
 namespace pryst {
 
-namespace {
-    // Helper function to create type signature string
-    std::string createTypeSignature(const std::string& baseName,
-                                  const std::vector<std::string>& params = {}) {
-        std::stringstream ss;
-        ss << baseName;
-        if (!params.empty()) {
-            ss << "<";
-            for (size_t i = 0; i < params.size(); ++i) {
-                if (i > 0) ss << ",";
-                ss << params[i];
-            }
-            ss << ">";
-        }
-        return ss.str();
+TypeRegistry::TypeRegistry(llvm::LLVMContext& context) : context(context) {
+    initializeBasicTypes();
+}
+
+llvm::Type* TypeRegistry::getLLVMType(const std::string& typeName) const {
+    auto it = types.find(typeName);
+    if (it == types.end()) {
+        PRYST_ERROR("Unknown type: " + typeName);
+        return nullptr;
     }
+    return it->second->getLLVMType();
 }
 
-llvm::Type* TypeRegistry::getFunctionPointerType(llvm::Type* returnType,
-                                               const std::vector<llvm::Type*>& paramTypes,
-                                               bool isVarArg) {
-    auto funcType = getFunctionType(returnType, paramTypes, isVarArg);
-    return createOpaquePointer();
+void TypeRegistry::registerType(const std::string& name, TypeInfoPtr typeInfo) {
+    types[name] = typeInfo;
 }
 
-llvm::Type* TypeRegistry::getLoadType(llvm::Type* type) {
-    if (!type) {
-        PRYST_ERROR("Attempted to get load type for null type");
+TypeInfoPtr TypeRegistry::getTypeInfo(const std::string& name) const {
+    auto it = types.find(name);
+    return it != types.end() ? it->second : nullptr;
+}
+
+bool TypeRegistry::isNumericType(llvm::Type* type) const {
+    return type && (type->isIntegerTy(32) || type->isDoubleTy());
+}
+
+llvm::Value* TypeRegistry::convertType(llvm::Value* value, const std::string& targetType) const {
+    if (!value) return nullptr;
+
+    auto sourceType = value->getType();
+    auto targetLLVMType = getLLVMType(targetType);
+    if (!targetLLVMType) return nullptr;
+
+    // Handle numeric conversions
+    if (sourceType->isIntegerTy(32) && targetLLVMType->isDoubleTy()) {
+        return llvm::IRBuilder<>(llvm::BasicBlock::Create(context)).CreateSIToFP(value, targetLLVMType);
+    }
+
+    if (sourceType->isDoubleTy() && targetLLVMType->isIntegerTy(32)) {
+        return llvm::IRBuilder<>(llvm::BasicBlock::Create(context)).CreateFPToSI(value, targetLLVMType);
+    }
+
+    // Handle string conversions (assuming we have toString functions implemented)
+    if (targetLLVMType->isPointerTy()) {
+        // TODO: Implement string conversion
         return nullptr;
     }
 
-    // For opaque pointers, we need to track the actual type separately
-    if (type->isPointerTy()) {
-        // Look up the element type name from our mapping
-        for (const auto& [ptrName, elemName] : elementTypes) {
-            if (typeCache[ptrName] == type) {
-                return getType(elemName);
-            }
-        }
-        // If we can't find the element type, return a default type
-        PRYST_WARNING("Could not find element type for pointer, using default");
-        return getIntType();
-    }
-
-    return type;
+    return value;
 }
 
-llvm::Type* TypeRegistry::getStoreType(llvm::Type* type) {
-    if (!type) {
-        PRYST_ERROR("Attempted to get store type for null type");
-        return nullptr;
-    }
-
-    // For opaque pointers, we need to track the actual type separately
-    if (type->isPointerTy()) {
-        // Look up the element type name from our mapping
-        for (const auto& [ptrName, elemName] : elementTypes) {
-            if (typeCache[ptrName] == type) {
-                return getType(elemName);
-            }
-        }
-        // If we can't find the element type, return a default type
-        PRYST_WARNING("Could not find element type for pointer, using default");
-        return getIntType();
-    }
-
-    return type;
-}
-
-llvm::Type* TypeRegistry::getArrayElementType(llvm::Type* arrayType) {
-    if (!arrayType) {
-        PRYST_ERROR("Attempted to get element type for null array type");
-        return nullptr;
-    }
-
-    if (auto arrTy = llvm::dyn_cast<llvm::ArrayType>(arrayType)) {
-        return arrTy->getElementType();
-    }
-
-    PRYST_ERROR("Type is not an array type");
-    return nullptr;
-}
-
-llvm::Type* TypeRegistry::getStructElementType(llvm::Type* structType, unsigned index) {
-    if (!structType) {
-        PRYST_ERROR("Attempted to get element type for null struct type");
-        return nullptr;
-    }
-
-    if (auto structTy = llvm::dyn_cast<llvm::StructType>(structType)) {
-        if (index < structTy->getNumElements()) {
-            return structTy->getElementType(index);
-        }
-        PRYST_ERROR("Struct element index out of bounds");
-        return nullptr;
-    }
-
-    PRYST_ERROR("Type is not a struct type");
-    return nullptr;
-}
-
-bool TypeRegistry::isPointerToFunction(llvm::Type* type) {
-    if (!type || !type->isPointerTy()) return false;
-
-    // In LLVM 20.0.0, we can't directly check the pointee type
-    // Instead, we check our type registry
-    for (const auto& [name, elemType] : elementTypes) {
-        if (typeCache[name] == type) {
-            return name.find("fn<") == 0;
-        }
-    }
-    return false;
-}
-
-std::string TypeRegistry::getTypeName(llvm::Type* type) {
-    if (!type) return "null";
-
-    // Search in our type cache
-    for (const auto& [name, cachedType] : typeCache) {
-        if (cachedType == type) return name;
-    }
-
-    // If not found in cache, generate a name based on type properties
-    if (type->isVoidTy()) return "void";
-    if (type->isIntegerTy(1)) return "bool";
-    if (type->isIntegerTy(32)) return "int";
-    if (type->isFloatTy()) return "float";
-    if (type->isPointerTy()) return "ptr";
-    if (type->isArrayTy()) return "array";
-    if (type->isStructTy()) {
-        auto structType = llvm::cast<llvm::StructType>(type);
-        return structType->hasName() ? structType->getName().str() : "struct";
-    }
-
-    return "unknown";
-}
-
-void TypeRegistry::dumpTypeInfo() {
-    PRYST_DEBUG("=== Type Registry Contents ===");
-    for (const auto& [name, type] : typeCache) {
-        PRYST_DEBUG("Type: " + name);
-        if (type->isPointerTy()) {
-            auto it = elementTypes.find(name);
-            if (it != elementTypes.end()) {
-                PRYST_DEBUG("  Element type: " + it->second);
-            }
-        }
-    }
-    PRYST_DEBUG("===========================");
+void TypeRegistry::initializeBasicTypes() {
+    // Register basic types
+    registerType("void", std::make_shared<BasicTypeInfo>(
+        BasicTypeInfo::BasicKind::Void, "void", getVoidType()));
+    registerType("bool", std::make_shared<BasicTypeInfo>(
+        BasicTypeInfo::BasicKind::Bool, "bool", getBoolType()));
+    registerType("int", std::make_shared<BasicTypeInfo>(
+        BasicTypeInfo::BasicKind::Int, "int", getInt32Type()));
+    registerType("float", std::make_shared<BasicTypeInfo>(
+        BasicTypeInfo::BasicKind::Float, "float", getFloatType()));
+    registerType("str", std::make_shared<BasicTypeInfo>(
+        BasicTypeInfo::BasicKind::String, "str", getStringType()));
 }
 
 } // namespace pryst
