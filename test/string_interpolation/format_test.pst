@@ -1,0 +1,15 @@
+// Test string formatting functionality
+fn main() -> int {
+    let msg = "Hello, {}!";
+    let name = "World";
+    let formatted = format(msg, name);
+    print(formatted);  // Should print: Hello, World!
+
+    let num = 42;
+    let float_num = 3.14;
+    let complex = "Value: {}, Pi: {}";
+    let result = format(complex, num, float_num);
+    print(result);  // Should print: Value: 42, Pi: 3.14
+
+    return 0;
+}

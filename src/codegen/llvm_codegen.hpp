@@ -5,6 +5,8 @@
 #include "type_registry.hpp"
 #include "type_metadata.hpp"
 #include "class_info.hpp"
+#include "string_interpolation.hpp"
+#include "type_metadata.hpp"
 #include "utils/debug.hpp"
 #include <memory>
 #include <string>
@@ -48,6 +50,25 @@ public:
 
     std::unique_ptr<llvm::Module> generateModule(PrystParser::ProgramContext* ctx);
 
+    // Getter methods for private members
+    llvm::LLVMContext* getContext() const { return context.get(); }
+    llvm::Module* getModule() const { return module.get(); }
+    llvm::IRBuilder<>* getBuilder() const { return builder.get(); }
+    LLVMTypeRegistry& getTypeRegistry() const { return *typeRegistry; }
+    void registerFunction(const std::string& name, llvm::Function* func) {
+        module->getOrInsertFunction(name, func->getFunctionType());
+    }
+
+    // Type system methods
+    llvm::Type* getLLVMTypeFromTypeInfo(TypeInfoPtr typeInfo);
+    llvm::Type* getPointerType(llvm::Type* elementType);
+
+    // Reflection API methods (implementing ReflectionAPI interface)
+    llvm::Value* generateGetType(llvm::Value* value) override;
+    llvm::Value* generateIsInstance(llvm::Value* value, const std::string& typeName) override;
+    TypeInfoPtr getTypeInfo(llvm::Value* value) override;
+    void attachTypeInfo(llvm::Value* value, TypeInfoPtr typeInfo) override;
+
     // Program structure and declarations
     std::any visitProgram(PrystParser::ProgramContext *ctx) override;
     std::any visitDeclaration(PrystParser::DeclarationContext *ctx) override;
@@ -67,6 +88,13 @@ public:
     std::any visitParamList(PrystParser::ParamListContext *ctx) override;
     std::any visitParam(PrystParser::ParamContext *ctx) override;
     std::any visitParamTypeList(PrystParser::ParamTypeListContext *ctx) override;
+
+    // Variable declarations
+    std::any visitInferredVariableDecl(PrystParser::InferredVariableDeclContext *ctx) override;
+    std::any visitTypedVariableDecl(PrystParser::TypedVariableDeclContext *ctx) override;
+    std::any visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext *ctx) override;
+
+    // Class members
     std::any visitClassDeclaration(PrystParser::ClassDeclarationContext *ctx) override;
     std::any visitClassBody(PrystParser::ClassBodyContext *ctx) override;
     std::any visitClassFunctionDecl(PrystParser::ClassFunctionDeclContext *ctx) override;
@@ -96,6 +124,7 @@ public:
     std::any visitPostfix(PrystParser::PostfixContext *ctx) override;
     std::any visitCall(PrystParser::CallContext *ctx) override;
     std::any visitPrimary(PrystParser::PrimaryContext *ctx) override;
+    std::any visitStringLiteralRule(PrystParser::StringLiteralRuleContext *ctx) override;
 
     // Statements
     std::any visitBlockStatement(PrystParser::BlockStatementContext *ctx) override;
@@ -104,7 +133,7 @@ public:
     std::any visitWhileStatement(PrystParser::WhileStatementContext *ctx) override;
     std::any visitForStatement(PrystParser::ForStatementContext *ctx) override;
     std::any visitReturnStatement(PrystParser::ReturnStatementContext *ctx) override;
-    std::any visitTryStatement(PrystParser::TryStatementContext *ctx) override;
+    std::any visitTryStmtWrapper(PrystParser::TryStmtWrapperContext *ctx) override;
     std::any visitPrintStatement(PrystParser::PrintStatementContext *ctx) override;
 
 private:
@@ -137,5 +166,4 @@ private:
     std::map<std::string, llvm::Function*> functions_;
     llvm::Function* currentFunction_;
 };
-
 } // namespace pryst

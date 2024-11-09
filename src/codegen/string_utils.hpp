@@ -1,9 +1,8 @@
 #ifndef STRING_UTILS_HPP
 #define STRING_UTILS_HPP
 
-#include <llvm/IR/Function.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
+#include <string>
+#include <vector>
 #include "llvm_codegen.hpp"
 #include "type_registry.hpp"
 

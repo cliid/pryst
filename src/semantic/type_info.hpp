@@ -88,8 +88,8 @@ public:
 
     const std::map<std::string, TypeInfoPtr>& getMethods() const { return methods; }
     const std::map<std::string, TypeInfoPtr>& getFields() const { return fields; }
+    std::shared_ptr<ClassTypeInfo> getParent() const { return parentClass; }
 
-    // Add getMembers method to return all fields as a vector of pairs
     std::vector<std::pair<std::string, TypeInfoPtr>> getMembers() const {
         std::vector<std::pair<std::string, TypeInfoPtr>> result;
         for (const auto& [name, type] : fields) {
@@ -139,7 +139,10 @@ public:
     }
 
     const std::map<std::string, TypeInfoPtr>& getTypes() const { return types; }
-    bool isConvertibleTo(const TypeInfoPtr& other) const override;
+
+    bool isConvertibleTo(const TypeInfoPtr& other) const override {
+        return other->getKind() == Kind::Module && getName() == other->getName();
+    }
 
     std::string toString() const override {
         return "module " + name;

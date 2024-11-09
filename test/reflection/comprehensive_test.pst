@@ -1,0 +1,45 @@
+// Comprehensive reflection API test
+class Animal {
+    name: string;
+    age: int;
+
+    fn getName() -> string {
+        return this.name;
+    }
+}
+
+class Dog extends Animal {
+    breed: string;
+
+    fn getBreed() -> string {
+        return this.breed;
+    }
+}
+
+fn testReflection() {
+    // Test basic type reflection
+    let x: int = 42;
+    assert(getType(x) == "int");
+
+    let s: string = "hello";
+    assert(getType(s) == "string");
+
+    // Test class type reflection
+    let dog = new Dog();
+    dog.name = "Rex";
+    dog.breed = "Labrador";
+
+    assert(getType(dog) == "Dog");
+    assert(isInstance(dog, "Dog"));
+    assert(isInstance(dog, "Animal")); // Should work due to inheritance
+
+    // Test method calls through reflection
+    assert(dog.getName() == "Rex");
+    assert(dog.getBreed() == "Labrador");
+
+    print("All reflection tests passed!");
+}
+
+fn main() {
+    testReflection();
+}

@@ -1,12 +1,14 @@
 // Type conversion operations implementation
 
 #include "llvm_codegen.hpp"
+#include "type_registry.hpp"
+#include "type_metadata.hpp"
+#include "../utils/logger.hpp"
+#include "../utils/debug.hpp"
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Constants.h>
-#include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 
 namespace pryst {

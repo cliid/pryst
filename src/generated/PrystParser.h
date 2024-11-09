@@ -1,5 +1,5 @@
 
-// Generated from Pryst.g4 by ANTLR 4.13.2
+// Generated from PrystParser.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -12,17 +12,18 @@
 class  PrystParser : public antlr4::Parser {
 public:
   enum {
-    LPAREN = 1, RPAREN = 2, LBRACE = 3, RBRACE = 4, LBRACKET = 5, RBRACKET = 6, 
-    COMMA = 7, DOT = 8, MINUS = 9, PLUS = 10, SEMICOLON = 11, SLASH = 12, 
-    STAR = 13, BANG = 14, EQUAL = 15, GREATER = 16, LESS = 17, NOT_EQUAL = 18, 
-    EQUAL_EQUAL = 19, GREATER_EQUAL = 20, LESS_EQUAL = 21, AND = 22, OR = 23, 
-    INCREMENT = 24, DECREMENT = 25, PERCENT = 26, ARROW = 27, DOUBLE_COLON = 28, 
-    PRINT = 29, CLASS = 30, EXTENDS = 31, ELSE = 32, FALSE = 33, FOR = 34, 
-    IF = 35, NULL_ = 36, RETURN = 37, SUPER = 38, THIS = 39, TRUE = 40, 
-    WHILE = 41, NEW = 42, CONVERT = 43, NAMESPACE = 44, MODULE = 45, IMPORT = 46, 
-    USING = 47, LET = 48, FN = 49, CONST = 50, CONST_EXPR = 51, TRY = 52, 
-    CATCH = 53, INT = 54, FLOAT = 55, BOOL = 56, STR = 57, VOID = 58, NUMBER = 59, 
-    STRING = 60, IDENTIFIER = 61, COMMENT = 62, WS = 63
+    PRINT = 1, CLASS = 2, EXTENDS = 3, ELSE = 4, FALSE = 5, FOR = 6, IF = 7, 
+    NULL_ = 8, RETURN = 9, SUPER = 10, THIS = 11, TRUE = 12, WHILE = 13, 
+    NEW = 14, CONVERT = 15, NAMESPACE = 16, MODULE = 17, IMPORT = 18, USING = 19, 
+    LET = 20, FN = 21, CONST = 22, CONST_EXPR = 23, TRY = 24, CATCH = 25, 
+    INT = 26, FLOAT = 27, BOOL = 28, STR = 29, VOID = 30, LPAREN = 31, RPAREN = 32, 
+    LBRACE = 33, RBRACE = 34, LBRACKET = 35, RBRACKET = 36, COMMA = 37, 
+    DOT = 38, MINUS = 39, PLUS = 40, SEMICOLON = 41, SLASH = 42, STAR = 43, 
+    BANG = 44, EQUAL = 45, GREATER = 46, LESS = 47, NOT_EQUAL = 48, EQUAL_EQUAL = 49, 
+    GREATER_EQUAL = 50, LESS_EQUAL = 51, AND = 52, OR = 53, INCREMENT = 54, 
+    DECREMENT = 55, PERCENT = 56, ARROW = 57, DOUBLE_COLON = 58, NUMBER = 59, 
+    IDENTIFIER = 60, STRING_START = 61, COMMENT = 62, WS = 63, STRING_CONTENT = 64, 
+    ESCAPE_SEQ = 65, INTERP_START = 66, STRING_END = 67
   };
 
   enum {
@@ -31,13 +32,14 @@ public:
     RuleNamedFunction = 8, RuleLambdaFunction = 9, RuleFunctionBody = 10, 
     RuleVariableDecl = 11, RuleClassDeclaration = 12, RuleClassBody = 13, 
     RuleClassMember = 14, RuleParamList = 15, RuleParam = 16, RuleParamTypeList = 17, 
-    RuleType = 18, RuleStatement = 19, RuleExpression = 20, RuleStringLiteral = 21, 
-    RuleAssignment = 22, RuleLogicOr = 23, RuleLogicAnd = 24, RuleEquality = 25, 
-    RuleComparison = 26, RuleAddition = 27, RuleMultiplication = 28, RuleUnary = 29, 
-    RulePostfix = 30, RuleSuffix = 31, RuleCallSuffix = 32, RuleMemberSuffix = 33, 
-    RuleCall = 34, RulePrimary = 35, RuleQualifiedIdentifier = 36, RuleNewExpression = 37, 
-    RuleArguments = 38, RuleTypeCastExpr = 39, RuleTypeConversionExpr = 40, 
-    RuleClassConversionExpr = 41, RuleTryCatchStatement = 42
+    RuleType = 18, RuleStatement = 19, RuleTryStmtWrapper = 20, RuleCatchBlock = 21, 
+    RuleExpression = 22, RuleStringLiteralRule = 23, RuleStringPart = 24, 
+    RuleAssignment = 25, RuleLogicOr = 26, RuleLogicAnd = 27, RuleEquality = 28, 
+    RuleComparison = 29, RuleAddition = 30, RuleMultiplication = 31, RuleUnary = 32, 
+    RulePostfix = 33, RuleSuffix = 34, RuleCallSuffix = 35, RuleMemberSuffix = 36, 
+    RuleCall = 37, RulePrimary = 38, RuleQualifiedIdentifier = 39, RuleNewExpression = 40, 
+    RuleArguments = 41, RuleTypeCastExpr = 42, RuleTypeConversionExpr = 43, 
+    RuleClassConversionExpr = 44
   };
 
   explicit PrystParser(antlr4::TokenStream *input);
@@ -77,8 +79,11 @@ public:
   class ParamTypeListContext;
   class TypeContext;
   class StatementContext;
+  class TryStmtWrapperContext;
+  class CatchBlockContext;
   class ExpressionContext;
-  class StringLiteralContext;
+  class StringLiteralRuleContext;
+  class StringPartContext;
   class AssignmentContext;
   class LogicOrContext;
   class LogicAndContext;
@@ -98,8 +103,7 @@ public:
   class ArgumentsContext;
   class TypeCastExprContext;
   class TypeConversionExprContext;
-  class ClassConversionExprContext;
-  class TryCatchStatementContext; 
+  class ClassConversionExprContext; 
 
   class  ProgramContext : public antlr4::ParserRuleContext {
   public:
@@ -294,6 +298,7 @@ public:
     FunctionBodyContext *functionBody();
     ParamListContext *paramList();
     antlr4::tree::TerminalNode *ARROW();
+    antlr4::tree::TerminalNode *VOID();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -309,10 +314,11 @@ public:
     antlr4::tree::TerminalNode *LPAREN();
     antlr4::tree::TerminalNode *RPAREN();
     antlr4::tree::TerminalNode *ARROW();
-    TypeContext *type();
     antlr4::tree::TerminalNode *LBRACE();
     antlr4::tree::TerminalNode *RBRACE();
     ParamListContext *paramList();
+    TypeContext *type();
+    antlr4::tree::TerminalNode *VOID();
     std::vector<DeclarationContext *> declaration();
     DeclarationContext* declaration(size_t i);
     ExpressionContext *expression();
@@ -353,17 +359,29 @@ public:
    
   };
 
+  class  TypedConstVariableDeclContext : public VariableDeclContext {
+  public:
+    TypedConstVariableDeclContext(VariableDeclContext *ctx);
+
+    antlr4::tree::TerminalNode *CONST();
+    TypeContext *type();
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *SEMICOLON();
+    antlr4::tree::TerminalNode *EQUAL();
+    ExpressionContext *expression();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
   class  TypedVariableDeclContext : public VariableDeclContext {
   public:
     TypedVariableDeclContext(VariableDeclContext *ctx);
 
+    TypeContext *type();
     antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *SEMICOLON();
     antlr4::tree::TerminalNode *EQUAL();
     ExpressionContext *expression();
-    antlr4::tree::TerminalNode *SEMICOLON();
-    TypeContext *type();
-    antlr4::tree::TerminalNode *CONST();
-    antlr4::tree::TerminalNode *CONST_EXPR();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -372,12 +390,37 @@ public:
   public:
     InferredVariableDeclContext(VariableDeclContext *ctx);
 
+    antlr4::tree::TerminalNode *LET();
     antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *SEMICOLON();
     antlr4::tree::TerminalNode *EQUAL();
     ExpressionContext *expression();
-    antlr4::tree::TerminalNode *SEMICOLON();
-    antlr4::tree::TerminalNode *LET();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  InferredConstVariableDeclContext : public VariableDeclContext {
+  public:
+    InferredConstVariableDeclContext(VariableDeclContext *ctx);
+
     antlr4::tree::TerminalNode *CONST();
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *SEMICOLON();
+    antlr4::tree::TerminalNode *EQUAL();
+    ExpressionContext *expression();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  ConstExprVariableDeclContext : public VariableDeclContext {
+  public:
+    ConstExprVariableDeclContext(VariableDeclContext *ctx);
+
+    antlr4::tree::TerminalNode *CONST_EXPR();
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *SEMICOLON();
+    antlr4::tree::TerminalNode *EQUAL();
+    ExpressionContext *expression();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -441,22 +484,49 @@ public:
    
   };
 
-  class  ClassTypedVariableDeclContext : public ClassMemberContext {
+  class  ClassMemberConstTypedDeclContext : public ClassMemberContext {
   public:
-    ClassTypedVariableDeclContext(ClassMemberContext *ctx);
+    ClassMemberConstTypedDeclContext(ClassMemberContext *ctx);
 
+    antlr4::tree::TerminalNode *CONST();
     TypeContext *type();
     antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *SEMICOLON();
     antlr4::tree::TerminalNode *EQUAL();
     ExpressionContext *expression();
-    antlr4::tree::TerminalNode *SEMICOLON();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  class  ClassFunctionDeclContext : public ClassMemberContext {
+  class  ClassMemberConstInferredDeclContext : public ClassMemberContext {
   public:
-    ClassFunctionDeclContext(ClassMemberContext *ctx);
+    ClassMemberConstInferredDeclContext(ClassMemberContext *ctx);
+
+    antlr4::tree::TerminalNode *CONST();
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *SEMICOLON();
+    antlr4::tree::TerminalNode *EQUAL();
+    ExpressionContext *expression();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  ClassMemberInferredDeclContext : public ClassMemberContext {
+  public:
+    ClassMemberInferredDeclContext(ClassMemberContext *ctx);
+
+    antlr4::tree::TerminalNode *LET();
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *SEMICOLON();
+    antlr4::tree::TerminalNode *EQUAL();
+    ExpressionContext *expression();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  ClassMemberFunctionDeclContext : public ClassMemberContext {
+  public:
+    ClassMemberFunctionDeclContext(ClassMemberContext *ctx);
 
     antlr4::tree::TerminalNode *IDENTIFIER();
     antlr4::tree::TerminalNode *LPAREN();
@@ -469,42 +539,15 @@ public:
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  class  ClassConstTypedDeclContext : public ClassMemberContext {
+  class  ClassMemberDeclContext : public ClassMemberContext {
   public:
-    ClassConstTypedDeclContext(ClassMemberContext *ctx);
+    ClassMemberDeclContext(ClassMemberContext *ctx);
 
-    antlr4::tree::TerminalNode *CONST();
     TypeContext *type();
     antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *SEMICOLON();
     antlr4::tree::TerminalNode *EQUAL();
     ExpressionContext *expression();
-    antlr4::tree::TerminalNode *SEMICOLON();
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  ClassInferredVariableDeclContext : public ClassMemberContext {
-  public:
-    ClassInferredVariableDeclContext(ClassMemberContext *ctx);
-
-    antlr4::tree::TerminalNode *LET();
-    antlr4::tree::TerminalNode *IDENTIFIER();
-    antlr4::tree::TerminalNode *EQUAL();
-    ExpressionContext *expression();
-    antlr4::tree::TerminalNode *SEMICOLON();
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  ClassConstInferredDeclContext : public ClassMemberContext {
-  public:
-    ClassConstInferredDeclContext(ClassMemberContext *ctx);
-
-    antlr4::tree::TerminalNode *CONST();
-    antlr4::tree::TerminalNode *IDENTIFIER();
-    antlr4::tree::TerminalNode *EQUAL();
-    ExpressionContext *expression();
-    antlr4::tree::TerminalNode *SEMICOLON();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -581,6 +624,20 @@ public:
     FloatTypeContext(TypeContext *ctx);
 
     antlr4::tree::TerminalNode *FLOAT();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  LambdaTypeContext : public TypeContext {
+  public:
+    LambdaTypeContext(TypeContext *ctx);
+
+    antlr4::tree::TerminalNode *LPAREN();
+    antlr4::tree::TerminalNode *RPAREN();
+    antlr4::tree::TerminalNode *ARROW();
+    TypeContext *type();
+    antlr4::tree::TerminalNode *VOID();
+    ParamTypeListContext *paramTypeList();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -690,21 +747,9 @@ public:
 
     antlr4::tree::TerminalNode *PRINT();
     antlr4::tree::TerminalNode *LPAREN();
+    ExpressionContext *expression();
     antlr4::tree::TerminalNode *RPAREN();
     antlr4::tree::TerminalNode *SEMICOLON();
-    std::vector<ExpressionContext *> expression();
-    ExpressionContext* expression(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> COMMA();
-    antlr4::tree::TerminalNode* COMMA(size_t i);
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  TryStatementContext : public StatementContext {
-  public:
-    TryStatementContext(StatementContext *ctx);
-
-    TryCatchStatementContext *tryCatchStatement();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -727,6 +772,15 @@ public:
 
     ExpressionContext *expression();
     antlr4::tree::TerminalNode *SEMICOLON();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  TryStmtContext : public StatementContext {
+  public:
+    TryStmtContext(StatementContext *ctx);
+
+    TryStmtWrapperContext *tryStmtWrapper();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
@@ -776,6 +830,62 @@ public:
 
   StatementContext* statement();
 
+  class  TryStmtWrapperContext : public antlr4::ParserRuleContext {
+  public:
+    TryStmtWrapperContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+   
+    TryStmtWrapperContext() = default;
+    void copyFrom(TryStmtWrapperContext *context);
+    using antlr4::ParserRuleContext::copyFrom;
+
+    virtual size_t getRuleIndex() const override;
+
+   
+  };
+
+  class  TryStatementContext : public TryStmtWrapperContext {
+  public:
+    TryStatementContext(TryStmtWrapperContext *ctx);
+
+    antlr4::tree::TerminalNode *TRY();
+    StatementContext *statement();
+    std::vector<CatchBlockContext *> catchBlock();
+    CatchBlockContext* catchBlock(size_t i);
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  TryStmtWrapperContext* tryStmtWrapper();
+
+  class  CatchBlockContext : public antlr4::ParserRuleContext {
+  public:
+    CatchBlockContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+   
+    CatchBlockContext() = default;
+    void copyFrom(CatchBlockContext *context);
+    using antlr4::ParserRuleContext::copyFrom;
+
+    virtual size_t getRuleIndex() const override;
+
+   
+  };
+
+  class  CatchStatementContext : public CatchBlockContext {
+  public:
+    CatchStatementContext(CatchBlockContext *ctx);
+
+    antlr4::tree::TerminalNode *CATCH();
+    antlr4::tree::TerminalNode *LPAREN();
+    TypeContext *type();
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *RPAREN();
+    StatementContext *statement();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  CatchBlockContext* catchBlock();
+
   class  ExpressionContext : public antlr4::ParserRuleContext {
   public:
     ExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -785,7 +895,7 @@ public:
     TypeCastExprContext *typeCastExpr();
     TypeConversionExprContext *typeConversionExpr();
     ClassConversionExprContext *classConversionExpr();
-    StringLiteralContext *stringLiteral();
+    StringLiteralRuleContext *stringLiteralRule();
     LogicOrContext *logicOr();
 
 
@@ -795,12 +905,12 @@ public:
 
   ExpressionContext* expression();
 
-  class  StringLiteralContext : public antlr4::ParserRuleContext {
+  class  StringLiteralRuleContext : public antlr4::ParserRuleContext {
   public:
-    StringLiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    StringLiteralRuleContext(antlr4::ParserRuleContext *parent, size_t invokingState);
    
-    StringLiteralContext() = default;
-    void copyFrom(StringLiteralContext *context);
+    StringLiteralRuleContext() = default;
+    void copyFrom(StringLiteralRuleContext *context);
     using antlr4::ParserRuleContext::copyFrom;
 
     virtual size_t getRuleIndex() const override;
@@ -808,16 +918,36 @@ public:
    
   };
 
-  class  SimpleStringContext : public StringLiteralContext {
+  class  StringLiteralExprContext : public StringLiteralRuleContext {
   public:
-    SimpleStringContext(StringLiteralContext *ctx);
+    StringLiteralExprContext(StringLiteralRuleContext *ctx);
 
-    antlr4::tree::TerminalNode *STRING();
+    antlr4::tree::TerminalNode *STRING_START();
+    antlr4::tree::TerminalNode *STRING_END();
+    std::vector<StringPartContext *> stringPart();
+    StringPartContext* stringPart(size_t i);
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  StringLiteralContext* stringLiteral();
+  StringLiteralRuleContext* stringLiteralRule();
+
+  class  StringPartContext : public antlr4::ParserRuleContext {
+  public:
+    StringPartContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *STRING_CONTENT();
+    antlr4::tree::TerminalNode *ESCAPE_SEQ();
+    antlr4::tree::TerminalNode *INTERP_START();
+    ExpressionContext *expression();
+    antlr4::tree::TerminalNode *RBRACE();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  StringPartContext* stringPart();
 
   class  AssignmentContext : public antlr4::ParserRuleContext {
   public:
@@ -1055,7 +1185,6 @@ public:
     antlr4::tree::TerminalNode *NULL_();
     antlr4::tree::TerminalNode *THIS();
     antlr4::tree::TerminalNode *NUMBER();
-    antlr4::tree::TerminalNode *STRING();
     QualifiedIdentifierContext *qualifiedIdentifier();
     antlr4::tree::TerminalNode *LPAREN();
     antlr4::tree::TerminalNode *RPAREN();
@@ -1173,25 +1302,6 @@ public:
   };
 
   ClassConversionExprContext* classConversionExpr();
-
-  class  TryCatchStatementContext : public antlr4::ParserRuleContext {
-  public:
-    TryCatchStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *TRY();
-    std::vector<StatementContext *> statement();
-    StatementContext* statement(size_t i);
-    antlr4::tree::TerminalNode *CATCH();
-    antlr4::tree::TerminalNode *LPAREN();
-    antlr4::tree::TerminalNode *IDENTIFIER();
-    antlr4::tree::TerminalNode *RPAREN();
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  TryCatchStatementContext* tryCatchStatement();
 
 
   bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
