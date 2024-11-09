@@ -122,11 +122,12 @@ std::any ASTTracer::visitExpression(PrystParser::ExpressionContext* ctx) {
     if (ctx->assignment()) {
         visit(ctx->assignment());
     } else if (ctx->typeCastExpr()) {
-        visit(ctx->typeCastExpr());
-    } else if (ctx->typeConversionExpr()) {
-        visit(ctx->typeConversionExpr());
-    } else if (ctx->classConversionExpr()) {
-        visit(ctx->classConversionExpr());
+        auto* castExpr = ctx->typeCastExpr();
+        if (dynamic_cast<PrystParser::ParenthesizedCastContext*>(castExpr)) {
+            visitParenthesizedCast(dynamic_cast<PrystParser::ParenthesizedCastContext*>(castExpr));
+        } else if (dynamic_cast<PrystParser::ConstructorCastContext*>(castExpr)) {
+            visitConstructorCast(dynamic_cast<PrystParser::ConstructorCastContext*>(castExpr));
+        }
     } else if (ctx->logicOr()) {
         visit(ctx->logicOr());
     }
@@ -273,33 +274,23 @@ std::any ASTTracer::visitLambdaFunction(PrystParser::LambdaFunctionContext* ctx)
     return std::any();
 }
 
-std::any ASTTracer::visitTypeCastExpr(PrystParser::TypeCastExprContext* ctx) {
-    std::cout << getIndent() << "Entering Type Cast Expression" << std::endl;
+std::any ASTTracer::visitParenthesizedCast(PrystParser::ParenthesizedCastContext* ctx) {
+    std::cout << getIndent() << "Entering Parenthesized Cast Expression" << std::endl;
     indentLevel++;
     std::cout << getIndent() << "Target Type: " << ctx->type()->getText() << std::endl;
     visit(ctx->expression());
     indentLevel--;
-    std::cout << getIndent() << "Exiting Type Cast Expression" << std::endl;
+    std::cout << getIndent() << "Exiting Parenthesized Cast Expression" << std::endl;
     return std::any();
 }
 
-std::any ASTTracer::visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) {
-    std::cout << getIndent() << "Entering Type Conversion Expression" << std::endl;
+std::any ASTTracer::visitConstructorCast(PrystParser::ConstructorCastContext* ctx) {
+    std::cout << getIndent() << "Entering Constructor Cast Expression" << std::endl;
     indentLevel++;
     std::cout << getIndent() << "Target Type: " << ctx->type()->getText() << std::endl;
     visit(ctx->expression());
     indentLevel--;
-    std::cout << getIndent() << "Exiting Type Conversion Expression" << std::endl;
-    return std::any();
-}
-
-std::any ASTTracer::visitClassConversionExpr(PrystParser::ClassConversionExprContext* ctx) {
-    std::cout << getIndent() << "Entering Class Conversion Expression" << std::endl;
-    indentLevel++;
-    std::cout << getIndent() << "Target Class: " << ctx->IDENTIFIER()->getText() << std::endl;
-    visit(ctx->expression());
-    indentLevel--;
-    std::cout << getIndent() << "Exiting Class Conversion Expression" << std::endl;
+    std::cout << getIndent() << "Exiting Constructor Cast Expression" << std::endl;
     return std::any();
 }
 

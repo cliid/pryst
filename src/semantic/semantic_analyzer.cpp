@@ -76,8 +76,51 @@ std::any SemanticAnalyzer::visitUsingDecl(PrystParser::UsingDeclContext* ctx) {
 
 std::any SemanticAnalyzer::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
     PRYST_DEBUG("Visiting function declaration");
-    std::string returnType = std::any_cast<std::string>(visit(ctx->type()));
+    if (ctx->forwardDecl()) {
+        return visit(ctx->forwardDecl());
+    } else if (ctx->namedFunction()) {
+        return visit(ctx->namedFunction());
+    } else if (ctx->lambdaFunction()) {
+        return visit(ctx->lambdaFunction());
+    }
+    return nullptr;
+}
+
+std::any SemanticAnalyzer::visitForwardDecl(PrystParser::ForwardDeclContext* ctx) {
+    PRYST_DEBUG("Visiting forward declaration");
     std::string name = ctx->IDENTIFIER()->getText();
+    std::string returnType = std::any_cast<std::string>(visit(ctx->type()));
+
+    // Process parameters
+    std::vector<std::string> paramTypes;
+    if (ctx->paramList()) {
+        for (auto param : ctx->paramList()->param()) {
+            std::string paramType = std::any_cast<std::string>(visit(param->type()));
+            paramTypes.push_back(paramType);
+        }
+    }
+
+    // Add forward declaration to symbol table
+    symbolTable.addForwardDeclaration(name, returnType, paramTypes,
+                                    ctx->getStart()->getLine() + ":" +
+                                    ctx->getStart()->getCharPositionInLine());
+    return nullptr;
+}
+
+std::any SemanticAnalyzer::visitNamedFunction(PrystParser::NamedFunctionContext* ctx) {
+    PRYST_DEBUG("Visiting named function");
+    std::string name = ctx->IDENTIFIER()->getText();
+    std::string returnType;
+
+    // Get return type based on function declaration style
+    if (ctx->FN() && ctx->LESS()) {
+        returnType = std::any_cast<std::string>(visit(ctx->type()));
+    } else if (ctx->ARROW()) {
+        returnType = std::any_cast<std::string>(visit(ctx->type()));
+    } else {
+        returnType = std::any_cast<std::string>(visit(ctx->type()));
+    }
+
     currentFunction = name;
 
     // Process parameters
@@ -90,8 +133,14 @@ std::any SemanticAnalyzer::visitFunctionDecl(PrystParser::FunctionDeclContext* c
         }
     }
 
-    symbolTable.addFunction(name, returnType, paramTypes);
-    visit(ctx->functionBody());
+    // Check if this implements a forward declaration
+    if (symbolTable.isForwardDeclared(name)) {
+        symbolTable.implementFunction(name, paramTypes);
+    } else {
+        symbolTable.addFunction(name, returnType, paramTypes);
+    }
+
+    visit(ctx->block());
     currentFunction.clear();
     return nullptr;
 }

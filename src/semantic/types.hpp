@@ -33,9 +33,13 @@ struct FunctionInfo {
     bool isAnonymous;
     bool hasExplicitReturnType;
     std::vector<std::string> deducedReturnTypes;
+    bool isForwardDeclaration;  // Track if this is just a declaration
+    bool isImplemented;         // Track if implementation is provided
+    std::vector<std::string> referencedFunctions;  // Track functions called within this function
+    std::string declarationLocation;  // Track where the function was declared (file:line)
 
     // Default constructor
-    FunctionInfo() = default;
+    FunctionInfo() : isForwardDeclaration(false), isImplemented(false) {}
 
     // Constructor with parameters
     FunctionInfo(
@@ -44,13 +48,18 @@ struct FunctionInfo {
         int scopeLevel,
         bool isAnonymous = false,
         bool hasExplicitReturnType = false,
-        const std::vector<std::string>& deducedReturnTypes = {}
+        const std::vector<std::string>& deducedReturnTypes = {},
+        bool isForwardDecl = false,
+        const std::string& declLocation = ""
     ) : returnType(returnType),
         paramTypes(paramTypes),
         scopeLevel(scopeLevel),
         isAnonymous(isAnonymous),
         hasExplicitReturnType(hasExplicitReturnType),
-        deducedReturnTypes(deducedReturnTypes) {}
+        deducedReturnTypes(deducedReturnTypes),
+        isForwardDeclaration(isForwardDecl),
+        isImplemented(!isForwardDecl),
+        declarationLocation(declLocation) {}
 };
 
 struct ClassInfo {
