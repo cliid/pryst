@@ -3,61 +3,68 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 #include <string>
-#include <optional>
+#include <vector>
+#include <unordered_map>
+#include "../utils/logger.hpp"
 #include "type_registry.hpp"
 
 namespace pryst {
-namespace codegen {
 
 struct FormatSpecifier {
-    char alignment;           // '<', '>', or '\0'
-    char fill;               // Fill character for padding
-    int width;              // Minimum field width
-    int precision;          // Precision for floating-point
-    char type;              // 'd', 'f', 's', 'b', or '\0'
-
-    FormatSpecifier()
-        : alignment('\0'), fill(' '), width(-1), precision(-1), type('\0') {}
+    int width = 0;          // Minimum field width
+    int precision = -1;     // Decimal precision for floats
+    char fill = ' ';        // Fill character for padding
+    char type = 0;          // Format type (f for float, d for decimal, etc.)
+    bool leftAlign = false; // Left alignment flag
 };
 
 class StringInterpolation {
 public:
-    StringInterpolation(llvm::IRBuilder<>* builder, llvm::Module* module, LLVMTypeRegistry* registry)
-        : builder_(*builder), module_(module), typeRegistry_(registry) {}
+    StringInterpolation(llvm::LLVMContext& context,
+                       llvm::IRBuilder<>* builder,
+                       llvm::Module* module,
+                       TypeRegistry& typeRegistry)
+        : context(context), builder(builder), module(module), typeRegistry(typeRegistry) {
+        initializeStringFunctions();
+    }
 
-    // Parse a format specifier string (e.g., ":>10.2f")
-    std::optional<FormatSpecifier> parseFormatSpec(const std::string& spec);
+    // Main interpolation method
+    llvm::Value* interpolate(const std::string& format,
+                           const std::vector<llvm::Value*>& values,
+                           const std::vector<FormatSpecifier>& specs);
 
-    // Process escape sequences in string literals
-    std::string processEscapeSequence(const std::string& sequence);
+    // Format value with specifier
+    llvm::Value* formatValue(llvm::Value* value, const FormatSpecifier& spec);
 
-    // Generate LLVM IR for formatted value
-    llvm::Value* generateFormattedValue(llvm::Value* value,
-                                      const FormatSpecifier& format,
-                                      const std::string& originalExpr);
-
-    // Generate interpolation call
-    llvm::Value* generateInterpolation(const std::string& format,
-                                     const std::vector<llvm::Value*>& values);
+    // Parse format specifier from string
+    static FormatSpecifier parseFormatSpec(const std::string& spec);
 
 private:
-    llvm::IRBuilder<>& builder_;
-    llvm::Module* module_;
-    LLVMTypeRegistry* typeRegistry_;
+    void initializeStringFunctions();
 
     // Helper methods for different types
-    llvm::Value* formatInteger(llvm::Value* value, const FormatSpecifier& format);
-    llvm::Value* formatFloat(llvm::Value* value, const FormatSpecifier& format);
-    llvm::Value* formatBoolean(llvm::Value* value, const FormatSpecifier& format);
-    llvm::Value* formatString(llvm::Value* value, const FormatSpecifier& format);
+    llvm::Value* formatInt(llvm::Value* value, const FormatSpecifier& spec);
+    llvm::Value* formatFloat(llvm::Value* value, const FormatSpecifier& spec);
+    llvm::Value* formatBool(llvm::Value* value, const FormatSpecifier& spec);
+    llvm::Value* formatString(llvm::Value* value, const FormatSpecifier& spec);
 
-    // Get or declare runtime formatting functions
-    llvm::Function* getFormatIntFunction();
-    llvm::Function* getFormatFloatFunction();
-    llvm::Function* getFormatBoolFunction();
-    llvm::Function* getFormatStringFunction();
-    llvm::Function* getInterpolateStringFunction();
+    // String manipulation helpers
+    llvm::Value* allocateBuffer(size_t size);
+    llvm::Value* concatenateStrings(llvm::Value* str1, llvm::Value* str2);
+    llvm::Value* getStringLength(llvm::Value* str);
+
+    llvm::LLVMContext& context;
+    llvm::IRBuilder<>* builder;
+    llvm::Module* module;
+    TypeRegistry& typeRegistry;
+
+    // LLVM functions for string manipulation
+    llvm::Function* strlenFunc = nullptr;
+    llvm::Function* strcatFunc = nullptr;
+    llvm::Function* strcpyFunc = nullptr;
+    llvm::Function* mallocFunc = nullptr;
+    llvm::Function* freeFunc = nullptr;
+    llvm::Function* sprintfFunc = nullptr;
 };
 
-} // namespace codegen
 } // namespace pryst

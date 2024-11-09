@@ -1,263 +1,237 @@
 #include "string_interpolation.hpp"
-#include <cctype>
-#include <stdexcept>
-#include <unordered_map>
+#include <sstream>
+#include <regex>
 
 namespace pryst {
-namespace codegen {
 
-std::optional<FormatSpecifier> StringInterpolation::parseFormatSpec(const std::string& spec) {
-    if (spec.empty() || spec[0] != ':') {
-        return std::nullopt;
+void StringInterpolation::initializeStringFunctions() {
+    auto i8PtrTy = typeRegistry.getPointerType("i8");
+    auto i32Ty = typeRegistry.getIntType();
+    auto voidTy = typeRegistry.getVoidType();
+
+    // strlen(char*)
+    if (!strlenFunc) {
+        std::vector<llvm::Type*> strlenParams = {i8PtrTy};
+        auto strlenType = llvm::FunctionType::get(i32Ty, strlenParams, false);
+        strlenFunc = llvm::Function::Create(strlenType, llvm::Function::ExternalLinkage, "strlen", module);
     }
 
-    FormatSpecifier format;
-    size_t pos = 1;
+    // strcat(char*, const char*)
+    if (!strcatFunc) {
+        std::vector<llvm::Type*> strcatParams = {i8PtrTy, i8PtrTy};
+        auto strcatType = llvm::FunctionType::get(i8PtrTy, strcatParams, false);
+        strcatFunc = llvm::Function::Create(strcatType, llvm::Function::ExternalLinkage, "strcat", module);
+    }
 
-    // Parse alignment and fill
-    if (pos < spec.length() && (spec[pos] == '<' || spec[pos] == '>')) {
-        format.alignment = spec[pos++];
-        if (pos < spec.length() && !std::isdigit(spec[pos])) {
-            format.fill = spec[pos++];
+    // strcpy(char*, const char*)
+    if (!strcpyFunc) {
+        std::vector<llvm::Type*> strcpyParams = {i8PtrTy, i8PtrTy};
+        auto strcpyType = llvm::FunctionType::get(i8PtrTy, strcpyParams, false);
+        strcpyFunc = llvm::Function::Create(strcpyType, llvm::Function::ExternalLinkage, "strcpy", module);
+    }
+
+    // malloc(size_t)
+    if (!mallocFunc) {
+        std::vector<llvm::Type*> mallocParams = {i32Ty};
+        auto mallocType = llvm::FunctionType::get(i8PtrTy, mallocParams, false);
+        mallocFunc = llvm::Function::Create(mallocType, llvm::Function::ExternalLinkage, "malloc", module);
+    }
+
+    // free(void*)
+    if (!freeFunc) {
+        std::vector<llvm::Type*> freeParams = {i8PtrTy};
+        auto freeType = llvm::FunctionType::get(voidTy, freeParams, false);
+        freeFunc = llvm::Function::Create(freeType, llvm::Function::ExternalLinkage, "free", module);
+    }
+
+    // sprintf(char*, const char*, ...)
+    if (!sprintfFunc) {
+        std::vector<llvm::Type*> sprintfParams = {i8PtrTy, i8PtrTy};
+        auto sprintfType = llvm::FunctionType::get(i32Ty, sprintfParams, true);
+        sprintfFunc = llvm::Function::Create(sprintfType, llvm::Function::ExternalLinkage, "sprintf", module);
+    }
+}
+
+FormatSpecifier StringInterpolation::parseFormatSpec(const std::string& spec) {
+    FormatSpecifier result;
+    if (spec.empty()) return result;
+
+    std::regex formatRegex(R"(([<>])?(\d+)?(?:\.(\d+))?([dfs])?)", std::regex::ECMAScript);
+    std::smatch match;
+
+    if (std::regex_match(spec, match, formatRegex)) {
+        // Alignment
+        if (match[1].matched) {
+            result.leftAlign = (match[1].str() == "<");
+        }
+
+        // Width
+        if (match[2].matched) {
+            result.width = std::stoi(match[2].str());
+        }
+
+        // Precision
+        if (match[3].matched) {
+            result.precision = std::stoi(match[3].str());
+        }
+
+        // Type
+        if (match[4].matched) {
+            result.type = match[4].str()[0];
         }
     }
 
-    // Parse width
-    if (pos < spec.length() && std::isdigit(spec[pos])) {
-        size_t width_end;
-        format.width = std::stoi(spec.substr(pos), &width_end);
-        pos += width_end;
-    }
-
-    // Parse precision
-    if (pos < spec.length() && spec[pos] == '.') {
-        pos++;
-        if (pos < spec.length() && std::isdigit(spec[pos])) {
-            size_t prec_end;
-            format.precision = std::stoi(spec.substr(pos), &prec_end);
-            pos += prec_end;
-        }
-    }
-
-    // Parse type
-    if (pos < spec.length()) {
-        char type = spec[pos];
-        if (type == 'd' || type == 'f' || type == 's' || type == 'b') {
-            format.type = type;
-        }
-    }
-
-    return format;
+    return result;
 }
 
-std::string StringInterpolation::processEscapeSequence(const std::string& sequence) {
-    static const std::unordered_map<std::string, std::string> escapeMap = {
-        {"\\n", "\n"},   // Newline
-        {"\\t", "\t"},   // Tab
-        {"\\r", "\r"},   // Carriage return
-        {"\\\"", "\""},  // Double quote
-        {"\\'", "'"},    // Single quote
-        {"\\\\", "\\"}, // Backslash
-        {"\\b", "\b"},  // Backspace
-        {"\\f", "\f"},  // Form feed
-        {"\\v", "\v"},  // Vertical tab
-        {"\\0", "\0"}   // Null character
-    };
-
-    auto it = escapeMap.find(sequence);
-    if (it != escapeMap.end()) {
-        return it->second;
+llvm::Value* StringInterpolation::formatValue(llvm::Value* value, const FormatSpecifier& spec) {
+    if (!value) {
+        PRYST_ERROR("Null value passed to formatValue");
+        return nullptr;
     }
 
-    // Handle hex escape sequences (\xHH)
-    if (sequence.size() == 4 && sequence[0] == '\\' && sequence[1] == 'x') {
-        try {
-            int value = std::stoi(sequence.substr(2), nullptr, 16);
-            return std::string(1, static_cast<char>(value));
-        } catch (...) {
-            // Return original sequence on error
-            return sequence;
-        }
+    auto valueType = value->getType();
+    if (valueType->isIntegerTy()) {
+        return formatInt(value, spec);
+    } else if (valueType->isFloatTy()) {
+        return formatFloat(value, spec);
+    } else if (valueType->isPointerTy()) {
+        return formatString(value, spec);
+    } else {
+        PRYST_ERROR("Unsupported type for string interpolation");
+        return nullptr;
     }
-
-    // If no match found, return the sequence as-is
-    return sequence;
 }
 
-llvm::Value* StringInterpolation::generateFormattedValue(
-    llvm::Value* value,
-    const FormatSpecifier& format,
-    const std::string& originalExpr) {
+llvm::Value* StringInterpolation::formatInt(llvm::Value* value, const FormatSpecifier& spec) {
+    // Allocate buffer for the formatted string
+    auto buffer = allocateBuffer(32);  // Reasonable size for int formatting
 
-    if (!value) return nullptr;
-
-    // Determine value type and call appropriate formatting function
-    if (value->getType()->isIntegerTy()) {
-        return formatInteger(value, format);
-    } else if (value->getType()->isFloatingPointTy()) {
-        return formatFloat(value, format);
-    } else if (value->getType()->isPointerTy()) {
-        // Assume string type for pointers
-        return formatString(value, format);
-    } else if (value->getType()->isIntegerTy(1)) {
-        // Boolean type
-        return formatBoolean(value, format);
-    }
-
-    throw std::runtime_error("Unsupported type in string interpolation: " + originalExpr);
-}
-
-llvm::Value* StringInterpolation::formatInteger(llvm::Value* value, const FormatSpecifier& format) {
-    auto func = getFormatIntFunction();
-
-    // Convert to i64 if needed
-    if (!value->getType()->isIntegerTy(64)) {
-        value = builder_.CreateSExt(value, builder_.getInt64Ty());
-    }
-
-    std::vector<llvm::Value*> args = {
-        value,
-        builder_.getInt32(format.width),
-        builder_.getInt8(format.fill),
-        builder_.getInt1(format.alignment == '<')
-    };
-
-    return builder_.CreateCall(func, args);
-}
-
-llvm::Value* StringInterpolation::formatFloat(llvm::Value* value, const FormatSpecifier& format) {
-    auto func = getFormatFloatFunction();
-
-    // Convert to double if needed
-    if (!value->getType()->isDoubleTy()) {
-        value = builder_.CreateFPExt(value, builder_.getDoubleTy());
-    }
-
-    std::vector<llvm::Value*> args = {
-        value,
-        builder_.getInt32(format.precision),
-        builder_.getInt32(format.width),
-        builder_.getInt8(format.fill),
-        builder_.getInt1(format.alignment == '<')
-    };
-
-    return builder_.CreateCall(func, args);
-}
-
-llvm::Value* StringInterpolation::formatBoolean(llvm::Value* value, const FormatSpecifier& format) {
-    auto func = getFormatBoolFunction();
-    return builder_.CreateCall(func, {value});
-}
-
-llvm::Value* StringInterpolation::formatString(llvm::Value* value, const FormatSpecifier& format) {
-    auto func = getFormatStringFunction();
-
-    std::vector<llvm::Value*> args = {
-        value,
-        builder_.getInt32(format.width),
-        builder_.getInt8(format.fill),
-        builder_.getInt1(format.alignment == '<')
-    };
-
-    return builder_.CreateCall(func, args);
-}
-
-llvm::Value* StringInterpolation::generateInterpolation(
-    const std::string& format,
-    const std::vector<llvm::Value*>& values) {
-
-    auto func = getInterpolateStringFunction();
+    // Create format string based on specifier
+    std::string format = "%";
+    if (spec.leftAlign) format += "-";
+    if (spec.width > 0) format += std::to_string(spec.width);
+    format += spec.type ? spec.type : 'd';
 
     // Create format string constant
-    auto formatStr = builder_.CreateGlobalStringPtr(format);
+    auto formatStr = builder->CreateGlobalStringPtr(format);
 
-    std::vector<llvm::Value*> args;
-    args.push_back(formatStr);
-    args.push_back(builder_.getInt32(values.size()));
-    args.insert(args.end(), values.begin(), values.end());
+    // Call sprintf
+    std::vector<llvm::Value*> args = {buffer, formatStr, value};
+    builder->CreateCall(sprintfFunc, args);
 
-    return builder_.CreateCall(func, args);
+    return buffer;
 }
 
-// Helper functions to get or declare runtime functions
-llvm::Function* StringInterpolation::getFormatIntFunction() {
-    auto func = module_->getFunction("pryst_format_int");
-    if (!func) {
-        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
-        std::vector<llvm::Type*> args = {
-            builder_.getInt64Ty(),    // value
-            builder_.getInt32Ty(),    // width
-            builder_.getInt8Ty(),     // fill
-            builder_.getInt1Ty()      // leftAlign
-        };
-        auto funcTy = llvm::FunctionType::get(charPtrTy, args, false);
-        func = llvm::Function::Create(funcTy, llvm::Function::ExternalLinkage,
-                                    "pryst_format_int", module_);
+llvm::Value* StringInterpolation::formatFloat(llvm::Value* value, const FormatSpecifier& spec) {
+    auto buffer = allocateBuffer(64);  // Larger buffer for float formatting
+
+    std::string format = "%";
+    if (spec.leftAlign) format += "-";
+    if (spec.width > 0) format += std::to_string(spec.width);
+    if (spec.precision >= 0) {
+        format += "." + std::to_string(spec.precision);
     }
-    return func;
+    format += spec.type ? spec.type : 'f';
+
+    auto formatStr = builder->CreateGlobalStringPtr(format);
+    std::vector<llvm::Value*> args = {buffer, formatStr, value};
+    builder->CreateCall(sprintfFunc, args);
+
+    return buffer;
 }
 
-llvm::Function* StringInterpolation::getFormatFloatFunction() {
-    auto func = module_->getFunction("pryst_format_float");
-    if (!func) {
-        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
-        std::vector<llvm::Type*> args = {
-            builder_.getDoubleTy(),   // value
-            builder_.getInt32Ty(),    // precision
-            builder_.getInt32Ty(),    // width
-            builder_.getInt8Ty(),     // fill
-            builder_.getInt1Ty()      // leftAlign
-        };
-        auto funcTy = llvm::FunctionType::get(charPtrTy, args, false);
-        func = llvm::Function::Create(funcTy, llvm::Function::ExternalLinkage,
-                                    "pryst_format_float", module_);
+llvm::Value* StringInterpolation::formatString(llvm::Value* value, const FormatSpecifier& spec) {
+    if (!spec.width) return value;  // No formatting needed
+
+    auto buffer = allocateBuffer(spec.width + 1);
+    auto formatStr = builder->CreateGlobalStringPtr("%-*s");
+
+    std::vector<llvm::Value*> args = {
+        buffer,
+        formatStr,
+        builder->getInt32(spec.width),
+        value
+    };
+    builder->CreateCall(sprintfFunc, args);
+
+    return buffer;
+}
+
+llvm::Value* StringInterpolation::interpolate(const std::string& format,
+                                            const std::vector<llvm::Value*>& values,
+                                            const std::vector<FormatSpecifier>& specs) {
+    if (values.empty()) {
+        return builder->CreateGlobalStringPtr(format);
     }
-    return func;
-}
 
-llvm::Function* StringInterpolation::getFormatBoolFunction() {
-    auto func = module_->getFunction("pryst_format_bool");
-    if (!func) {
-        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
-        std::vector<llvm::Type*> args = {builder_.getInt1Ty()};
-        auto funcTy = llvm::FunctionType::get(charPtrTy, args, false);
-        func = llvm::Function::Create(funcTy, llvm::Function::ExternalLinkage,
-                                    "pryst_format_bool", module_);
+    // Parse format string and find interpolation points
+    std::vector<std::string> parts;
+    std::vector<size_t> valueIndices;
+
+    size_t pos = 0;
+    size_t valueIndex = 0;
+
+    while (pos < format.length()) {
+        size_t openBrace = format.find('{', pos);
+        if (openBrace == std::string::npos) {
+            parts.push_back(format.substr(pos));
+            break;
+        }
+
+        parts.push_back(format.substr(pos, openBrace - pos));
+        size_t closeBrace = format.find('}', openBrace);
+        if (closeBrace == std::string::npos) {
+            PRYST_ERROR("Unclosed brace in format string");
+            return nullptr;
+        }
+
+        valueIndices.push_back(valueIndex++);
+        pos = closeBrace + 1;
     }
-    return func;
-}
 
-llvm::Function* StringInterpolation::getFormatStringFunction() {
-    auto func = module_->getFunction("pryst_format_string");
-    if (!func) {
-        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
-        std::vector<llvm::Type*> args = {
-            charPtrTy,               // str
-            builder_.getInt32Ty(),   // width
-            builder_.getInt8Ty(),    // fill
-            builder_.getInt1Ty()     // leftAlign
-        };
-        auto funcTy = llvm::FunctionType::get(charPtrTy, args, false);
-        func = llvm::Function::Create(funcTy, llvm::Function::ExternalLinkage,
-                                    "pryst_format_string", module_);
+    // Allocate buffer for result
+    size_t totalSize = format.length() + 256;  // Base size plus extra space
+    auto buffer = allocateBuffer(totalSize);
+
+    // Copy first part
+    if (!parts.empty()) {
+        auto firstPart = builder->CreateGlobalStringPtr(parts[0]);
+        builder->CreateCall(strcpyFunc, {buffer, firstPart});
     }
-    return func;
-}
 
-llvm::Function* StringInterpolation::getInterpolateStringFunction() {
-    auto func = module_->getFunction("pryst_interpolate_string");
-    if (!func) {
-        auto charPtrTy = typeRegistry_->getPointerType(builder_.getInt8Ty());
-        std::vector<llvm::Type*> args = {
-            charPtrTy,               // format
-            builder_.getInt32Ty()    // count
-        };
-        auto funcTy = llvm::FunctionType::get(charPtrTy, args, true);
-        func = llvm::Function::Create(funcTy, llvm::Function::ExternalLinkage,
-                                    "pryst_interpolate_string", module_);
+    // Interpolate values
+    for (size_t i = 0; i < valueIndices.size(); ++i) {
+        auto value = values[valueIndices[i]];
+        auto spec = i < specs.size() ? specs[i] : FormatSpecifier();
+
+        // Format the value
+        auto formattedValue = formatValue(value, spec);
+        if (!formattedValue) continue;
+
+        // Concatenate the formatted value
+        builder->CreateCall(strcatFunc, {buffer, formattedValue});
+
+        // Add the next literal part if it exists
+        if (i + 1 < parts.size()) {
+            auto nextPart = builder->CreateGlobalStringPtr(parts[i + 1]);
+            builder->CreateCall(strcatFunc, {buffer, nextPart});
+        }
     }
-    return func;
+
+    return buffer;
 }
 
-} // namespace codegen
+llvm::Value* StringInterpolation::allocateBuffer(size_t size) {
+    return builder->CreateCall(mallocFunc, {builder->getInt32(size)});
+}
+
+llvm::Value* StringInterpolation::getStringLength(llvm::Value* str) {
+    return builder->CreateCall(strlenFunc, {str});
+}
+
+llvm::Value* StringInterpolation::concatenateStrings(llvm::Value* str1, llvm::Value* str2) {
+    return builder->CreateCall(strcatFunc, {str1, str2});
+}
+
 } // namespace pryst

@@ -1,56 +1,83 @@
-// Test basic string interpolation
+// Basic string interpolation tests
 fn test_basic_interpolation() {
-    let x = 42;
-    let y = 3.14;
-    let z = true;
-
-    print("Integer: {x}");  // Basic integer
-    print("Float: {y:.2f}");  // Float with precision
-    print("Boolean: {z}");  // Boolean value
+    let name = "World";
+    let greeting = "Hello, {name}!";
+    assert(greeting == "Hello, World!");
 }
 
-// Test width and alignment
-fn test_width_alignment() {
-    let num = 123;
-    print("{num:5d}");     // Right-aligned, width 5
-    print("{num:<5d}");    // Left-aligned, width 5
-    print("{num:05d}");    // Zero-padded
-}
-
-// Test float formatting
-fn test_float_formatting() {
+// Number formatting tests
+fn test_number_formatting() {
+    let num = 42;
     let pi = 3.14159;
-    print("{pi:.2f}");     // 2 decimal places
-    print("{pi:8.3f}");    // Width 8, 3 decimal places
-    print("{pi:<10.4f}");  // Left-aligned, width 10, 4 decimal places
+
+    // Integer formatting
+    let int_format = "Number: {num:5d}";
+    assert(int_format == "Number:    42");
+
+    // Float formatting
+    let float_format = "Pi: {pi:.2f}";
+    assert(float_format == "Pi: 3.14");
 }
 
-// Test multiple values
-fn test_multiple_values() {
+// Multiple interpolation test
+fn test_multiple_interpolation() {
     let x = 10;
-    let y = 20.5;
-    let z = "test";
-    print("Values: {x}, {y:.1f}, {z}");
+    let y = 20;
+    let result = "{x} + {y} = {x + y}";
+    assert(result == "10 + 20 = 30");
 }
 
-// Test edge cases
-fn test_edge_cases() {
-    let large_num = 1000000;
-    let small_float = 0.0000001;
-    let empty_str = "";
+// Format specifier tests
+fn test_format_specifiers() {
+    let num = 7;
+    let price = 9.99;
 
-    print("Large: {large_num:10d}");
-    print("Small: {small_float:.8f}");
-    print("Empty: '{empty_str}'");
+    // Width and alignment
+    let aligned = "{num:>3d}";
+    assert(aligned == "  7");
+
+    // Precision
+    let formatted_price = "${price:.2f}";
+    assert(formatted_price == "$9.99");
 }
 
-// Run all tests
+// Expression interpolation test
+fn test_expression_interpolation() {
+    let a = 5;
+    let b = 3;
+    let expr = "Result: {a * b + 2}";
+    assert(expr == "Result: 17");
+}
+
+// Escape sequence test
+fn test_escape_sequences() {
+    let escaped = "{{escaped}} but {not_escaped}";
+    let not_escaped = "interpolated";
+    assert(escaped == "{escaped} but interpolated");
+}
+
+// Complex formatting test
+fn test_complex_formatting() {
+    let items = ["apple", "banana", "orange"];
+    let prices = [1.99, 0.99, 2.49];
+
+    for (let i = 0; i < 3; i++) {
+        let line = "{items[i]:<10}: ${prices[i]:>5.2f}";
+        // Check formatting with left-aligned item and right-aligned price
+        if (i == 0) assert(line == "apple     : $ 1.99");
+        if (i == 1) assert(line == "banana    : $ 0.99");
+        if (i == 2) assert(line == "orange    : $ 2.49");
+    }
+}
+
+// Main test runner
 fn main() {
-    print("=== String Interpolation Tests ===");
     test_basic_interpolation();
-    test_width_alignment();
-    test_float_formatting();
-    test_multiple_values();
-    test_edge_cases();
-    print("=== Tests Complete ===");
+    test_number_formatting();
+    test_multiple_interpolation();
+    test_format_specifiers();
+    test_expression_interpolation();
+    test_escape_sequences();
+    test_complex_formatting();
+    print("All string interpolation tests passed!");
 }
