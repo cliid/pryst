@@ -1,5 +1,5 @@
 
-// Generated from PrystParser.g4 by ANTLR 4.13.2
+// Generated from /home/ubuntu/pryst/PrystParser.g4 by ANTLR 4.13.2
 
 
 #include "PrystParserBaseVisitor.h"

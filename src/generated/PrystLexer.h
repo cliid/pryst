@@ -1,5 +1,5 @@
 
-// Generated from PrystLexer.g4 by ANTLR 4.13.2
+// Generated from /home/ubuntu/pryst/PrystLexer.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -15,7 +15,7 @@ public:
     PRINT = 1, CLASS = 2, EXTENDS = 3, ELSE = 4, FALSE = 5, FOR = 6, IF = 7, 
     NULL_ = 8, RETURN = 9, SUPER = 10, THIS = 11, TRUE = 12, WHILE = 13, 
     NEW = 14, CONVERT = 15, NAMESPACE = 16, MODULE = 17, IMPORT = 18, USING = 19, 
-    LET = 20, FN = 21, CONST = 22, CONST_EXPR = 23, TRY = 24, CATCH = 25, 
+    TRY = 20, CATCH = 21, LET = 22, FN = 23, CONST = 24, CONST_EXPR = 25, 
     INT = 26, FLOAT = 27, BOOL = 28, STR = 29, VOID = 30, LPAREN = 31, RPAREN = 32, 
     LBRACE = 33, RBRACE = 34, LBRACKET = 35, RBRACKET = 36, COMMA = 37, 
     DOT = 38, MINUS = 39, PLUS = 40, SEMICOLON = 41, SLASH = 42, STAR = 43, 

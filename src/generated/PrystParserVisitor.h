@@ -1,5 +1,5 @@
 
-// Generated from PrystParser.g4 by ANTLR 4.13.2
+// Generated from /home/ubuntu/pryst/PrystParser.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -45,22 +45,13 @@ public:
 
     virtual std::any visitFunctionBody(PrystParser::FunctionBodyContext *context) = 0;
 
-    virtual std::any visitInferredVariableDecl(PrystParser::InferredVariableDeclContext *context) = 0;
-
-    virtual std::any visitInferredConstVariableDecl(PrystParser::InferredConstVariableDeclContext *context) = 0;
-
-    virtual std::any visitTypedVariableDecl(PrystParser::TypedVariableDeclContext *context) = 0;
-
-    virtual std::any visitTypedConstVariableDecl(PrystParser::TypedConstVariableDeclContext *context) = 0;
-
-    virtual std::any visitConstExprVariableDecl(PrystParser::ConstExprVariableDeclContext *context) = 0;
-
-    virtual std::any visitUninitializedVariableDecl(PrystParser::UninitializedVariableDeclContext *context) = 0;
+    virtual std::any visitVariableDecl(PrystParser::VariableDeclContext *context) = 0;
 
     virtual std::any visitClassDeclaration(PrystParser::ClassDeclarationContext *context) = 0;
 
     virtual std::any visitClassBody(PrystParser::ClassBodyContext *context) = 0;
 
+<<<<<<<< HEAD:src/generated/PrystVisitor.h
     virtual std::any visitClassMemberDecl(PrystParser::ClassMemberDeclContext *context) = 0;
 
     virtual std::any visitClassMemberInferredDecl(PrystParser::ClassMemberInferredDeclContext *context) = 0;
@@ -68,6 +59,9 @@ public:
     virtual std::any visitClassMemberConstInferredDecl(PrystParser::ClassMemberConstInferredDeclContext *context) = 0;
 
     virtual std::any visitClassMemberConstTypedDecl(PrystParser::ClassMemberConstTypedDeclContext *context) = 0;
+========
+    virtual std::any visitClassVariableDecl(PrystParser::ClassVariableDeclContext *context) = 0;
+>>>>>>>> feature/expression-visitors:src/generated/PrystParserVisitor.h
 
     virtual std::any visitClassMemberFunctionDecl(PrystParser::ClassMemberFunctionDeclContext *context) = 0;
 
@@ -105,21 +99,27 @@ public:
 
     virtual std::any visitReturnStatement(PrystParser::ReturnStatementContext *context) = 0;
 
+    virtual std::any visitTryCatchStatement(PrystParser::TryCatchStatementContext *context) = 0;
+
+<<<<<<<< HEAD:src/generated/PrystVisitor.h
+    virtual std::any visitTryStmtWrapper(PrystParser::TryStmtWrapperContext *context) = 0;
+========
     virtual std::any visitBlockStatement(PrystParser::BlockStatementContext *context) = 0;
+>>>>>>>> feature/expression-visitors:src/generated/PrystParserVisitor.h
 
     virtual std::any visitPrintStatement(PrystParser::PrintStatementContext *context) = 0;
 
-    virtual std::any visitTryStmt(PrystParser::TryStmtContext *context) = 0;
-
     virtual std::any visitTryStatement(PrystParser::TryStatementContext *context) = 0;
-
-    virtual std::any visitCatchStatement(PrystParser::CatchStatementContext *context) = 0;
 
     virtual std::any visitExpression(PrystParser::ExpressionContext *context) = 0;
 
-    virtual std::any visitStringLiteralExpr(PrystParser::StringLiteralExprContext *context) = 0;
+<<<<<<<< HEAD:src/generated/PrystVisitor.h
+    virtual std::any visitStringLiteralRule(PrystParser::StringLiteralRuleContext *context) = 0;
+========
+    virtual std::any visitStringLiteral(PrystParser::StringLiteralContext *context) = 0;
 
     virtual std::any visitStringPart(PrystParser::StringPartContext *context) = 0;
+>>>>>>>> feature/expression-visitors:src/generated/PrystParserVisitor.h
 
     virtual std::any visitAssignment(PrystParser::AssignmentContext *context) = 0;
 
