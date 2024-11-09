@@ -6,14 +6,10 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <any>
 
-namespace pryst {
-
-class DiagnosticVisitor : public PrystBaseVisitor {
+class DiagnosticVisitor : public PrystParserBaseVisitor {
 public:
-    DiagnosticVisitor();
-    virtual ~DiagnosticVisitor() = default;
+    explicit DiagnosticVisitor(SymbolTable& symbolTable);
 
     // Program and declarations
     std::any visitProgram(PrystParser::ProgramContext* ctx) override;
@@ -59,8 +55,7 @@ public:
     std::any visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) override;
 
 private:
-    std::vector<std::string> currentNamespace;
-    std::string currentModule;
+    SymbolTable& symbolTable;
     std::string currentFunction;
     bool inLoop;
     bool inTryBlock;
@@ -103,9 +98,11 @@ private:
     std::any visitParam(PrystParser::ParamContext* ctx) override;
     std::any visitParamTypeList(PrystParser::ParamTypeListContext* ctx) override;
 
+    // Helper methods
+    bool isNumericType(const std::string& type);
+    std::string promoteTypes(const std::string& type1, const std::string& type2);
+    bool areTypesCompatible(const std::string& expected, const std::string& actual);
     void reportError(antlr4::ParserRuleContext* ctx, const std::string& message);
     void reportWarning(antlr4::ParserRuleContext* ctx, const std::string& message);
-    std::string getLocation(antlr4::ParserRuleContext* ctx);
+    std::string getSourceLocation(antlr4::ParserRuleContext* ctx);
 };
-
-} // namespace pryst

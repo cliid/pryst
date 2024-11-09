@@ -78,9 +78,15 @@ public:
     bool hasUsingDeclaration(const std::string& qualifiedName, UsingKind kind) const;
 
     // Class-related methods
-    void addClass(const std::string& name, const std::string& parentClass = "");
+    void addClass(const std::string& name, const std::vector<std::string>& baseClasses = std::vector<std::string>());
     void addClass(const std::string& name, const ClassInfo& info);
     bool classExists(const std::string& name) const;
+    bool isClassDefined(const std::string& name) const { return classExists(name); }
+    bool isSubclassOf(const std::string& derived, const std::string& base) const;
+    bool isMethodDefined(const std::string& className, const std::string& methodName) const;
+    std::string getMethodReturnType(const std::string& className, const std::string& methodName,
+                                  const std::vector<std::string>& argTypes) const;
+    bool isClassDefinedInNamespace(const std::string& className, const std::string& namespaceName) const;
     ClassInfo getClassInfo(const std::string& name) const;
 
     // Module-related methods

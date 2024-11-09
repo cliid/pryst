@@ -1,0 +1,16 @@
+module test::utils::strings {
+    fn toUpper(s: string) -> string {
+        // Implementation would convert to upper case
+        return s;  // Placeholder
+    }
+
+    fn toLower(s: string) -> string {
+        // Implementation would convert to lower case
+        return s;  // Placeholder
+    }
+
+    fn reverse(s: string) -> string {
+        // Implementation would reverse the string
+        return s;  // Placeholder
+    }
+}

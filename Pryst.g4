@@ -190,6 +190,10 @@ statement
     | PRINT LPAREN (expression (COMMA expression)*)? RPAREN SEMICOLON
     ;
 
+tryStatement
+    : TRY statement (CATCH LPAREN type IDENTIFIER RPAREN statement)?
+    ;
+
 expression
     : assignment
     | lambdaFunction
