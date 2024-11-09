@@ -1,0 +1,33 @@
+// Test module interface compliance
+namespace pryst::test {
+    interface DataProvider {
+        fn getData() -> str;
+        fn setValue(int value) -> void;
+        fn getValue() -> int;
+    }
+
+    module provider1 {
+        class FileProvider : DataProvider {
+            int currentValue;
+
+            fn getData() -> str {
+                return "FileProvider: {this.currentValue}";
+            }
+
+            fn setValue(int value) -> void {
+                this.currentValue = value;
+            }
+
+            fn getValue() -> int {
+                return this.currentValue;
+            }
+        }
+    }
+}
+
+fn main() -> void {
+    import pryst::test::provider1;
+    DataProvider file = new provider1::FileProvider();
+    file.setValue(42);
+    print(file.getData());
+}
