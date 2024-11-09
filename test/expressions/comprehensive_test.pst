@@ -1,0 +1,44 @@
+// Test all expression types and operator precedence
+fn main() -> void {
+    // Test logical operators
+    bool a = true && false;
+    bool b = true || false;
+    bool c = !true;
+
+    // Test comparison operators
+    bool d = 5 > 3;
+    bool e = 3 <= 5;
+    bool f = 10 == 10;
+    bool g = 7 != 8;
+
+    // Test arithmetic operators
+    int h = 5 + 3 * 2;  // Should be 11 (precedence test)
+    float i = 10.5 - 3.2;
+    int j = 15 / 3;
+    int k = 20 % 7;
+
+    // Test unary operators
+    int l = -5;
+    int m = +10;
+
+    // Test increment/decrement
+    int n = 5;
+    n++;
+    int o = ++n;
+
+    // Test complex expressions
+    bool p = (5 + 3) * 2 > 15 && !false;
+    float q = 3.14 * (2 + 3) / 2.0;
+
+    // Test type promotion
+    float r = 5 + 3.14;  // int + float -> float
+
+    // Print results to verify
+    print("Logical operators: ", a, b, c);
+    print("Comparison operators: ", d, e, f, g);
+    print("Arithmetic operators: ", h, i, j, k);
+    print("Unary operators: ", l, m);
+    print("Increment/decrement: ", n, o);
+    print("Complex expressions: ", p, q);
+    print("Type promotion: ", r);
+}

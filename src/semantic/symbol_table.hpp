@@ -22,11 +22,17 @@ public:
     // Function-related methods
     void addFunction(const std::string& name, std::shared_ptr<FunctionInfo> funcInfo);
     void addFunction(const std::string& name, const std::string& returnType, const std::vector<std::string>& paramTypes);
+    void addForwardDeclaration(const std::string& name, const std::string& returnType, const std::vector<std::string>& paramTypes, const std::string& location);
+    void implementFunction(const std::string& name, const std::vector<std::string>& paramTypes);
+    void addFunctionReference(const std::string& caller, const std::string& callee);
+    bool validateFunctionReferences(const std::string& name, std::string& error) const;
     bool functionExists(const std::string& name) const;
+    bool isForwardDeclared(const std::string& name) const;
+    bool isImplemented(const std::string& name) const;
     std::vector<std::shared_ptr<FunctionInfo>> getAllFunctionOverloads(const std::string& name) const;
     std::shared_ptr<FunctionInfo> getFunctionInfo(const std::string& name) const;
     bool findMatchingFunction(const std::string& name, const std::vector<std::string>& argTypes, std::shared_ptr<FunctionInfo>& outInfo) const;
-    std::shared_ptr<FunctionInfo> lookupFunction(const std::string& qualifiedName) const;  // Add lookupFunction method
+    std::shared_ptr<FunctionInfo> lookupFunction(const std::string& qualifiedName) const;
 
     // Variable-related methods
     void addVariable(const std::string& name, const std::string& type, bool isConst = false);

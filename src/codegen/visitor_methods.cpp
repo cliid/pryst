@@ -5,8 +5,8 @@
 
 namespace pryst {
 
-std::any LLVMCodegen::visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) {
-    PRYST_DEBUG("Visiting type conversion expression");
+std::any LLVMCodegen::visitParenthesizedCast(PrystParser::ParenthesizedCastContext* ctx) {
+    PRYST_DEBUG("Visiting parenthesized cast expression");
     auto& context = module->getContext();
 
     std::any valueResult = visit(ctx->expression());
@@ -16,39 +16,15 @@ std::any LLVMCodegen::visitTypeConversionExpr(PrystParser::TypeConversionExprCon
     return convertType(value, targetType);
 }
 
-std::any LLVMCodegen::visitTypeCastExpr(PrystParser::TypeCastExprContext* ctx) {
-    PRYST_DEBUG("Visiting type cast expression");
+std::any LLVMCodegen::visitConstructorCast(PrystParser::ConstructorCastContext* ctx) {
+    PRYST_DEBUG("Visiting constructor cast expression");
     auto& context = module->getContext();
 
     std::any valueResult = visit(ctx->expression());
     llvm::Value* value = std::any_cast<llvm::Value*>(valueResult);
     std::string targetType = ctx->type()->getText();
 
-    llvm::Type* llvmType = getLLVMType(targetType);
-    if (!llvmType) {
-        PRYST_ERROR("Unknown target type: " + targetType);
-        return nullptr;
-    }
-
-    return convertFromString(value, llvmType);
-}
-
-std::any LLVMCodegen::visitClassConversionExpr(PrystParser::ClassConversionExprContext* ctx) {
-    PRYST_DEBUG("Visiting class conversion expression");
-    auto& context = module->getContext();
-
-    std::any valueResult = visit(ctx->expression());
-    llvm::Value* value = std::any_cast<llvm::Value*>(valueResult);
-    std::string className = ctx->IDENTIFIER()->getText();
-
-    // Get class type info and perform conversion
-    ClassTypeInfo* classInfo = getClassInfo(className);
-    if (!classInfo) {
-        PRYST_ERROR("Unknown class type: " + className);
-        return nullptr;
-    }
-
-    return convertType(value, className);
+    return convertType(value, targetType);
 }
 
 llvm::Value* LLVMCodegen::convertType(llvm::Value* value, const std::string& targetType) {

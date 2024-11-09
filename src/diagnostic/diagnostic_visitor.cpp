@@ -275,19 +275,92 @@ bool DiagnosticVisitor::areTypesCompatible(const std::string& expected, const st
     return false;
 }
 
-void DiagnosticVisitor::reportError(antlr4::ParserRuleContext* ctx, const std::string& message) {
-    std::string location = getSourceLocation(ctx);
-    PRYST_ERROR(location + ": " + message);
+bool DiagnosticVisitor::isPrimitiveType(const std::string& type) {
+    return type == "int" || type == "float" || type == "bool" || type == "string";
 }
 
-void DiagnosticVisitor::reportWarning(antlr4::ParserRuleContext* ctx, const std::string& message) {
-    std::string location = getSourceLocation(ctx);
-    PRYST_DEBUG(location + ": Warning: " + message);
+std::any DiagnosticVisitor::visitTypeCastExpr(PrystParser::TypeCastExprContext* ctx) {
+    PRYST_DEBUG("Diagnosing type cast expression");
+    try {
+        std::string targetType = std::any_cast<std::string>(visit(ctx->type()));
+        std::string sourceType = std::any_cast<std::string>(visit(ctx->expression()));
+
+        // Handle primitive type casting
+        if (isPrimitiveType(targetType)) {
+            // Numeric conversions
+            if (isNumericType(targetType) && isNumericType(sourceType)) {
+                return std::any(targetType);
+            }
+            // String conversions
+            if (targetType == "string") {
+                return std::any(targetType);
+            }
+            // Boolean conversions
+            if (targetType == "bool" && isNumericType(sourceType)) {
+                return std::any(targetType);
+            }
+            // Parse numeric from string
+            if (isNumericType(targetType) && sourceType == "string") {
+                return std::any(targetType);
+            }
+            throw std::runtime_error("Invalid primitive type cast from '" + sourceType +
+                "' to '" + targetType + "'");
+        }
+
+        // Handle class type casting
+        if (symbolTable.classExists(targetType)) {
+            // Check if source is also a class type
+            if (symbolTable.classExists(sourceType)) {
+                // Check inheritance relationship
+                if (!symbolTable.isSubclassOf(sourceType, targetType) &&
+                    !symbolTable.hasConstructor(targetType, sourceType)) {
+                    throw std::runtime_error("Cannot cast from '" + sourceType +
+                        "' to '" + targetType + "': no inheritance relationship or constructor found");
+                }
+            } else {
+                // Converting from primitive to class
+                if (!symbolTable.hasConstructor(targetType, sourceType)) {
+                    throw std::runtime_error("No constructor found in class '" + targetType +
+                        "' for converting from type '" + sourceType + "'");
+                }
+            }
+            return std::any(targetType);
+        }
+
+        throw std::runtime_error("Invalid cast: target type '" + targetType + "' is not recognized");
+    } catch (const std::exception& ex) {
+        PRYST_ERROR("Error in type cast: " + std::string(ex.what()));
+        throw;
+    }
 }
 
-std::string DiagnosticVisitor::getSourceLocation(antlr4::ParserRuleContext* ctx) {
-    auto start = ctx->getStart();
-    std::stringstream ss;
-    ss << "Line " << start->getLine() << ":" << start->getCharPositionInLine();
-    return ss.str();
+std::any DiagnosticVisitor::visitTypeConversionExpr(PrystParser::TypeConversionExprContext* ctx) {
+    PRYST_DEBUG("Diagnosing type conversion expression");
+    try {
+        std::string targetType = std::any_cast<std::string>(visit(ctx->type()));
+        std::string sourceType = std::any_cast<std::string>(visit(ctx->expression()));
+
+        // Constructor casts should not be used with primitive types
+        if (isPrimitiveType(targetType)) {
+            throw std::runtime_error("Constructor syntax cannot be used with primitive type '" +
+                targetType + "'. Use parenthesized cast instead");
+        }
+
+        // Handle class type casting
+        if (symbolTable.classExists(targetType)) {
+            // Verify constructor exists for this type conversion
+            if (!symbolTable.hasConstructor(targetType, sourceType)) {
+                throw std::runtime_error("No constructor found in class '" + targetType +
+                    "' for converting from type '" + sourceType + "'");
+            }
+            return std::any(targetType);
+        }
+
+        throw std::runtime_error("Invalid constructor cast: type '" + targetType + "' is not a class type");
+    } catch (const std::exception& ex) {
+        PRYST_ERROR("Error in type conversion: " + std::string(ex.what()));
+        throw;
+    }
 }
+
+} // namespace pryst

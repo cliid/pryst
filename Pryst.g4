@@ -1,116 +1,193 @@
 grammar Pryst;
 
-program
-    : (namespaceDecl | moduleDecl | importDecl | declaration)* EOF
-    ;
+// ===== Lexer Rules =====
+fragment DIGIT: [0-9];
+fragment LETTER: [a-zA-Z];
+fragment IDENTIFIER_START: LETTER | '_';
+fragment IDENTIFIER_PART: LETTER | DIGIT | '_';
+
+// Keywords
+PRINT: 'print';
+CLASS: 'class';
+EXTENDS: 'extends';
+ELSE: 'else';
+FALSE: 'false';
+FOR: 'for';
+IF: 'if';
+NULL: 'null';
+RETURN: 'return';
+SUPER: 'super';
+THIS: 'this';
+TRUE: 'true';
+WHILE: 'while';
+NEW: 'new';
+CONVERT: 'convert';
+NAMESPACE: 'namespace';
+MODULE: 'module';
+IMPORT: 'import';
+USING: 'using';
+LET: 'let';
+FN: 'fn';
+DECLARE: 'declare';
+CONST: 'const';
+CONST_EXPR: 'const!';
+TRY: 'try';
+CATCH: 'catch';
+
+// Types
+INT_TYPE: 'int';
+FLOAT_TYPE: 'float';
+BOOL_TYPE: 'bool';
+STR_TYPE: 'str';
+VOID_TYPE: 'void';
+
+// Operators and punctuation
+LPAREN: '(';
+RPAREN: ')';
+LBRACE: '{';
+RBRACE: '}';
+LBRACKET: '[';
+RBRACKET: ']';
+COMMA: ',';
+DOT: '.';
+MINUS: '-';
+PLUS: '+';
+SEMICOLON: ';';
+SLASH: '/';
+STAR: '*';
+BANG: '!';
+EQUAL: '=';
+LESS: '<';
+GREATER: '>';
+NOT_EQUAL: '!=';
+EQUAL_EQUAL: '==';
+GREATER_EQUAL: '>=';
+LESS_EQUAL: '<=';
+AND: '&&';
+OR: '||';
+INCREMENT: '++';
+DECREMENT: '--';
+PERCENT: '%';
+ARROW: '->';
+DOUBLE_COLON: '::';
+
+// Literals
+NUMBER: DIGIT+ ('.' DIGIT+)?;
+IDENTIFIER: IDENTIFIER_START IDENTIFIER_PART*;
+STRING: '"' ~["\r\n]* '"';
+
+// Comments and whitespace
+COMMENT: '//' ~[\r\n]* -> skip;
+WS: [ \t\r\n]+ -> skip;
+
+// String interpolation
+STRING_START: '"' -> mode(IN_STRING);
+
+mode IN_STRING;
+STRING_CONTENT: ~["\\\r\n${]+;
+ESCAPE_SEQ: '\\' [btnfr"'\\] | '\\u' [0-9a-fA-F]{4};
+INTERP_START: '${' -> pushMode(DEFAULT_MODE);
+STRING_END: '"' -> popMode;
+
+// ===== Parser Rules =====
+
+program: declaration* EOF;
 
 declaration
     : functionDecl
     | variableDecl
-    | classDeclaration
+    | classDecl
     | usingDecl
     | statement
+    | namespaceDecl
+    | moduleDecl
+    | importDecl
     ;
 
 usingDecl
-    : (USING NAMESPACE | USING MODULE) qualifiedIdentifier SEMICOLON                    # GlobalUsingDecl
-    | USING NAMESPACE qualifiedIdentifier LBRACE declaration* RBRACE                    # BlockScopedNamespaceDecl
-    | USING MODULE qualifiedIdentifier LBRACE declaration* RBRACE                       # BlockScopedModuleDecl
+    : USING NAMESPACE qualifiedIdentifier SEMICOLON
+    | USING MODULE qualifiedIdentifier SEMICOLON
+    | USING NAMESPACE qualifiedIdentifier block
+    | USING MODULE qualifiedIdentifier block
     ;
 
-namespaceDecl
-    : NAMESPACE qualifiedIdentifier LBRACE (declaration | moduleDecl)* RBRACE
-    ;
+namespaceDecl: NAMESPACE qualifiedIdentifier block;
 
-moduleDecl
-    : MODULE qualifiedIdentifier LBRACE declaration* RBRACE
-    ;
+moduleDecl: MODULE qualifiedIdentifier block;
 
-importDecl
-    : IMPORT importPath SEMICOLON
-    ;
+importDecl: IMPORT importPath SEMICOLON;
 
-importPath
-    : IDENTIFIER (DOUBLE_COLON IDENTIFIER)*
-    ;
+importPath: IDENTIFIER (DOUBLE_COLON IDENTIFIER)*;
 
-functionDecl
-    : namedFunction
-    | lambdaFunction
-    ;
+functionDecl: namedFunction | lambdaFunction | forwardDecl;
 
 namedFunction
-    : FN LESS type GREATER IDENTIFIER LPAREN paramList? RPAREN functionBody
-    | FN IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody
-    | type IDENTIFIER LPAREN paramList? RPAREN functionBody
+    : FN LESS type GREATER IDENTIFIER LPAREN paramList? RPAREN block
+    | FN IDENTIFIER LPAREN paramList? RPAREN ARROW type block
+    | type IDENTIFIER LPAREN paramList? RPAREN block
+    ;
+
+forwardDecl
+    : DECLARE FN IDENTIFIER LPAREN paramList? RPAREN ARROW type SEMICOLON
     ;
 
 lambdaFunction
-    : LPAREN paramList? RPAREN ARROW type LBRACE declaration* RBRACE
-    | LPAREN paramList? RPAREN ARROW type expression
+    : LPAREN paramList? RPAREN ARROW (type block | block)
+    | LPAREN paramList? RPAREN ARROW (type expression | expression)
+    | LPAREN paramList? RPAREN block
     ;
 
-functionBody
-    : LBRACE statement* RBRACE
-    ;
+block: LBRACE declaration* RBRACE;
 
 variableDecl
-    : (LET | CONST) IDENTIFIER EQUAL expression SEMICOLON                      # inferredVariableDecl
-    | (type | CONST type | CONST_EXPR) IDENTIFIER EQUAL expression SEMICOLON   # typedVariableDecl
-    | type IDENTIFIER SEMICOLON                                                # uninitializedVariableDecl
+    : (LET | CONST) IDENTIFIER EQUAL expression SEMICOLON
+    | (type | CONST type | CONST_EXPR) IDENTIFIER EQUAL expression SEMICOLON
+    | type IDENTIFIER SEMICOLON
     ;
 
-classDeclaration
-    : CLASS IDENTIFIER (EXTENDS IDENTIFIER)? classBody
-    ;
+classDecl: CLASS IDENTIFIER (EXTENDS IDENTIFIER)? classBody;
 
-classBody
-    : LBRACE classMember* RBRACE
-    ;
+classBody: LBRACE classMember* RBRACE;
 
 classMember
-    : type IDENTIFIER EQUAL expression SEMICOLON                    # ClassMemberDecl
-    | LET IDENTIFIER EQUAL expression SEMICOLON                     # ClassMemberInferredDecl
-    | CONST IDENTIFIER EQUAL expression SEMICOLON                   # ClassMemberConstInferredDecl
-    | CONST type IDENTIFIER EQUAL expression SEMICOLON             # ClassMemberConstTypedDecl
-    | IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody  # ClassMemberFunctionDecl
+    : type IDENTIFIER EQUAL expression SEMICOLON
+    | LET IDENTIFIER EQUAL expression SEMICOLON
+    | CONST IDENTIFIER EQUAL expression SEMICOLON
+    | CONST type IDENTIFIER EQUAL expression SEMICOLON
+    | IDENTIFIER LPAREN paramList? RPAREN ARROW type block
     ;
 
-paramList
-    : param (COMMA param)*
-    ;
+paramList: param (COMMA param)*;
 
 param
     : type IDENTIFIER
     | FN LESS type GREATER LPAREN paramTypeList? RPAREN IDENTIFIER
     ;
 
-paramTypeList
-    : type (COMMA type)*
-    ;
+paramTypeList: type (COMMA type)*;
 
 type
-    : INT                                             # intType
-    | FLOAT                                           # floatType
-    | BOOL                                            # boolType
-    | STR                                             # strType
-    | VOID                                            # voidType
-    | IDENTIFIER                                      # identifierType
-    | type LBRACKET RBRACKET                         # arrayType
-    | FN LESS type GREATER LPAREN paramTypeList? RPAREN   # functionType
+    : INT_TYPE
+    | FLOAT_TYPE
+    | BOOL_TYPE
+    | STR_TYPE
+    | VOID_TYPE
+    | IDENTIFIER
+    | type LBRACKET RBRACKET
+    | FN LESS type GREATER LPAREN paramTypeList? RPAREN
     ;
 
 statement
-    : expression SEMICOLON                          # exprStatement
-    | IF LPAREN expression RPAREN statement (ELSE statement)?  # ifStatement
-    | WHILE LPAREN expression RPAREN statement               # whileStatement
+    : expression SEMICOLON
+    | IF LPAREN expression RPAREN statement (ELSE statement)?
+    | WHILE LPAREN expression RPAREN statement
     | FOR LPAREN (variableDecl | expression SEMICOLON | SEMICOLON)
       expression? SEMICOLON
-      expression? RPAREN statement                  # forStatement
-    | RETURN expression? SEMICOLON                  # returnStatement
-    | LBRACE statement* RBRACE                    # blockStatement
-    | tryStatement                                # tryStmtWrapper
-    | PRINT LPAREN (expression (COMMA expression)*)? RPAREN SEMICOLON      # printStatement
+      expression? RPAREN statement
+    | RETURN expression? SEMICOLON
+    | block
+    | tryCatchStmt
+    | PRINT LPAREN (expression (COMMA expression)*)? RPAREN SEMICOLON
     ;
 
 tryStatement
@@ -127,64 +204,48 @@ expression
     | logicOr
     ;
 
-stringLiteral
-    : STRING                                           # StringLiteralRule
+stringLiteral: STRING_START stringPart* STRING_END;
+
+stringPart
+    : STRING_CONTENT
+    | ESCAPE_SEQ
+    | INTERP_START expression RBRACE
     ;
 
-assignment
-    : (call DOT)? qualifiedIdentifier EQUAL expression
-    ;
+assignment: (call DOT)? qualifiedIdentifier EQUAL expression;
 
-logicOr
-    : logicAnd (OR logicAnd)*
-    ;
+logicOr: logicAnd (OR logicAnd)*;
 
-logicAnd
-    : equality (AND equality)*
-    ;
+logicAnd: equality (AND equality)*;
 
-equality
-    : comparison ((NOT_EQUAL | EQUAL_EQUAL) comparison)*
-    ;
+equality: comparison ((NOT_EQUAL | EQUAL_EQUAL) comparison)*;
 
-comparison
-    : addition ((LESS | LESS_EQUAL | GREATER | GREATER_EQUAL) addition)*
-    ;
+comparison: addition ((LESS | LESS_EQUAL | GREATER | GREATER_EQUAL) addition)*;
 
-addition
-    : multiplication ((PLUS | MINUS) multiplication)*
-    ;
+addition: multiplication ((PLUS | MINUS) multiplication)*;
 
-multiplication
-    : unary ((STAR | SLASH | PERCENT) unary)*
-    ;
+multiplication: unary ((STAR | SLASH | PERCENT) unary)*;
 
 unary
     : (BANG | MINUS | INCREMENT | DECREMENT) unary
     | postfix
     ;
 
-postfix
-    : primary (suffix | INCREMENT | DECREMENT)*
-    ;
+postfix: primary (suffix | INCREMENT | DECREMENT)*;
 
 suffix
     : callSuffix
     | memberSuffix
     ;
 
-callSuffix
-    : LPAREN arguments? RPAREN
-    ;
+callSuffix: LPAREN arguments? RPAREN;
 
 memberSuffix
     : DOT IDENTIFIER
     | DOT IDENTIFIER LPAREN arguments? RPAREN
     ;
 
-call
-    : qualifiedIdentifier (DOT IDENTIFIER)*
-    ;
+call: qualifiedIdentifier (DOT IDENTIFIER)*;
 
 primary
     : TRUE
@@ -196,146 +257,22 @@ primary
     | qualifiedIdentifier (LPAREN arguments? RPAREN)?
     | LPAREN expression RPAREN
     | SUPER DOT IDENTIFIER
-    | newExpression
+    | newExpr
     ;
 
-qualifiedIdentifier
-    : IDENTIFIER (DOUBLE_COLON IDENTIFIER)*
-    ;
+qualifiedIdentifier: IDENTIFIER (DOUBLE_COLON IDENTIFIER)*;
 
-newExpression
-    : NEW IDENTIFIER LPAREN arguments? RPAREN
-    ;
+newExpr: NEW IDENTIFIER LPAREN arguments? RPAREN;
 
-arguments
-    : expression (COMMA expression)*
-    ;
+arguments: expression (COMMA expression)*;
 
-// Type conversion expressions
 typeCastExpr
     : LPAREN type RPAREN expression
     | type LPAREN expression RPAREN
     ;
 
-typeConversionExpr
-    : type DOT CONVERT LPAREN expression RPAREN
-    ;
+typeConversionExpr: type DOT CONVERT LPAREN expression RPAREN;
 
-classConversionExpr
-    : IDENTIFIER DOT CONVERT LPAREN expression RPAREN
-    ;
+classConversionExpr: IDENTIFIER DOT CONVERT LPAREN expression RPAREN;
 
-
-
-// Lexer Rules
-
-LPAREN      : '(' ;
-RPAREN      : ')' ;
-LBRACE      : '{' ;
-RBRACE      : '}' ;
-LBRACKET    : '[' ;
-RBRACKET    : ']' ;
-COMMA       : ',' ;
-DOT         : '.' ;
-MINUS       : '-' ;
-PLUS        : '+' ;
-SEMICOLON   : ';' ;
-SLASH       : '/' ;
-STAR        : '*' ;
-BANG        : '!' ;
-EQUAL       : '=' ;
-GREATER     : '>' ;
-LESS        : '<' ;
-NOT_EQUAL   : '!=' ;
-EQUAL_EQUAL : '==' ;
-GREATER_EQUAL : '>=' ;
-LESS_EQUAL  : '<=' ;
-AND         : '&&' ;
-OR          : '||' ;
-INCREMENT   : '++' ;
-DECREMENT   : '--' ;
-PERCENT     : '%' ;
-ARROW       : '->' ;
-DOUBLE_COLON : '::' ;
-
-PRINT       : 'print' ;
-CLASS       : 'class' ;
-EXTENDS     : 'extends' ;
-ELSE        : 'else' ;
-FALSE       : 'false' ;
-FOR         : 'for' ;
-IF          : 'if' ;
-NULL        : 'null' ;
-RETURN      : 'return' ;
-SUPER       : 'super' ;
-THIS        : 'this' ;
-TRUE        : 'true' ;
-WHILE       : 'while' ;
-NEW         : 'new' ;
-CONVERT     : 'convert' ;
-NAMESPACE   : 'namespace' ;
-MODULE      : 'module' ;
-IMPORT      : 'import' ;
-USING       : 'using' ;
-LET         : 'let' ;
-FN          : 'fn' ;
-CONST       : 'const' ;
-CONST_EXPR  : 'const!' ;
-TRY         : 'try' ;
-CATCH       : 'catch' ;
-
-INT         : 'int' ;
-FLOAT       : 'float' ;
-BOOL        : 'bool' ;
-STR         : 'str' ;
-VOID        : 'void' ;
-
-NUMBER      : [0-9]+ ('.' [0-9]+)? ;
-
-// String tokens
-STRING      : '"' (~["\\\r\n${] | ESCAPE_SEQ | INTERP_EXPR)* '"' ;
-
-fragment ESCAPE_SEQ
-    : '\\' [btnfr"'\\]
-    | '\\u' HexDigit HexDigit HexDigit HexDigit
-    ;
-
-fragment INTERP_EXPR
-    : '${' ExpressionContent '}'
-    | '{' (IDENTIFIER | QualifiedId) (':' FORMAT_SPEC)? '}'
-    ;
-
-fragment ExpressionContent
-    : ~[{}]+
-    | '{' ExpressionContent '}'
-    | NESTED_BRACE
-    ;
-
-fragment QualifiedId
-    : IDENTIFIER (DOT IDENTIFIER)*
-    ;
-
-fragment NESTED_BRACE
-    : '{' (~[{}] | NESTED_BRACE)* '}'
-    ;
-
-fragment FORMAT_SPEC
-    : AlignmentSpec? WidthSpec? ('.' PrecisionSpec)? FormatTypeSpec?
-    ;
-
-fragment AlignmentSpec : '<' | '>' | '^' ;
-fragment WidthSpec : [0-9]+ ;
-fragment PrecisionSpec : [0-9]+ ;
-fragment FormatTypeSpec : [dxXfFeEgGsS] ;
-
-fragment StringCharacter
-    : ~["\r\n\\$]
-    | '\\' [btnfr"'\\]
-    | '\\u' HexDigit HexDigit HexDigit HexDigit
-    ;
-
-fragment HexDigit : [0-9a-fA-F] ;
-IDENTIFIER  : [a-zA-Z_][a-zA-Z_0-9]* ;
-
-COMMENT     : '//' ~[\r\n]* -> skip ;
-WS          : [ \t\r\n]+ -> skip ;
+tryCatchStmt: TRY statement (CATCH LPAREN IDENTIFIER RPAREN statement)?;

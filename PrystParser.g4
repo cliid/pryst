@@ -1,121 +1,101 @@
 parser grammar PrystParser;
 
-options { tokenVocab=PrystLexer; }
+options {
+    tokenVocab=PrystLexer;
+}
 
-program
-    : (namespaceDecl | moduleDecl | importDecl | declaration)* EOF
-    ;
+program: declaration* EOF;
 
 declaration
     : functionDecl
     | variableDecl
-    | classDeclaration
+    | classDecl
     | usingDecl
     | statement
+    | namespaceDecl
+    | moduleDecl
+    | importDecl
     ;
 
 usingDecl
-    : (USING NAMESPACE | USING MODULE) qualifiedIdentifier SEMICOLON                    # GlobalUsingDecl
-    | USING NAMESPACE qualifiedIdentifier LBRACE declaration* RBRACE                    # BlockScopedNamespaceDecl
-    | USING MODULE qualifiedIdentifier LBRACE declaration* RBRACE                       # BlockScopedModuleDecl
+    : USING NAMESPACE qualifiedIdentifier SEMICOLON
+    | USING MODULE qualifiedIdentifier SEMICOLON
+    | USING NAMESPACE qualifiedIdentifier block
+    | USING MODULE qualifiedIdentifier block
     ;
 
-namespaceDecl
-    : NAMESPACE qualifiedIdentifier LBRACE (declaration | moduleDecl)* RBRACE
-    ;
+namespaceDecl: NAMESPACE qualifiedIdentifier block;
 
-moduleDecl
-    : MODULE qualifiedIdentifier LBRACE declaration* RBRACE
-    ;
+moduleDecl: MODULE qualifiedIdentifier block;
 
-importDecl
-    : IMPORT importPath SEMICOLON
-    ;
+importDecl: IMPORT importPath SEMICOLON;
 
-importPath
-    : IDENTIFIER (DOUBLE_COLON IDENTIFIER)*
-    ;
+importPath: IDENTIFIER (DOUBLE_COLON IDENTIFIER)*;
 
-functionDecl
-    : namedFunction
-    | lambdaFunction
-    ;
+functionDecl: namedFunction | lambdaFunction;
 
 namedFunction
-    : FN LESS type GREATER IDENTIFIER LPAREN paramList? RPAREN functionBody
-    | FN IDENTIFIER LPAREN paramList? RPAREN (ARROW (type | VOID))? functionBody
-    | (type | VOID) IDENTIFIER LPAREN paramList? RPAREN functionBody
+    : FN LESS type GREATER IDENTIFIER LPAREN paramList? RPAREN block
+    | FN IDENTIFIER LPAREN paramList? RPAREN ARROW type block
+    | type IDENTIFIER LPAREN paramList? RPAREN block
     ;
 
 lambdaFunction
-    : LPAREN paramList? RPAREN ARROW (type | VOID)? LBRACE declaration* RBRACE
-    | LPAREN paramList? RPAREN ARROW (type | VOID)? expression
+    : LPAREN paramList? RPAREN ARROW type block
+    | LPAREN paramList? RPAREN ARROW type expression
     ;
 
-functionBody
-    : LBRACE statement* RBRACE
-    ;
+block: LBRACE declaration* RBRACE;
 
 variableDecl
-    : LET IDENTIFIER EQUAL expression SEMICOLON                    # inferredVariableDecl
-    | type IDENTIFIER EQUAL expression SEMICOLON                   # typedVariableDecl
-    | type IDENTIFIER SEMICOLON                                    # uninitializedVariableDecl
-    | CONST IDENTIFIER EQUAL expression SEMICOLON                  # classInferredVariableDecl
-    | CONST type IDENTIFIER EQUAL expression SEMICOLON            # classTypedVariableDecl
-    | CONST_EXPR IDENTIFIER EQUAL expression SEMICOLON            # classConstInferredDecl
-    | CONST_EXPR type IDENTIFIER EQUAL expression SEMICOLON       # classConstTypedDecl
+    : (LET | CONST) IDENTIFIER EQUAL expression SEMICOLON
+    | (type | CONST type | CONST_EXPR) IDENTIFIER EQUAL expression SEMICOLON
+    | type IDENTIFIER SEMICOLON
     ;
 
-classDeclaration
-    : CLASS IDENTIFIER (EXTENDS IDENTIFIER)? classBody
-    ;
+classDecl: CLASS IDENTIFIER (EXTENDS IDENTIFIER)? classBody;
 
-classBody
-    : LBRACE classMember* RBRACE
-    ;
+classBody: LBRACE classMember* RBRACE;
 
 classMember
-    : type IDENTIFIER (EQUAL expression)? SEMICOLON  # classVariableDecl
-    | IDENTIFIER LPAREN paramList? RPAREN ARROW type functionBody # classFunctionDecl
+    : type IDENTIFIER EQUAL expression SEMICOLON
+    | LET IDENTIFIER EQUAL expression SEMICOLON
+    | CONST IDENTIFIER EQUAL expression SEMICOLON
+    | CONST type IDENTIFIER EQUAL expression SEMICOLON
+    | IDENTIFIER LPAREN paramList? RPAREN ARROW type block
     ;
 
-paramList
-    : param (COMMA param)*
-    ;
+paramList: param (COMMA param)*;
 
 param
     : type IDENTIFIER
     | FN LESS type GREATER LPAREN paramTypeList? RPAREN IDENTIFIER
     ;
 
-paramTypeList
-    : type (COMMA type)*
-    ;
+paramTypeList: type (COMMA type)*;
 
 type
-    : INT                                             # intType
-    | FLOAT                                           # floatType
-    | BOOL                                            # boolType
-    | STR                                             # strType
-    | VOID                                            # voidType
-    | IDENTIFIER                                      # identifierType
-    | type LBRACKET RBRACKET                         # arrayType
-    | FN LESS type GREATER LPAREN paramTypeList? RPAREN   # functionType
-    | LPAREN paramTypeList? RPAREN ARROW (type | VOID)    # lambdaType
+    : INT_TYPE
+    | FLOAT_TYPE
+    | BOOL_TYPE
+    | STR_TYPE
+    | VOID_TYPE
+    | IDENTIFIER
+    | type LBRACKET RBRACKET
+    | FN LESS type GREATER LPAREN paramTypeList? RPAREN
     ;
 
 statement
-    : expression SEMICOLON                          # exprStatement
-    | IF LPAREN expression RPAREN statement (ELSE statement)?  # ifStatement
-    | WHILE LPAREN expression RPAREN statement               # whileStatement
+    : expression SEMICOLON
+    | IF LPAREN expression RPAREN statement (ELSE statement)?
+    | WHILE LPAREN expression RPAREN statement
     | FOR LPAREN (variableDecl | expression SEMICOLON | SEMICOLON)
       expression? SEMICOLON
-      expression? RPAREN statement                  # forStatement
-    | RETURN expression? SEMICOLON                  # returnStatement
-    | LBRACE statement* RBRACE                    # blockStatement
-    | PRINT LPAREN expression RPAREN SEMICOLON      # printStatement
-    | TRY statement (CATCH LPAREN type IDENTIFIER RPAREN statement)*  # tryStatement
-    | TRY LBRACE statement* RBRACE (CATCH LPAREN type IDENTIFIER RPAREN LBRACE statement* RBRACE)*  # tryCatchStatement
+      expression? RPAREN statement
+    | RETURN expression? SEMICOLON
+    | block
+    | tryCatchStmt
+    | PRINT LPAREN (expression (COMMA expression)*)? RPAREN SEMICOLON
     ;
 
 expression
@@ -128,71 +108,48 @@ expression
     | logicOr
     ;
 
-stringLiteral
-    : STRING_START stringPart* STRING_END           # interpolatedString
-    | STRING_START STRING_CONTENT? STRING_END       # simpleString
-    ;
+stringLiteral: STRING_START stringPart* STRING_END;
 
 stringPart
     : STRING_CONTENT
     | ESCAPE_SEQ
-    | INTERP_START expression RBRACE
+    | INTERP_START expression INTERP_END
     ;
 
-assignment
-    : (call DOT)? qualifiedIdentifier EQUAL expression
-    ;
+assignment: (call DOT)? qualifiedIdentifier EQUAL expression;
 
-logicOr
-    : logicAnd (OR logicAnd)*
-    ;
+logicOr: logicAnd (OR logicAnd)*;
 
-logicAnd
-    : equality (AND equality)*
-    ;
+logicAnd: equality (AND equality)*;
 
-equality
-    : comparison ((NOT_EQUAL | EQUAL_EQUAL) comparison)*
-    ;
+equality: comparison ((NOT_EQUAL | EQUAL_EQUAL) comparison)*;
 
-comparison
-    : addition ((LESS | LESS_EQUAL | GREATER | GREATER_EQUAL) addition)*
-    ;
+comparison: addition ((LESS | LESS_EQUAL | GREATER | GREATER_EQUAL) addition)*;
 
-addition
-    : multiplication ((PLUS | MINUS) multiplication)*
-    ;
+addition: multiplication ((PLUS | MINUS) multiplication)*;
 
-multiplication
-    : unary ((STAR | SLASH | PERCENT) unary)*
-    ;
+multiplication: unary ((STAR | SLASH | PERCENT) unary)*;
 
 unary
     : (BANG | MINUS | INCREMENT | DECREMENT) unary
     | postfix
     ;
 
-postfix
-    : primary (suffix | INCREMENT | DECREMENT)*
-    ;
+postfix: primary (suffix | INCREMENT | DECREMENT)*;
 
 suffix
     : callSuffix
     | memberSuffix
     ;
 
-callSuffix
-    : LPAREN arguments? RPAREN
-    ;
+callSuffix: LPAREN arguments? RPAREN;
 
 memberSuffix
     : DOT IDENTIFIER
     | DOT IDENTIFIER LPAREN arguments? RPAREN
     ;
 
-call
-    : qualifiedIdentifier (DOT IDENTIFIER)*
-    ;
+call: qualifiedIdentifier (DOT IDENTIFIER)*;
 
 primary
     : TRUE
@@ -200,33 +157,26 @@ primary
     | NULL
     | THIS
     | NUMBER
+    | STRING
     | qualifiedIdentifier (LPAREN arguments? RPAREN)?
     | LPAREN expression RPAREN
     | SUPER DOT IDENTIFIER
-    | newExpression
+    | newExpr
     ;
 
-qualifiedIdentifier
-    : IDENTIFIER (DOUBLE_COLON IDENTIFIER)*
-    ;
+qualifiedIdentifier: IDENTIFIER (DOUBLE_COLON IDENTIFIER)*;
 
-newExpression
-    : NEW IDENTIFIER LPAREN arguments? RPAREN
-    ;
+newExpr: NEW IDENTIFIER LPAREN arguments? RPAREN;
 
-arguments
-    : expression (COMMA expression)*
-    ;
+arguments: expression (COMMA expression)*;
 
 typeCastExpr
     : LPAREN type RPAREN expression
     | type LPAREN expression RPAREN
     ;
 
-typeConversionExpr
-    : type DOT CONVERT LPAREN expression RPAREN
-    ;
+typeConversionExpr: type DOT CONVERT LPAREN expression RPAREN;
 
-classConversionExpr
-    : IDENTIFIER DOT CONVERT LPAREN expression RPAREN
-    ;
+classConversionExpr: IDENTIFIER DOT CONVERT LPAREN expression RPAREN;
+
+tryCatchStmt: TRY statement (CATCH LPAREN IDENTIFIER RPAREN statement)?;
