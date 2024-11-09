@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../generated/PrystBaseVisitor.h"
+#include "../generated/PrystParserBaseVisitor.h"
 #include "../generated/PrystParser.h"
 #include "symbol_table.hpp"
 #include "type_info.hpp"
@@ -28,7 +28,7 @@ public:
     std::any visitImportDecl(PrystParser::ImportDeclContext *ctx) override;
     std::any visitImportPath(PrystParser::ImportPathContext *ctx) override;
     std::any visitFunctionDecl(PrystParser::FunctionDeclContext *ctx) override;
-    
+
     // ... Additional visitor methods for expressions, statements, and types ...
     // (All other visitor methods from PrystBaseVisitor.h should be added here)
 
