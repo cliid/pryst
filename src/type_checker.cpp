@@ -278,8 +278,28 @@ std::any TypeChecker::visitPostfixExpr(PrystParser::PostfixExprContext* ctx) {
 
 std::any TypeChecker::visitMethodCallExpr(PrystParser::MethodCallExprContext* ctx) {
     auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-    // TODO: Implement method call type checking
-    return baseType;
+
+    // Handle nullable method calls
+    bool isNullable = baseType->isNullable();
+    if (isNullable) {
+        // If base is nullable, unwrap it for method lookup but keep track of nullability
+        if (baseType->getKind() == Type::Kind::Nullable) {
+            baseType = std::static_pointer_cast<NullableType>(baseType)->getInnerType();
+        }
+    }
+
+    // Get method name and check if it exists
+    std::string methodName = ctx->IDENTIFIER()->getText();
+    auto methodType = checkMemberAccess(baseType, methodName, isNullable);
+
+    // Check argument types
+    if (ctx->arguments()) {
+        auto argTypes = std::any_cast<std::vector<std::shared_ptr<Type>>>(visit(ctx->arguments()));
+        // TODO: Match argument types with method parameters when method overloading is implemented
+    }
+
+    // If base was nullable, make result nullable
+    return isNullable ? std::make_shared<NullableType>(methodType) : methodType;
 }
 
 std::any TypeChecker::visitMemberAccessExpr(PrystParser::MemberAccessExprContext* ctx) {
@@ -289,7 +309,10 @@ std::any TypeChecker::visitMemberAccessExpr(PrystParser::MemberAccessExprContext
 
 std::any TypeChecker::visitNullableMemberExpr(PrystParser::NullableMemberExprContext* ctx) {
     auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-    return checkMemberAccess(baseType, ctx->IDENTIFIER()->getText(), true);
+    // For chained nullable access, ensure the result is always nullable
+    auto resultType = checkMemberAccess(baseType, ctx->IDENTIFIER()->getText(), true);
+    // If the base type is nullable, the result must be nullable
+    return baseType->isNullable() ? std::make_shared<NullableType>(resultType) : resultType;
 }
 
 std::any TypeChecker::visitLambdaExpr(PrystParser::LambdaExprContext* ctx) {
@@ -418,12 +441,12 @@ std::any TypeChecker::visitType(PrystParser::TypeContext* ctx) {
 
 std::shared_ptr<Type> TypeChecker::checkMemberAccess(std::shared_ptr<Type> baseType, const std::string& memberName, bool isNullable) {
     // Handle nullable access
-    if (isNullable) {
-        if (!baseType || baseType->getKind() == Type::Kind::Null) {
-            return std::make_shared<NullableType>(VOID_TYPE);
+    if (baseType->getKind() == Type::Kind::Nullable) {
+        if (!isNullable) {
+            throw std::runtime_error("Unsafe member access '" + memberName + "' on nullable type '" +
+                                   baseType->toString() + "'. Use '?.' for null-safe navigation");
         }
-    } else if (!baseType) {
-        throw std::runtime_error("Cannot access member '" + memberName + "' of null type");
+        baseType = std::static_pointer_cast<NullableType>(baseType)->getInnerType();
     }
 
     // Handle array built-in methods
@@ -479,15 +502,26 @@ std::shared_ptr<Type> TypeChecker::checkMemberAccess(std::shared_ptr<Type> baseT
     }
 
     // Handle class members
-    if (baseType->getKind() == Type::Kind::Class) {
-        auto memberType = lookupVariable(memberName);
-        if (!memberType) {
-            throw std::runtime_error("Member '" + memberName + "' not found in class '" + baseType->toString() + "'");
+    if (auto classType = std::dynamic_pointer_cast<ClassType>(baseType)) {
+        auto field = classType->getField(memberName);
+        if (!field) {
+            throw std::runtime_error("Member '" + memberName + "' not found in class '" +
+                                   classType->getName() + "'. Available members: " +
+                                   [&]() {
+                                       std::string result;
+                                       const auto& members = classType->getAvailableMembers();
+                                       for (size_t i = 0; i < members.size(); ++i) {
+                                           result += members[i];
+                                           if (i < members.size() - 1) result += ", ";
+                                       }
+                                       return result;
+                                   }());
         }
-        return isNullable ? std::make_shared<NullableType>(memberType) : memberType;
+        return isNullable ? std::make_shared<NullableType>(field) : field;
     }
 
-    throw std::runtime_error("Cannot access member '" + memberName + "' of type '" + baseType->toString() + "'");
+    throw std::runtime_error("Cannot access member '" + memberName + "' on type '" +
+                           baseType->toString() + "'. Type does not support member access");
 }
 
 std::any TypeChecker::visitImportDecl(PrystParser::ImportDeclContext* ctx) {
@@ -746,13 +780,31 @@ std::any TypeChecker::visitBuiltinFunction(PrystParser::BuiltinFunctionContext* 
 }
 
 std::any TypeChecker::visitChainedCall(PrystParser::ChainedCallContext* ctx) {
-    if (ctx->arguments()) {
-        std::vector<std::shared_ptr<Type>> argTypes;
-        for (auto arg : ctx->arguments()->expression()) {
-            argTypes.push_back(std::any_cast<std::shared_ptr<Type>>(visit(arg)));
-        }
+    // Use the last expression type as the base type
+    if (!lastExpressionType) {
+        throw std::runtime_error("No base expression for chained call");
     }
-    return VOID_TYPE;  // Return type will be determined by the method being called
+    auto baseType = lastExpressionType;
+
+    // Handle nullable chained calls
+    bool isNullable = baseType->isNullable();
+    if (isNullable && baseType->getKind() == Type::Kind::Nullable) {
+        baseType = std::static_pointer_cast<NullableType>(baseType)->getInnerType();
+    }
+
+    // Get method name from the identifier
+    std::string methodName = ctx->IDENTIFIER()->getText();
+    baseType = checkMemberAccess(baseType, methodName, isNullable);
+
+    // Check argument types if present
+    if (ctx->arguments()) {
+        auto argTypes = std::any_cast<std::vector<std::shared_ptr<Type>>>(visit(ctx->arguments()));
+        // TODO: Match argument types with method parameters when method overloading is implemented
+    }
+
+    // Store and return the result
+    lastExpressionType = isNullable ? std::make_shared<NullableType>(baseType) : baseType;
+    return lastExpressionType;
 }
 
 std::any TypeChecker::visitConstructorCall(PrystParser::ConstructorCallContext* ctx) {
@@ -772,6 +824,75 @@ std::any TypeChecker::visitLambdaParams(PrystParser::LambdaParamsContext* ctx) {
         paramTypes.push_back(getTypeFromTypeContext(typeCtx));
     }
     return paramTypes;
+}
+
+bool TypeChecker::isAssignable(std::shared_ptr<Type> targetType, std::shared_ptr<Type> sourceType) {
+    // Handle null source type
+    if (sourceType->getKind() == Type::Kind::Null) {
+        if (!targetType->isNullable()) {
+            throw std::runtime_error("Cannot assign null to non-nullable type " + targetType->toString());
+        }
+        return true;
+    }
+
+    // Handle nullable target type
+    if (targetType->getKind() == Type::Kind::Nullable) {
+        auto nullableTarget = std::static_pointer_cast<NullableType>(targetType);
+        // Allow assignment from nullable to nullable if inner types are compatible
+        if (sourceType->getKind() == Type::Kind::Nullable) {
+            auto nullableSource = std::static_pointer_cast<NullableType>(sourceType);
+            try {
+                return isAssignable(nullableTarget->getInnerType(), nullableSource->getInnerType());
+            } catch (const std::runtime_error& e) {
+                throw std::runtime_error("Invalid nullable type conversion: " + std::string(e.what()));
+            }
+        }
+        // Allow non-nullable to nullable if types are compatible
+        try {
+            return isAssignable(nullableTarget->getInnerType(), sourceType);
+        } catch (const std::runtime_error& e) {
+            throw std::runtime_error("Cannot convert type " + sourceType->toString() +
+                                   " to nullable type " + targetType->toString() + ": " + e.what());
+        }
+    }
+
+    // Handle nullable source type - requires explicit null check
+    if (sourceType->getKind() == Type::Kind::Nullable) {
+        throw std::runtime_error("Cannot assign nullable type " + sourceType->toString() +
+                               " to non-nullable type " + targetType->toString() +
+                               " without explicit null check");
+    }
+
+    // Handle primitive types
+    if (targetType->getKind() == sourceType->getKind()) {
+        return true;
+    }
+
+    // Handle array types
+    if (targetType->getKind() == Type::Kind::Array && sourceType->getKind() == Type::Kind::Array) {
+        auto targetArray = std::static_pointer_cast<ArrayType>(targetType);
+        auto sourceArray = std::static_pointer_cast<ArrayType>(sourceType);
+        try {
+            return isAssignable(targetArray->getElementType(), sourceArray->getElementType());
+        } catch (const std::runtime_error& e) {
+            throw std::runtime_error("Invalid array type conversion: " + std::string(e.what()));
+        }
+    }
+
+    // Handle map types
+    if (targetType->getKind() == Type::Kind::Map && sourceType->getKind() == Type::Kind::Map) {
+        auto targetMap = std::static_pointer_cast<MapType>(targetType);
+        auto sourceMap = std::static_pointer_cast<MapType>(sourceType);
+        try {
+            bool keyAssignable = isAssignable(targetMap->getKeyType(), sourceMap->getKeyType());
+            bool valueAssignable = isAssignable(targetMap->getValueType(), sourceMap->getValueType());
+            return keyAssignable && valueAssignable;
+        } catch (const std::runtime_error& e) {
+            throw std::runtime_error("Invalid map type conversion: " + std::string(e.what()));
+        }
+    }
+
+    throw std::runtime_error("Cannot convert type " + sourceType->toString() + " to " + targetType->toString());
 }
 
 } // namespace pryst

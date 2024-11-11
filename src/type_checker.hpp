@@ -15,6 +15,7 @@ class TypeChecker : public PrystParserBaseVisitor {
 private:
     std::vector<std::unordered_map<std::string, std::shared_ptr<Type>>> scopes;
     std::shared_ptr<Type> currentFunctionReturnType;
+    std::shared_ptr<Type> lastExpressionType;  // Track the type of the last visited expression
     bool isInLoop;
 
     void pushScope();
@@ -32,7 +33,10 @@ private:
     std::shared_ptr<Type> getLambdaType(PrystParser::LambdaExprContext* ctx);
 
 public:
-    TypeChecker() : currentFunctionReturnType(nullptr), isInLoop(false) {
+    TypeChecker()
+        : currentFunctionReturnType(nullptr)
+        , lastExpressionType(nullptr)
+        , isInLoop(false) {
         pushScope(); // Global scope
     }
 

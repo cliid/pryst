@@ -44,5 +44,34 @@ int main() {
     // Test null propagation
     int? result = x?.toString()?.length();  // null
 
+    // Test error handling
+    try {
+        // Test unsafe member access on nullable type
+        str name = p1.name;  // Should throw error: Use ?. for null-safe navigation
+    } catch (Error e) {
+        print("Expected error: " + e.message);
+    }
+
+    try {
+        // Test invalid type conversion
+        int nonNullable = null;  // Should throw error: Cannot assign null to non-nullable type
+    } catch (Error e) {
+        print("Expected error: " + e.message);
+    }
+
+    try {
+        // Test invalid member access
+        int? len = p1?.invalidMethod();  // Should throw error: Member not found
+    } catch (Error e) {
+        print("Expected error: " + e.message);
+    }
+
+    try {
+        // Test non-null assertion on null value
+        Person nonNull = p1!;  // Should throw error: Cannot convert nullable to non-nullable
+    } catch (Error e) {
+        print("Expected error: " + e.message);
+    }
+
     return 0;
 }

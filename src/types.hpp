@@ -43,7 +43,7 @@ public:
         Any,
         Nullable,
         Generic,
-        Null    // Add Null kind
+        Null
     };
 
     explicit Type(Kind kind) : kind_(kind) {}
@@ -51,7 +51,6 @@ public:
 
     Kind getKind() const { return kind_; }
 
-    // Add helper methods for null handling
     virtual bool isNullable() const {
         return kind_ == Kind::Nullable || kind_ == Kind::Null;
     }
@@ -64,6 +63,20 @@ public:
         if (isNullable()) return std::static_pointer_cast<Type>(shared_from_this());
         auto nullable = std::make_shared<NullableType>(std::static_pointer_cast<Type>(shared_from_this()));
         return std::static_pointer_cast<Type>(nullable);
+    }
+
+    virtual bool isAssignableTo(const std::shared_ptr<Type>& other) const {
+        if (kind_ == Kind::Null && other->isNullable()) {
+            return true;
+        }
+        return kind_ == other->getKind();
+    }
+
+    virtual bool canConvertTo(const std::shared_ptr<Type>& other) const {
+        if (kind_ == Kind::Null && other->isNullable()) {
+            return true;
+        }
+        return kind_ == other->getKind();
     }
 
     virtual std::string toString() const {
@@ -164,6 +177,14 @@ public:
         return it != fields_.end() ? it->second : nullptr;
     }
 
+    std::vector<std::string> getAvailableMembers() const {
+        std::vector<std::string> members;
+        for (const auto& field : fields_) {
+            members.push_back(field.first);
+        }
+        return members;
+    }
+
 private:
     std::string name_;
     std::vector<std::shared_ptr<Type>> genericParams_;
@@ -194,6 +215,26 @@ public:
     bool canBeNull() const override { return true; }
     std::shared_ptr<Type> makeNullable() override {
         return std::static_pointer_cast<Type>(shared_from_this());
+    }
+
+    bool isAssignableTo(const std::shared_ptr<Type>& other) const {
+        if (other->isNullable()) {
+            auto otherNullable = std::static_pointer_cast<NullableType>(other);
+            return innerType_->isAssignableTo(otherNullable->getInnerType());
+        }
+        return false;
+    }
+
+    bool canConvertTo(const std::shared_ptr<Type>& other) const {
+        if (other->isNullable()) {
+            auto otherNullable = std::static_pointer_cast<NullableType>(other);
+            return innerType_->canConvertTo(otherNullable->getInnerType());
+        }
+        return false;
+    }
+
+    std::shared_ptr<Type> propagateNull(const std::shared_ptr<Type>& chainedType) const {
+        return chainedType->makeNullable();
     }
 
 private:
