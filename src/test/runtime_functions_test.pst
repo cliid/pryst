@@ -1,0 +1,33 @@
+// Test file for runtime functions
+int main() {
+    // Test print function
+    print("Hello, World!");
+
+    // Test array length
+    int[] numbers = [1, 2, 3, 4, 5];
+    int len = length(numbers);
+    print("Array length: " + str(len));
+
+    // Test map operations
+    map<str,int> scores = {
+        "Alice": 95,
+        "Bob": 87,
+        "Charlie": 92
+    };
+
+    // Test keys and values
+    str[] names = keys(scores);
+    int[] scoreValues = values(scores);
+
+    // Test has and get
+    if (has(scores, "Alice")) {
+        int aliceScore = get(scores, "Alice");
+        print("Alice's score: " + str(aliceScore));
+    }
+
+    // Test set
+    set(scores, "David", 88);
+    print("David's score: " + str(get(scores, "David")));
+
+    return 0;
+}

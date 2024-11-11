@@ -1,0 +1,49 @@
+// Test class definition with members
+class Person {
+    str name;
+    int age;
+    float height;
+
+    Person(str name, int age, float height) {
+        this.name = name;
+        this.age = age;
+        this.height = height;
+    }
+
+    float getHeightInInches() {
+        return this.height * 39.37;
+    }
+}
+
+// Test main function
+int main() {
+    // Test object instantiation with new
+    Person person = new Person("John", 30, 1.75);
+
+    // Test member access
+    print(person.name);  // Should print "John"
+    print(person.age);   // Should print 30
+    print(person.height);  // Should print 1.75
+
+    // Test method call
+    print(person.getHeightInInches());  // Should print ~68.89
+
+    // Test inline if with member access
+    if (person.age > 20) print("Adult");  // Should print "Adult"
+
+    // Test for loop with omitted terms
+    for (int i = 0; i < 3;) {
+        print(person.name);
+        i = i + 1;
+    }
+
+    // Test for loop with all terms omitted
+    int count = 0;
+    for (;;) {
+        if (count >= 2) break;
+        print(person.getHeightInInches());
+        count = count + 1;
+    }
+
+    return 0;
+}

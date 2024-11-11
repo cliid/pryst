@@ -1,0 +1,74 @@
+// Test multidimensional arrays
+int[][] matrix = [[1, 2, 3], [4, 5, 6]];
+int[][][] cube = [[[1, 2], [3, 4]], [[5, 6], [7, 8]]];
+
+// Test string interpolation
+str name = "Alice";
+str message = "Hello, ${name}! Your score is ${matrix[0][1]}.";
+
+// Test built-in functions
+print(message);
+print("Array length: ${length(matrix)}");
+print("First row length: ${length(matrix[0])}");
+
+// Test interface and class implementation
+interface Shape {
+    float area();
+    float perimeter();
+}
+
+class Rectangle implements Shape {
+    float width;
+    float height;
+
+    Rectangle(float w, float h) {
+        this.width = w;
+        this.height = h;
+    }
+
+    float area() {
+        return width * height;
+    }
+
+    float perimeter() {
+        return 2 * (width + height);
+    }
+}
+
+// Test map operations
+map<str,Shape> shapes = {};
+shapes.set("rect1", new Rectangle(5.0, 3.0));
+
+// Test map built-in functions
+if (shapes.has("rect1")) {
+    Shape shape = shapes.get("rect1");
+    print("Area: ${shape.area()}");
+}
+
+// Test for loops with array iteration
+for (int[] row in matrix) {
+    for (int val in row) {
+        print(val);
+    }
+}
+
+// Test C-style for loop with optional components
+for (int i = 0; i < length(matrix); i++) {
+    for (;;) {
+        if (i >= length(matrix[0])) break;
+        print(matrix[i][0]);
+        i++;
+    }
+}
+
+// Test lambda functions with type annotations
+let sum = (int x, int y) -> int {
+    return x + y;
+};
+
+// Test error handling
+try {
+    let val = matrix[10][0];  // Should throw error
+} catch (Error e) {
+    print("Caught error: ${e}");
+}

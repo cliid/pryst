@@ -1,16 +1,31 @@
-build
-.cache
-.antlr
-antlr4-runtime
-
 # ANTLR generated files
+src/generated/*.h
+src/generated/*.cpp
 src/generated/*.interp
 src/generated/*.tokens
-src/generated/*Lexer.cpp
-src/generated/*Lexer.h
-src/generated/*Parser.cpp
-src/generated/*Parser.h
-src/generated/*Visitor.cpp
-src/generated/*Visitor.h
-src/generated/*BaseVisitor.cpp
-src/generated/*BaseVisitor.h
+
+# Build directories
+build/
+cmake-build-*/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*~
+
+# Compiled files
+*.o
+*.out
+*.exe
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Dependency directories
+node_modules/
+vendor/
+
+# Log files
+*.log

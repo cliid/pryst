@@ -1,0 +1,16 @@
+class TestClass {
+    int x;
+
+    TestClass(int x) {
+        this.x = x;
+    }
+
+    int getValue() {
+        return x;
+    }
+}
+
+int main() {
+    TestClass obj = new TestClass(42);
+    return obj.getValue();
+}

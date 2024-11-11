@@ -1,0 +1,50 @@
+pryst
+import json;
+
+// Test inline if statements
+let x = 5;
+if (x > 0) print("positive");
+if (x < 0) print("negative"); else print("zero");
+
+// Test for loops with omitted terms
+let count = 0;
+for (;;) {
+    if (count > 5) break;
+    count = count + 1;
+}
+
+// Test C-style for loop with all components
+for (int i = 0; i < 3; i = i + 1) {
+    print(i);
+}
+
+// Test for loop with missing components
+for (int j = 0;; j = j + 1) {
+    if (j > 3) break;
+}
+
+// Test object instantiation
+class User {
+    str name;
+    int[] scores;
+
+    User(str name) {
+        this.name = name;
+        this.scores = [];
+    }
+
+    float average() {
+        if (scores.length() == 0) {
+            return 0.0;
+        }
+        return scores.reduce((float a, int b) -> a + b, 0.0) / scores.length();
+    }
+}
+
+User user1 = new User("John");
+
+// Test for-in loop
+map<str, User> users = {};
+for (str name in users.keys()) {
+    print(name);
+}

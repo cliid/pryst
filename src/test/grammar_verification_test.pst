@@ -1,0 +1,84 @@
+// Test file to verify all grammar features
+
+// Interface declaration
+interface Printable {
+    str toString();
+}
+
+// Class with interface implementation
+class Person implements Printable {
+    str name;
+    int age;
+    float[] scores;
+    map<str, int> attributes;
+
+    Person(str name, int age) {
+        this.name = name;
+        this.age = age;
+        this.scores = [];  // Changed from {} to []
+        this.attributes = {};  // Correct for maps
+    }
+
+    str toString() {
+        return "${name} (${age})";
+    }
+
+    // Lambda function with return type
+    void processScores((float) -> float processor) {
+        for (float score in scores) {
+            print("Score: ${processor(score)}");
+        }
+    }
+}
+
+// Test multidimensional arrays
+int[][] createMatrix(int rows, int cols) {
+    int[][] matrix = [];  // Changed from {} to []
+    for (int i = 0; i < rows; i++) {
+        matrix[i] = [];  // Changed from {} to []
+        for (int j = 0; j < cols; j++) {
+            matrix[i][j] = i * j;
+        }
+    }
+    return matrix;
+}
+
+// Test error handling
+void testErrors() {
+    try {
+        int x = 1 / 0;
+    } catch (DivisionError e) {
+        print("Caught division error: ${e}");
+    } catch (Error e) {
+        print("Caught general error");
+    }
+}
+
+// Test built-in functions and string interpolation
+void testBuiltins() {
+    map<str, int> counts = {"a": 1, "b": 2};  // Correct for maps
+    print("Keys: ${counts.keys()}");
+    print("Values: ${counts.values()}");
+    print("Has 'a': ${counts.has("a")}");
+    print("Length: ${counts.length()}");
+}
+
+int main() {
+    // Test object creation
+    Person p = new Person("John", 30);
+
+    // Test lambda with explicit return type
+    p.processScores((float x) -> float { return x * 2.0; });
+
+    // Test array operations
+    int[][] matrix = createMatrix(3, 3);
+    print("Matrix[1][1] = ${matrix[1][1]}");
+
+    // Test error handling
+    testErrors();
+
+    // Test built-in functions
+    testBuiltins();
+
+    return 0;
+}

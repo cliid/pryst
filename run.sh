@@ -1,16 +1,14 @@
 #!/bin/bash
-# Check if we have an input file
-if [ $# -lt 1 ]; then
-    echo "Usage: ./run.sh <input_file.pst> [options]"
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <input.pst>"
     exit 1
 fi
 
-# Get absolute path of input file
+# Get the absolute path of the input file
 INPUT_FILE=$(realpath "$1")
-shift
 
-# Change to build directory
-cd build || { echo "Error: build directory not found"; exit 1; }
+# Change to the directory containing the script
+cd "$(dirname "$0")"
 
-# Run pryst with input file and remaining arguments
-./pryst "$INPUT_FILE" "$@"
+# Run the compiler with the input file
+./build/src/pryst "$INPUT_FILE"

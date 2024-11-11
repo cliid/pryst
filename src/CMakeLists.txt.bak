@@ -1,0 +1,142 @@
+# Find required packages
+find_package(Java REQUIRED COMPONENTS Runtime)
+
+# Set up ANTLR variables
+set(GENERATED_DIR "${CMAKE_SOURCE_DIR}/src/generated")
+set(GENERATED_SRC
+    ${GENERATED_DIR}/PrystLexer.cpp
+    ${GENERATED_DIR}/PrystParser.cpp
+    ${GENERATED_DIR}/PrystParserBaseVisitor.cpp
+    ${GENERATED_DIR}/PrystParserVisitor.cpp
+)
+
+set(GENERATED_HEADERS
+    ${GENERATED_DIR}/PrystLexer.h
+    ${GENERATED_DIR}/PrystParser.h
+    ${GENERATED_DIR}/PrystParserBaseVisitor.h
+    ${GENERATED_DIR}/PrystParserVisitor.h
+)
+
+# Create custom target for generated files
+add_custom_target(antlr4_generation DEPENDS ${GENERATED_SRC} ${GENERATED_HEADERS})
+
+# Add header files
+set(HEADER_FILES
+    diagnostic_error_listener.hpp
+)
+
+# Add source files
+set(SOURCE_FILES
+    main.cpp
+    compiler.cpp
+    type_checker.cpp
+    llvm_codegen.cpp
+    runtime.cpp
+    webserver.cpp
+    types.cpp
+    type_registry.cpp
+    diagnostic_error_listener.cpp
+)
+
+# Add main executable
+add_executable(pryst
+    ${SOURCE_FILES}
+    ${GENERATED_SRC}
+    ${HEADER_FILES}
+)
+
+# Add dependencies
+add_dependencies(pryst antlr4_generation)
+
+# Add test executables
+add_executable(parser_test
+    test/parser_test.cpp
+    compiler.cpp
+    type_checker.cpp
+    llvm_codegen.cpp
+    runtime.cpp
+    types.cpp
+    type_registry.cpp
+    ${GENERATED_SRC}
+)
+add_dependencies(parser_test antlr4_generation)
+
+add_executable(webserver_test
+    test/webserver_test.cpp
+    compiler.cpp
+    type_checker.cpp
+    llvm_codegen.cpp
+    runtime.cpp
+    webserver.cpp
+    types.cpp
+    type_registry.cpp
+    diagnostic_error_listener.cpp
+    ${GENERATED_SRC}
+)
+add_dependencies(webserver_test antlr4_generation)
+
+# Add include directories for generated files
+target_include_directories(pryst PRIVATE
+    ${GENERATED_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${ANTLR4_INCLUDE_DIRS}
+)
+
+target_include_directories(parser_test PRIVATE
+    ${GENERATED_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${ANTLR4_INCLUDE_DIRS}
+)
+
+target_include_directories(webserver_test PRIVATE
+    ${GENERATED_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${ANTLR4_INCLUDE_DIRS}
+)
+
+# Link against ANTLR4 runtime, LLVM, and GC
+target_link_libraries(pryst
+    antlr4_runtime
+    LLVM-14
+    ${GC_LIBRARIES}
+)
+
+target_link_libraries(parser_test
+    antlr4_runtime
+    LLVM-14
+    ${GC_LIBRARIES}
+)
+
+target_link_libraries(webserver_test
+    antlr4_runtime
+    LLVM-14
+    ${GC_LIBRARIES}
+)
+
+# Create test directory if it doesn't exist
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test)
+
+# Copy test files to build directory
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test/parser_test.pst
+              ${CMAKE_CURRENT_BINARY_DIR}/src/test/parser_test.pst
+              COPYONLY)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test/webserver_test.pst
+              ${CMAKE_CURRENT_BINARY_DIR}/src/test/webserver_test.pst
+              COPYONLY)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test/runtime_functions_test.pst
+              ${CMAKE_CURRENT_BINARY_DIR}/src/test/runtime_functions_test.pst
+              COPYONLY)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test/test.pst
+              ${CMAKE_CURRENT_BINARY_DIR}/src/test/test.pst
+              COPYONLY)
+
+# Enable testing
+enable_testing()
+
+# Add tests
+add_test(NAME ParserTest COMMAND parser_test)
+add_test(NAME WebServerTest COMMAND webserver_test)

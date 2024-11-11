@@ -1,0 +1,85 @@
+pryst
+import std::io;
+import std::collections;
+import std::math;
+
+class Person {
+    str name;
+    int age;
+
+    Person(str name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    void printInfo() {
+        print("Name: " + this.name + ", Age: " + (str)this.age);
+    }
+}
+
+int main() {
+    // Test literals
+    int x = 42;
+    float y = 3.14;
+    str message = "Hello, \"World\"!";
+    bool flag = true;
+
+    // Test arrays and maps
+    int[] numbers = [1, 2, 3, 4, 5];
+    map<str, int> ages = {"Alice": 25, "Bob": 30};
+
+    // Test operators
+    int sum = x + y;
+    int product = x * y;
+    int quotient = x / 2;
+    int remainder = x % 3;
+    bool isValid = x >= 0 && y <= 10.0 || !flag;
+
+    // Test type casting
+    float f = (float)x;
+    int i = (int)y;
+    str s = (str)x;
+
+    // Test control flow
+    if (flag) {
+        // Test for loop
+        int i = 0;
+        while (i < 10) {
+            try {
+                numbers[i] = i * 2;
+            } catch (Error e) {
+                break;
+            }
+            i = i + 1;
+        }
+
+        // Test while loop
+        int j = 0;
+        while (j < 5) {
+            j = j + 1;
+            if (j == 3) {
+                continue;
+            }
+        }
+
+        // Test for-in loop
+        for (int num in numbers) {
+            print((str)num);
+        }
+    }
+
+    // Test function types
+    let readFile = (str path) -> str {
+        return File.open(path).read_to_string();
+    };
+
+    // Test lambda functions
+    let add = (int a, int b) -> a + b;
+    let multiply = (int a, int b) -> a * b;
+
+    // Test class instantiation and method calls
+    let person = new Person("John", 30);
+    person.printInfo();
+
+    return 0;
+}

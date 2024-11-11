@@ -1,0 +1,27 @@
+Files to Update:
+
+HIGH PRIORITY (Core Type System):
+- [ ] src/types.hpp
+- [ ] src/types.cpp
+- [ ] src/type_registry.hpp
+- [ ] src/type_registry.cpp
+- [ ] src/type_checker.hpp
+- [ ] src/type_checker.cpp
+- [ ] src/llvm_codegen.hpp
+- [ ] src/llvm_codegen.cpp
+
+MEDIUM PRIORITY (Core functionality):
+- [ ] src/compiler.cpp
+- [ ] src/compiler.hpp
+- [ ] src/runtime.cpp
+- [ ] src/runtime.h
+
+LOW PRIORITY (Supporting files):
+- [ ] src/diagnostic_error_listener.cpp
+- [ ] src/diagnostic_error_listener.hpp
+- [ ] src/main.cpp
+- [ ] src/webserver.cpp
+- [ ] src/test/parser_test.cpp
+- [ ] src/test/webserver_test.cpp
+
+Next file to update: src/types.hpp

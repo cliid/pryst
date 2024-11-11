@@ -1,0 +1,40 @@
+// Test lambda functions with return types
+let readFile = (str path) -> str {
+    return File.open(path).readToString();
+};
+
+// Test class instantiation with new
+class Person {
+    str name;
+    int age;
+
+    Person(str name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+
+int main() {
+    // Test constructor calls
+    let person = new Person("John", 30);
+
+    // Test array initialization with []
+    int[] numbers = [1, 2, 3];
+
+    // Test map initialization with {}
+    map<str, int> scores = {
+        "math": 95,
+        "science": 88
+    };
+
+    // Test lambda with block
+    let add = (int x, int y) -> int {
+        return x + y;
+    };
+
+    // Test lambda with expression
+    let multiply = (int x, int y) -> int x * y;
+
+    print("Tests completed");
+    return 0;
+}

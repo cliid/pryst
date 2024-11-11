@@ -1,0 +1,84 @@
+// Basic variable declarations and types
+int x = 42;
+float y = 3.14;
+str message = "Hello, world!";
+bool flag = true;
+
+// String interpolation
+str name = "Alice";
+str greeting = "Hello, ${name}!";
+str complex = "The sum of ${x} and ${y} is ${x + y}";
+
+// Arrays and maps
+int[] numbers = [1, 2, 3, 4, 5];
+map<str, int> scores = {
+    "Alice": 95,
+    "Bob": 87,
+    "Charlie": 92
+};
+
+// Basic control flow
+if (x > 40) {
+    print("x is greater than 40");
+} else {
+    print("x is less than or equal to 40");
+}
+
+for (int i = 0; i < 5; i = i + 1) {
+    print(i);
+}
+
+while (x > 0) {
+    x = x - 1;
+}
+
+// Function declaration and lambda
+int add(int a, int b) {
+    return a + b;
+}
+
+let multiply = (int a, int b) -> a * b;
+
+// Class definition with constructor and methods
+class Point {
+    float x;
+    float y;
+
+    Point(float x, float y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    float distance(Point other) {
+        float dx = this.x - other.x;
+        float dy = this.y - other.y;
+        return (dx * dx + dy * dy) ** 0.5;
+    }
+}
+
+// Test class instantiation and method calls
+Point p1 = new Point(0.0, 0.0);
+Point p2 = new Point(3.0, 4.0);
+float dist = p1.distance(p2);
+
+// Optional chaining
+Point? maybePoint = null;
+float? maybeX = maybePoint?.x;
+
+// Error handling
+try {
+    File f = File.open("nonexistent.txt")?;
+} catch (Error e) {
+    print("Error: ${e}");
+}
+
+// Type casting
+int intValue = 42;
+float floatValue = (float)intValue;
+str stringValue = (str)intValue;
+
+// Main function
+int main() {
+    print("All basic features tested!");
+    return 0;
+}

@@ -1,0 +1,53 @@
+import http;
+import json;
+
+class User {
+    str name;
+    int[] scores;
+
+    User(str name) {
+        this.name = name;
+        this.scores = [];  // Changed from {} to [] for array initialization
+    }
+
+    float average() {
+        if (scores.length() == 0) {
+            return 0.0;
+        }
+        return scores.reduce((float a, int b) -> a + b, 0.0) / scores.length();
+    }
+}
+
+int main() {
+    Server server(8080);
+    map<str,User> users = {};  // Correct for map initialization
+
+    server.post("/user", (Request req, Response res) -> {
+        json data = req.json()?;
+        str name = data.name;
+
+        if (users.has(name)) {
+            res.status(400).json({  // Correct for json object
+                "error": "User exists"
+            });
+            return;
+        }
+
+        users.set(name, User(name));
+        res.json({"status": "ok"});  // Correct for json object
+    });
+
+    server.get("/users", (Request req, Response res) -> {
+        json result = {};  // Correct for json object initialization
+        for (str name in users.keys()) {
+            result[name] = {  // Correct for json object
+                "scores": users.get(name)?.scores,
+                "average": users.get(name)?.average()
+            };
+        }
+        res.json(result);
+    });
+
+    print("Listening on 8080");
+    server.listen();
+}

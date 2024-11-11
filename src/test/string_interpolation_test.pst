@@ -1,0 +1,81 @@
+// Test string interpolation with mode switching
+str simple = "Hello, world!";
+str escaped = "Escaped characters: \n \t \r \" \\ \$";
+str interpolated = "Value of x is ${x}";
+str complex = "Math: ${2 + 3 * 4}";
+str nested = "Nested: ${"inner ${x + y}"}";
+str multiline = "First line
+Second line with ${value}
+Third line";
+
+// Test complex expressions in interpolation
+map<str, int> scores = {"Alice": 95, "Bob": 87};
+str report = "Scores: ${
+    scores.get("Alice") > 90
+        ? "Excellent!"
+        : "Good effort"
+}";
+
+// Test map literals with different key types
+map<str, int> strMap = {
+    "one": 1,
+    "two": 2,
+    "three": 3
+};
+
+map<int, str> intMap = {
+    1: "one",
+    2: "two",
+    3: "three"
+};
+
+// Test error cases (these should fail compilation)
+/*
+str invalid1 = "Unterminated string
+str invalid2 = "Invalid escape \z";
+str invalid3 = "Unclosed interpolation ${";
+str invalid4 = "Unmatched braces ${}}";
+map<str, int> invalidMap = {
+    123.45: "invalid float key",
+    true: "invalid boolean key"
+};
+*/
+
+// Test string operations
+str concat = "Hello" + " " + "World";
+str interpolatedConcat = "${prefix}${suffix}";
+
+// Test string interpolation in various contexts
+void printMessage(str msg) {
+    print("Message: ${msg}");
+}
+
+class Greeter {
+    str prefix;
+
+    Greeter(str p) {
+        this.prefix = p;
+    }
+
+    str greet(str name) {
+        return "${this.prefix} ${name}!";
+    }
+}
+
+// Test everything together
+void testAll() {
+    let greeter = new Greeter("Hello");
+    let name = "World";
+    let count = 42;
+
+    print("${greeter.greet(name)} Count is ${count}");
+
+    // Test interpolation with method calls
+    print("Length: ${name.length()}");
+
+    // Test interpolation with complex expressions
+    print("Calculation: ${(count * 2 + 1) / 3}");
+
+    // Test interpolation with conditional expressions
+    print("Status: ${count > 40 ? "High" : "Low"}");
+}
