@@ -22,25 +22,38 @@ namespace pryst {
 std::shared_ptr<Type> LLVMCodeGen::getTypeFromTypeContext(PrystParser::TypeContext* ctx) {
     if (!ctx) return VOID_TYPE;
 
-    if (ctx->INT()) return INT_TYPE;
-    if (ctx->FLOAT()) return FLOAT_TYPE;
-    if (ctx->BOOL()) return BOOL_TYPE;
-    if (ctx->STR()) return STRING_TYPE;
-    if (ctx->VOID()) return VOID_TYPE;
-
-    if (!ctx->type().empty() && ctx->LBRACK() && ctx->RBRACK()) {
-        auto elementType = getTypeFromTypeContext(ctx->type(0));
-        return std::make_shared<ArrayType>(elementType);
+    auto basicTypeCtx = ctx->basicType();
+    if (basicTypeCtx) {
+        if (basicTypeCtx->VOID()) return VOID_TYPE;
+        if (basicTypeCtx->INT()) return INT_TYPE;
+        if (basicTypeCtx->FLOAT()) return FLOAT_TYPE;
+        if (basicTypeCtx->BOOL()) return BOOL_TYPE;
+        if (basicTypeCtx->STR()) return STRING_TYPE;
+        if (basicTypeCtx->IDENTIFIER()) {
+            return std::make_shared<ClassType>(basicTypeCtx->IDENTIFIER()->getText());
+        }
     }
 
-    if (ctx->MAP()) {
-        auto keyType = getTypeFromTypeContext(ctx->type(0));
-        auto valueType = getTypeFromTypeContext(ctx->type(1));
-        return std::make_shared<MapType>(keyType, valueType);
+    // Handle array types
+    auto arrayTypeCtx = ctx->arrayType();
+    if (arrayTypeCtx) {
+        auto elementTypeCtx = arrayTypeCtx->type();
+        if (elementTypeCtx) {
+            auto elementType = getTypeFromTypeContext(elementTypeCtx);
+            return std::make_shared<ArrayType>(elementType);
+        }
     }
 
-    if (ctx->IDENTIFIER()) {
-        return std::make_shared<ClassType>(ctx->IDENTIFIER()->getText());
+    // Handle map types
+    auto mapTypeCtx = ctx->mapType();
+    if (mapTypeCtx) {
+        auto keyTypeCtx = mapTypeCtx->keyType();
+        auto valueTypeCtx = mapTypeCtx->type();
+        if (keyTypeCtx && valueTypeCtx) {
+            auto keyType = keyTypeCtx->STR() ? STRING_TYPE : INT_TYPE;
+            auto valueType = getTypeFromTypeContext(valueTypeCtx);
+            return std::make_shared<MapType>(keyType, valueType);
+        }
     }
 
     return ERROR_TYPE;
@@ -313,8 +326,8 @@ std::any LLVMCodeGen::visitIfStmt(PrystParser::IfStmtContext* ctx) {
 
     // Generate then block
     builder.SetInsertPoint(thenBlock);
-    if (ctx->block().size() > 0) {
-        visit(ctx->block(0));
+    if (ctx->statement().size() > 0) {
+        visit(ctx->statement(0));
     }
     if (!builder.GetInsertBlock()->getTerminator()) {
         builder.CreateBr(mergeBlock);
@@ -324,8 +337,8 @@ std::any LLVMCodeGen::visitIfStmt(PrystParser::IfStmtContext* ctx) {
     if (hasElse) {
         function->getBasicBlockList().push_back(elseBlock);
         builder.SetInsertPoint(elseBlock);
-        if (ctx->block().size() > 1) {
-            visit(ctx->block(1));
+        if (ctx->statement().size() > 1) {
+            visit(ctx->statement(1));
         }
         if (!builder.GetInsertBlock()->getTerminator()) {
             builder.CreateBr(mergeBlock);
@@ -362,7 +375,7 @@ std::any LLVMCodeGen::visitWhileStmt(PrystParser::WhileStmtContext* ctx) {
 
     function->getBasicBlockList().push_back(loopBlock);
     builder.SetInsertPoint(loopBlock);
-    visit(ctx->block());
+    visit(ctx->statement());
     if (!builder.GetInsertBlock()->getTerminator()) {
         builder.CreateBr(condBlock);
     }
@@ -509,10 +522,10 @@ std::any LLVMCodeGen::visitTryStmt(PrystParser::TryStmtContext* ctx) {
     builder.SetInsertPoint(tryBlock);
 
     auto exceptionVar = builder.CreateAlloca(ehExceptionPtr, nullptr, "exception");
-    valueMap[ctx->CATCH()->getText()] = exceptionVar;
+    valueMap[ctx->IDENTIFIER()->getText()] = exceptionVar;
 
     // Visit the try block
-    visit(ctx->block(0));
+    visit(ctx->statement(0));
     if (!builder.GetInsertBlock()->getTerminator()) {
         builder.CreateBr(continueBlock);
     }
@@ -521,7 +534,7 @@ std::any LLVMCodeGen::visitTryStmt(PrystParser::TryStmtContext* ctx) {
     builder.SetInsertPoint(catchBlock);
 
     // Visit the catch block
-    visit(ctx->block(1));
+    visit(ctx->statement(1));
     if (!builder.GetInsertBlock()->getTerminator()) {
         builder.CreateBr(continueBlock);
     }
@@ -704,25 +717,68 @@ std::any LLVMCodeGen::visitPrefixExpr(PrystParser::PrefixExprContext* ctx) {
 }
 
 std::any LLVMCodeGen::visitPostfixExpr(PrystParser::PostfixExprContext* ctx) {
-    auto operand = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+    if (ctx->expression()) {
+        auto base = std::any_cast<llvm::Value*>(visit(ctx->expression()));
 
-    if (ctx->INC()) {
-        auto result = operand;
-        auto newValue = builder.CreateAdd(operand,
-            llvm::ConstantInt::get(operand->getType(), 1), "inc");
-        builder.CreateStore(newValue, result);
-        return operand;
+        // Member access
+        if (ctx->DOT() && ctx->IDENTIFIER() && !ctx->LPAREN()) {
+            auto memberName = ctx->IDENTIFIER()->getText();
+            auto className = base->getType()->getPointerElementType()->getStructName().str();
+            auto classType = typeRegistry.getClassType(className);
+            auto memberIdx = typeRegistry.getMemberIndex(className, memberName);
+            return builder.CreateStructGEP(classType, base, memberIdx, memberName + "_ptr");
+        }
+
+        // Array access
+        if (ctx->LBRACK()) {
+            auto index = std::any_cast<llvm::Value*>(visit(ctx->expression()));
+            auto getFn = module.getFunction("Array_get");
+            std::vector<llvm::Value*> args;
+            args.push_back(base);
+            args.push_back(index);
+            return (llvm::Value*)builder.CreateCall(llvm::FunctionCallee(getFn), args);
+        }
+
+        // Method call
+        if (ctx->DOT() && ctx->IDENTIFIER() && ctx->LPAREN()) {
+            auto methodName = ctx->IDENTIFIER()->getText();
+            auto className = base->getType()->getPointerElementType()->getStructName().str();
+            auto callee = module.getFunction(className + "_" + methodName);
+
+            if (!callee) {
+                throw std::runtime_error("Unknown method: " + methodName);
+            }
+
+            std::vector<llvm::Value*> args;
+            args.push_back(base);  // this pointer
+            if (ctx->arguments()) {
+                for (auto arg : ctx->arguments()->expression()) {
+                    args.push_back(std::any_cast<llvm::Value*>(visit(arg)));
+                }
+            }
+            return (llvm::Value*)builder.CreateCall(llvm::FunctionCallee(callee), args);
+        }
     }
 
-    if (ctx->DEC()) {
-        auto result = operand;
-        auto newValue = builder.CreateSub(operand,
-            llvm::ConstantInt::get(operand->getType(), 1), "dec");
-        builder.CreateStore(newValue, result);
-        return operand;
+    // Function call
+    if (ctx->IDENTIFIER() && ctx->LPAREN()) {
+        auto funcName = ctx->IDENTIFIER()->getText();
+        auto callee = module.getFunction(funcName);
+        if (!callee) {
+            throw std::runtime_error("Unknown function: " + funcName);
+        }
+
+        std::vector<llvm::Value*> args;
+        if (ctx->arguments()) {
+            for (auto arg : ctx->arguments()->expression()) {
+                args.push_back(std::any_cast<llvm::Value*>(visit(arg)));
+            }
+        }
+
+        return (llvm::Value*)builder.CreateCall(llvm::FunctionCallee(callee), args);
     }
 
-    throw std::runtime_error("Unsupported postfix operator");
+    throw std::runtime_error("Unsupported postfix expression");
 }
 
 std::any LLVMCodeGen::visitMultiplicativeExpr(PrystParser::MultiplicativeExprContext* ctx) {
@@ -990,86 +1046,6 @@ llvm::Value* LLVMCodeGen::convertType(llvm::Value* value, llvm::Type* targetType
     throw std::runtime_error("Unsupported type conversion");
 }
 
-std::any LLVMCodeGen::visitUnaryExpr(PrystParser::UnaryExprContext* ctx) {
-    if (ctx->NOT()) {  // Handle '!' operator
-        auto operand = std::any_cast<llvm::Value*>(visit(ctx->unaryExpr()));
-        if (!operand->getType()->isIntegerTy(1)) {
-            operand = builder.CreateICmpNE(operand,
-                llvm::Constant::getNullValue(operand->getType()), "tobool");
-        }
-        return (llvm::Value*)builder.CreateNot(operand, "nottmp");
-    } else {  // Handle postfixExpr
-        return visit(ctx->postfixExpr());
-    }
-}
-
-std::any LLVMCodeGen::visitPostfixExpr(PrystParser::PostfixExprContext* ctx) {
-    if (ctx->primary()) {
-        return visit(ctx->primary());
-    }
-
-    if (ctx->postfixExpr()) {
-        auto base = std::any_cast<llvm::Value*>(visit(ctx->postfixExpr()));
-
-        // Member access
-        if (hasToken(ctx->DOT()) && hasToken(ctx->IDENTIFIER()) && !hasToken(ctx->LPAREN())) {
-            auto memberName = getTokenText(ctx->IDENTIFIER());
-            auto className = base->getType()->getPointerElementType()->getStructName().str();
-            auto classType = typeRegistry.getClassType(className);
-            auto memberIdx = typeRegistry.getMemberIndex(className, memberName);
-            return builder.CreateStructGEP(classType, base, memberIdx, memberName + "_ptr");
-        }
-
-        // Array access
-        if (hasToken(ctx->LBRACK())) {
-            auto index = std::any_cast<llvm::Value*>(visit(ctx->expression()));
-            auto getFn = module.getFunction("Array_get");
-            std::vector<llvm::Value*> args = {base, index};
-            return (llvm::Value*)builder.CreateCall(llvm::FunctionCallee(getFn), args);
-        }
-
-        // Method call
-        if (hasToken(ctx->DOT()) && hasToken(ctx->IDENTIFIER()) && hasToken(ctx->LPAREN())) {
-            auto methodName = getTokenText(ctx->IDENTIFIER());
-            auto className = base->getType()->getPointerElementType()->getStructName().str();
-            auto callee = module.getFunction(className + "_" + methodName);
-
-            if (!callee) {
-                throw std::runtime_error("Unknown method: " + methodName);
-            }
-
-            std::vector<llvm::Value*> args;
-            args.push_back(base);  // this pointer
-            if (hasContext(ctx->arguments())) {
-                for (auto arg : getContext(ctx->arguments())->expression()) {
-                    args.push_back(std::any_cast<llvm::Value*>(visit(arg)));
-                }
-            }
-            return (llvm::Value*)builder.CreateCall(llvm::FunctionCallee(callee), args);
-        }
-    }
-
-    // Function call
-    if (hasToken(ctx->IDENTIFIER()) && hasToken(ctx->LPAREN())) {
-        auto funcName = getTokenText(ctx->IDENTIFIER());
-        auto callee = module.getFunction(funcName);
-        if (!callee) {
-            throw std::runtime_error("Unknown function: " + funcName);
-        }
-
-        std::vector<llvm::Value*> args;
-        if (hasContext(ctx->arguments())) {
-            for (auto arg : getContext(ctx->arguments())->expression()) {
-                args.push_back(std::any_cast<llvm::Value*>(visit(arg)));
-            }
-        }
-
-        return (llvm::Value*)builder.CreateCall(llvm::FunctionCallee(callee), args);
-    }
-
-    throw std::runtime_error("Unsupported postfix expression");
-}
-
 std::any LLVMCodeGen::visitPrimary(PrystParser::PrimaryContext* ctx) {
     if (hasToken(ctx->INTEGER())) {
         return (llvm::Value*)llvm::ConstantInt::get(llvm::Type::getInt64Ty(context),
@@ -1118,10 +1094,6 @@ std::any LLVMCodeGen::visitPrimary(PrystParser::PrimaryContext* ctx) {
 
     if (hasContext(ctx->mapLiteral())) {
         return visit(getContext(ctx->mapLiteral()));
-    }
-
-    if (hasContext(ctx->expression())) {
-        return visit(getContext(ctx->expression()));
     }
 
     throw std::runtime_error("Unsupported primary expression");
@@ -1195,21 +1167,26 @@ std::any LLVMCodeGen::visitLambdaExpr(PrystParser::LambdaExprContext* ctx) {
     std::vector<std::string> paramNames;
 
     // Get parameter types and names
-    auto types = ctx->type();
-    auto identifiers = ctx->IDENTIFIER();
+    auto params = ctx->lambdaParams();
+    std::vector<std::pair<std::string, llvm::Type*>> parameters;
 
-    for (size_t i = 0; i < types.size() && i < identifiers.size(); ++i) {
-        auto paramType = getLLVMType(getTypeFromTypeContext(types[i]));
-        paramTypes.push_back(paramType);
-        paramNames.push_back(getTokenText(identifiers, i));
+    if (params) {
+        for (size_t i = 0; i < params->IDENTIFIER().size(); ++i) {
+            auto paramType = getLLVMType(getTypeFromTypeContext(params->type(i)));
+            parameters.push_back({params->IDENTIFIER(i)->getText(), paramType});
+        }
     }
 
     // Get return type
-    auto returnType = !types.empty() ?
-        getLLVMType(getTypeFromTypeContext(types[0])) :
+    llvm::Type* returnType = ctx->type() ?
+        getLLVMType(getTypeFromTypeContext(ctx->type())) :
         llvm::Type::getVoidTy(context);
 
     // Create function type and function
+    std::vector<llvm::Type*> paramTypes;
+    for (const auto& param : parameters) {
+        paramTypes.push_back(param.second);
+    }
     auto funcType = llvm::FunctionType::get(returnType, paramTypes, false);
     auto func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage,
         "lambda", module);
@@ -1227,8 +1204,8 @@ std::any LLVMCodeGen::visitLambdaExpr(PrystParser::LambdaExprContext* ctx) {
     // Generate lambda body
     if (hasContext(ctx->block())) {
         visit(getContext(ctx->block()));
-    } else if (hasContext(ctx->expression())) {
-        auto result = std::any_cast<llvm::Value*>(visit(getContext(ctx->expression())));
+    } else if (ctx->expr()) {
+        auto result = std::any_cast<llvm::Value*>(visit(ctx->expr()));
         if (returnType->isVoidTy()) {
             builder.CreateRetVoid();
         } else {
@@ -1325,7 +1302,15 @@ std::any LLVMCodeGen::visitArguments(PrystParser::ArgumentsContext* ctx) {
     return args;
 }
 
-std::any LLVMCodeGen::visitArrayLiteral(PrystParser::ArrayLiteralContext* ctx) {
+std::any LLVMCodeGen::visitEmptyArrayLiteral(PrystParser::EmptyArrayLiteralContext* ctx) {
+    auto arrayAlloc = getOrCreateArrayAlloc();
+    auto size = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), 0);
+    std::vector<llvm::Value*> allocArgs = {size};
+    auto array = builder.CreateCall(llvm::FunctionCallee(arrayAlloc), allocArgs, "array");
+    return array;
+}
+
+std::any LLVMCodeGen::visitNonEmptyArrayLiteral(PrystParser::NonEmptyArrayLiteralContext* ctx) {
     auto arrayAlloc = getOrCreateArrayAlloc();
     auto size = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), ctx->expression().size());
     std::vector<llvm::Value*> allocArgs = {size};
@@ -1342,15 +1327,29 @@ std::any LLVMCodeGen::visitArrayLiteral(PrystParser::ArrayLiteralContext* ctx) {
     return array;
 }
 
-std::any LLVMCodeGen::visitMapLiteral(PrystParser::MapLiteralContext* ctx) {
+std::any LLVMCodeGen::visitEmptyMapLiteral(PrystParser::EmptyMapLiteralContext* ctx) {
+    auto mapAlloc = getOrCreateMapAlloc();
+    auto map = builder.CreateCall(llvm::FunctionCallee(mapAlloc), {}, "map");
+    return map;
+}
+
+std::any LLVMCodeGen::visitNonEmptyMapLiteral(PrystParser::NonEmptyMapLiteralContext* ctx) {
     auto mapAlloc = getOrCreateMapAlloc();
     auto map = builder.CreateCall(llvm::FunctionCallee(mapAlloc), {}, "map");
 
     auto mapSet = module.getFunction("Map_set");
     for (auto entry : ctx->mapEntry()) {
-        auto key = std::any_cast<llvm::Value*>(visit(entry->STRING() ? entry->STRING() : entry->IDENTIFIER()));
+        llvm::Value* key = nullptr;
+        if (entry->STRING()) {
+            key = std::any_cast<llvm::Value*>(visit(entry->STRING()));
+        } else if (entry->INTEGER()) {
+            key = std::any_cast<llvm::Value*>(visit(entry->INTEGER()));
+        }
         auto value = std::any_cast<llvm::Value*>(visit(entry->expression()));
-        std::vector<llvm::Value*> setArgs{map, key, value};
+        std::vector<llvm::Value*> setArgs;
+        setArgs.push_back(map);
+        setArgs.push_back(key);
+        setArgs.push_back(value);
         builder.CreateCall(llvm::FunctionCallee(mapSet), setArgs);
     }
 
@@ -1358,8 +1357,19 @@ std::any LLVMCodeGen::visitMapLiteral(PrystParser::MapLiteralContext* ctx) {
 }
 
 std::any LLVMCodeGen::visitMapEntry(PrystParser::MapEntryContext* ctx) {
-    auto key = visit(ctx->STRING() ? ctx->STRING() : ctx->IDENTIFIER());
-    auto value = visit(ctx->expression());
+    llvm::Value* key;
+    if (hasToken(ctx->STRING())) {
+        std::string str = getTokenText(ctx->STRING());
+        str = str.substr(1, str.length() - 2);  // Remove quotes
+        key = builder.CreateGlobalStringPtr(str, "str");
+    } else if (hasToken(ctx->INTEGER())) {
+        key = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context),
+            std::stoll(getTokenText(ctx->INTEGER())), true);
+    } else {
+        throw std::runtime_error("Map keys must be strings or integers");
+    }
+
+    auto value = std::any_cast<llvm::Value*>(visit(ctx->expression()));
     return std::make_pair(key, value);
 }
 

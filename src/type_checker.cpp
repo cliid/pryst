@@ -5,148 +5,46 @@
 
 namespace pryst {
 
-TypeChecker::TypeChecker() {
-    pushScope(); // Global scope
-}
+// Remove constructor definition since it's already defined in the header
 
 void TypeChecker::pushScope() {
-    scopeStack.push_back(std::map<std::string, std::shared_ptr<Type>>());
+    scopes.push_back(std::unordered_map<std::string, std::shared_ptr<Type>>());
 }
 
 void TypeChecker::popScope() {
-    if (!scopeStack.empty()) {
-        scopeStack.pop_back();
+    if (scopes.empty()) {
+        throw std::runtime_error("No scope to pop");
     }
+    scopes.pop_back();
 }
 
-
-
 void TypeChecker::declareVariable(const std::string& name, std::shared_ptr<Type> type) {
-    if (scopeStack.empty()) {
+    if (scopes.empty()) {
         throw std::runtime_error("No active scope");
     }
-    scopeStack.back()[name] = type;
+    scopes.back()[name] = type;
 }
 
 std::shared_ptr<Type> TypeChecker::lookupVariable(const std::string& name) {
-    for (auto it = scopeStack.rbegin(); it != scopeStack.rend(); ++it) {
+    for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
         auto found = it->find(name);
         if (found != it->end()) {
             return found->second;
         }
     }
+    throw std::runtime_error("Variable '" + name + "' not found");
+}
+
+
+
+std::any TypeChecker::visitBlock(PrystParser::BlockContext* ctx) {
+    for (auto stmt : ctx->statement()) {
+        visit(stmt);
+    }
     return nullptr;
 }
 
-bool TypeChecker::isAssignable(std::shared_ptr<Type> target, std::shared_ptr<Type> source) {
-    // Handle null assignment to nullable types
-    if (source->getKind() == Type::Kind::Null) {
-        return target->canBeNull();
-    }
 
-    // Handle nullable source types
-    if (auto nullableSource = std::dynamic_pointer_cast<NullableType>(source)) {
-        return isAssignable(target, nullableSource->getInnerType());
-    }
-
-    // Handle nullable target types
-    if (auto nullableTarget = std::dynamic_pointer_cast<NullableType>(target)) {
-        return isAssignable(nullableTarget->getInnerType(), source);
-    }
-
-    if (target->getKind() == source->getKind()) return true;
-
-    // Allow int to float conversion
-    if (target->getKind() == Type::Kind::Float && source->getKind() == Type::Kind::Int) {
-        return true;
-    }
-
-    // Handle error propagation types
-    if (auto errorType = std::dynamic_pointer_cast<ErrorPropagationType>(source)) {
-        return isAssignable(target, errorType->getInnerType());
-    }
-
-    return false;
-}
-
-std::shared_ptr<Type> TypeChecker::checkTypeCast(std::shared_ptr<Type> targetType, std::shared_ptr<Type> sourceType) {
-    // Allow numeric conversions
-    if ((targetType->getKind() == Type::Kind::Int || targetType->getKind() == Type::Kind::Float) &&
-        (sourceType->getKind() == Type::Kind::Int || sourceType->getKind() == Type::Kind::Float)) {
-        return targetType;
-    }
-
-    // Allow string conversion for basic types
-    if (targetType->getKind() == Type::Kind::String) {
-        if (sourceType->getKind() == Type::Kind::Int ||
-            sourceType->getKind() == Type::Kind::Float ||
-            sourceType->getKind() == Type::Kind::Bool) {
-            return STRING_TYPE;
-        }
-    }
-
-    throw std::runtime_error("Invalid type cast from " + sourceType->toString() + " to " + targetType->toString());
-}
-
-std::shared_ptr<Type> TypeChecker::checkBinaryOp(const std::string& op,
-                                              std::shared_ptr<Type> left,
-                                              std::shared_ptr<Type> right) {
-    // Arithmetic operators
-    if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
-        if (left->getKind() == Type::Kind::Int && right->getKind() == Type::Kind::Int) {
-            return INT_TYPE;
-        }
-        if ((left->getKind() == Type::Kind::Int || left->getKind() == Type::Kind::Float) &&
-            (right->getKind() == Type::Kind::Int || right->getKind() == Type::Kind::Float)) {
-            return FLOAT_TYPE;
-        }
-        // String concatenation
-        if (op == "+" && left->getKind() == Type::Kind::String) {
-            return STRING_TYPE;
-        }
-    }
-
-    // Comparison operators
-    if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=") {
-        if (left->getKind() == right->getKind() ||
-            (left->getKind() == Type::Kind::Int && right->getKind() == Type::Kind::Float) ||
-            (left->getKind() == Type::Kind::Float && right->getKind() == Type::Kind::Int)) {
-            return BOOL_TYPE;
-        }
-    }
-
-    // Logical operators
-    if (op == "&&" || op == "||") {
-        if (left->getKind() == Type::Kind::Bool && right->getKind() == Type::Kind::Bool) {
-            return BOOL_TYPE;
-        }
-    }
-
-    throw std::runtime_error("Invalid operands for operator " + op);
-}
-
-std::shared_ptr<Type> TypeChecker::checkUnaryOp(const std::string& op, std::shared_ptr<Type> operand) {
-    if (op == "!") {
-        if (operand->getKind() == Type::Kind::Bool) {
-            return BOOL_TYPE;
-        }
-    }
-
-    if (op == "-") {
-        if (operand->getKind() == Type::Kind::Int) {
-            return INT_TYPE;
-        }
-        if (operand->getKind() == Type::Kind::Float) {
-            return FLOAT_TYPE;
-        }
-    }
-
-    if (op == "?") {
-        return std::make_shared<ErrorPropagationType>(operand);
-    }
-
-    throw std::runtime_error("Invalid operand for operator " + op);
-}
 
 std::shared_ptr<Type> TypeChecker::inferReturnType(PrystParser::BlockContext* ctx) {
     std::shared_ptr<Type> returnType = VOID_TYPE;
@@ -210,32 +108,40 @@ std::any TypeChecker::visitFunctionDecl(PrystParser::FunctionDeclContext* ctx) {
 }
 
 std::any TypeChecker::visitClassDecl(PrystParser::ClassDeclContext* ctx) {
-    pushScope();
+    std::string className = ctx->IDENTIFIER(0)->getText();
+    auto classType = std::make_shared<ClassType>(className);
 
-    // Handle both field declarations and method declarations
-    for (size_t i = 0; i < ctx->type().size(); i++) {
-        auto fieldType = getTypeFromTypeContext(ctx->type(i));
-        declareVariable(ctx->IDENTIFIER(i + 1)->getText(), fieldType);
+    // Process class members
+    for (auto member : ctx->classMember()) {
+        if (member->type().size() > 0) {  // Field declaration
+            auto fieldType = getTypeFromTypeContext(member->type(0));
+            classType->addField(member->IDENTIFIER()->getText(), fieldType);
+        }
     }
 
-    for (auto funcDecl : ctx->functionDecl()) {
-        visit(funcDecl);
+    // Process constructors and methods
+    for (auto ctor : ctx->constructorDecl()) {
+        visit(ctor);
     }
 
-    popScope();
-    return std::make_shared<ClassType>(ctx->IDENTIFIER(0)->getText());
+    return nullptr;
 }
 
 std::any TypeChecker::visitVarDecl(PrystParser::VarDeclContext* ctx) {
     std::shared_ptr<Type> type;
     if (ctx->type()) {
         type = getTypeFromTypeContext(ctx->type());
-    } else {
+    } else if (ctx->expression()) {
         type = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
+    } else {
+        throw std::runtime_error("Variable declaration must have type or initializer");
     }
 
-    if (ctx->IDENTIFIER()) {
-        declareVariable(ctx->IDENTIFIER()->getText(), type);
+    if (ctx->identifierList()) {
+        auto idList = ctx->identifierList();
+        for (auto id : idList->IDENTIFIER()) {
+            declareVariable(id->getText(), type);
+        }
     }
 
     return type;
@@ -248,16 +154,16 @@ std::any TypeChecker::visitIfStmt(PrystParser::IfStmtContext* ctx) {
     }
 
     pushScope();
-    visit(ctx->block(0)); // Then branch
+    visit(ctx->statement(0)); // Then branch
     popScope();
 
-    if (ctx->block().size() > 1) { // Has else branch
+    if (ctx->statement().size() > 1) { // Has else branch
         pushScope();
-        visit(ctx->block(1));
+        visit(ctx->statement(1));
         popScope();
     }
 
-    return VOID_TYPE;
+    return nullptr;
 }
 
 std::any TypeChecker::visitWhileStmt(PrystParser::WhileStmtContext* ctx) {
@@ -267,14 +173,17 @@ std::any TypeChecker::visitWhileStmt(PrystParser::WhileStmtContext* ctx) {
     }
 
     pushScope();
-    visit(ctx->block());
+    isInLoop = true;
+    visit(ctx->statement());
+    isInLoop = false;
     popScope();
 
-    return VOID_TYPE;
+    return nullptr;
 }
 
 std::any TypeChecker::visitForStmt(PrystParser::ForStmtContext* ctx) {
     pushScope();
+    isInLoop = true;
 
     if (ctx->varDecl()) { // C-style for loop
         visit(ctx->varDecl());
@@ -282,8 +191,10 @@ std::any TypeChecker::visitForStmt(PrystParser::ForStmtContext* ctx) {
         if (condType->getKind() != Type::Kind::Bool) {
             throw std::runtime_error("For condition must be boolean");
         }
-        visit(ctx->expression(1)); // increment expression
-    } else { // Iterator-style for loop
+        if (ctx->expression().size() > 1) {
+            visit(ctx->expression(1)); // increment expression
+        }
+    } else if (ctx->IDENTIFIER() && ctx->IN()) { // For-in loop
         auto iterableType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(0)));
         if (auto arrayType = std::dynamic_pointer_cast<ArrayType>(iterableType)) {
             declareVariable(ctx->IDENTIFIER()->getText(), arrayType->getElementType());
@@ -292,10 +203,11 @@ std::any TypeChecker::visitForStmt(PrystParser::ForStmtContext* ctx) {
         }
     }
 
-    visit(ctx->block());
+    visit(ctx->statement());
+    isInLoop = false;
     popScope();
 
-    return VOID_TYPE;
+    return nullptr;
 }
 
 std::any TypeChecker::visitTryStmt(PrystParser::TryStmtContext* ctx) {
@@ -303,12 +215,15 @@ std::any TypeChecker::visitTryStmt(PrystParser::TryStmtContext* ctx) {
     visit(ctx->block(0)); // try block
     popScope();
 
-    pushScope();
-    declareVariable(ctx->IDENTIFIER()->getText(), ERROR_TYPE);
-    visit(ctx->block(1)); // catch block
-    popScope();
+    for (size_t i = 0; i < ctx->CATCH().size(); i++) {
+        pushScope();
+        auto errorType = getTypeFromTypeContext(ctx->type(i));
+        declareVariable(ctx->IDENTIFIER(i)->getText(), errorType);
+        visit(ctx->block(i + 1)); // catch block
+        popScope();
+    }
 
-    return VOID_TYPE;
+    return nullptr;
 }
 
 std::any TypeChecker::visitReturnStmt(PrystParser::ReturnStmtContext* ctx) {
@@ -318,139 +233,63 @@ std::any TypeChecker::visitReturnStmt(PrystParser::ReturnStmtContext* ctx) {
     return visit(ctx->expression());
 }
 
-std::any TypeChecker::visitExpression(PrystParser::ExpressionContext* ctx) {
-    if (ctx->unaryExpr()) {
-        return visit(ctx->unaryExpr());
-    }
 
-    if (ctx->op) {
-        auto left = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(0)));
-        auto right = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(1)));
-        return checkBinaryOp(ctx->op->getText(), left, right);
-    }
 
-    if (ctx->type()) { // Type cast
-        auto targetType = getTypeFromTypeContext(ctx->type());
-        auto sourceType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(0)));
-        return checkTypeCast(targetType, sourceType);
-    }
+std::any TypeChecker::visitPrimaryExpr(PrystParser::PrimaryExprContext* ctx) {
+    auto primary = ctx->primary();
+    if (!primary) return ERROR_TYPE;
 
-    if (ctx->lambdaExpr()) {
-        return visit(ctx->lambdaExpr());
-    }
-
-    return visitChildren(ctx);
-}
-
-std::any TypeChecker::visitPrimary(PrystParser::PrimaryContext* ctx) {
-    if (ctx->INTEGER()) {
+    if (primary->INTEGER()) {
         return INT_TYPE;
     }
-    if (ctx->FLOAT_LITERAL()) {
+    if (primary->FLOAT_LITERAL()) {
         return FLOAT_TYPE;
     }
-    if (ctx->STRING()) {
+    if (primary->STRING()) {
         return STRING_TYPE;
     }
-    if (ctx->BOOLEAN()) {
+    if (primary->BOOLEAN()) {
         return BOOL_TYPE;
     }
-    if (ctx->NULL_LITERAL()) {
-        return NULL_TYPE;
+    if (primary->IDENTIFIER()) {
+        return lookupVariable(primary->IDENTIFIER()->getText());
     }
-    if (ctx->IDENTIFIER()) {
-        return lookupVariable(ctx->IDENTIFIER()->getText());
+    if (primary->arrayLiteral()) {
+        return visit(primary->arrayLiteral());
     }
-    if (ctx->expression()) {
-        return visit(ctx->expression());
-    }
-    if (ctx->arrayLiteral()) {
-        if (ctx->arrayLiteral()->expression().empty()) {
-            return std::make_shared<ArrayType>(VOID_TYPE);
-        }
-        auto firstType = std::any_cast<std::shared_ptr<Type>>(
-            visit(ctx->arrayLiteral()->expression(0)));
-        return std::make_shared<ArrayType>(firstType);
-    }
-    if (ctx->mapLiteral()) {
-        if (ctx->mapLiteral()->mapEntry().empty()) {
-            return std::make_shared<MapType>(VOID_TYPE, VOID_TYPE);
-        }
-        auto firstEntry = ctx->mapLiteral()->mapEntry()[0];
-        auto keyType = std::any_cast<std::shared_ptr<Type>>(
-            visit(firstEntry));
-        auto valueType = std::any_cast<std::shared_ptr<Type>>(
-            visit(firstEntry->expression()));
-        return std::make_shared<MapType>(keyType, valueType);
+    if (primary->mapLiteral()) {
+        return visit(primary->mapLiteral());
     }
     return ERROR_TYPE;
 }
 
-std::any TypeChecker::visitUnaryExpr(PrystParser::UnaryExprContext* ctx) {
-    if (ctx->NOT()) {
-        auto operandType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->unaryExpr()));
-        return checkUnaryOp("!", operandType);
+std::any TypeChecker::visitPostfixExpr(PrystParser::PostfixExprContext* ctx) {
+    auto exprType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
+
+    if (ctx->INC() || ctx->DEC()) {
+        if (exprType->getKind() != Type::Kind::Int) {
+            throw std::runtime_error("Increment/decrement operators can only be applied to integer types");
+        }
+        return INT_TYPE;
     }
-    return visit(ctx->postfixExpr());
+
+    throw std::runtime_error("Unknown postfix operator");
 }
 
-std::any TypeChecker::visitPostfixExpr(PrystParser::PostfixExprContext* ctx) {
-    auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->primary()));
-    bool isNullable = false;
-
-    // Handle member access, method calls, and nullable access
-    for (size_t i = 0; i < ctx->DOT().size(); i++) {
-        bool currentNullable = false;
-        // Check if this access is nullable (has ?. operator)
-        if (i < ctx->NULLABLE_DOT().size() && ctx->NULLABLE_DOT()[i]) {
-            currentNullable = true;
-            isNullable = true;
-        }
-
-        // Handle method calls
-        if (i < ctx->arguments().size()) {
-            std::vector<std::shared_ptr<Type>> argTypes;
-            for (auto arg : ctx->arguments()[i]->expression()) {
-                argTypes.push_back(std::any_cast<std::shared_ptr<Type>>(visit(arg)));
-            }
-            // If this is a method call, check member access first
-            if (i < ctx->IDENTIFIER().size()) {
-                baseType = checkMemberAccess(baseType, ctx->IDENTIFIER()[i]->getText(), currentNullable);
-            }
-            // Method call result inherits nullability
-            if (isNullable) {
-                baseType = std::make_shared<NullableType>(baseType);
-            }
-        }
-        // Handle property access
-        else if (i < ctx->IDENTIFIER().size()) {
-            baseType = checkMemberAccess(baseType, ctx->IDENTIFIER()[i]->getText(), currentNullable);
-            if (isNullable) {
-                baseType = std::make_shared<NullableType>(baseType);
-            }
-        }
-    }
-
-    // Handle array access
-    if (ctx->LBRACK() && ctx->expression()) {
-        auto indexType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-        if (!indexType) {
-            return ERROR_TYPE;
-        }
-        if (indexType->getKind() != Type::Kind::Int) {
-            throw std::runtime_error("Array index must be an integer");
-        }
-        if (baseType->getKind() != Type::Kind::Array) {
-            throw std::runtime_error("Cannot index a non-array type");
-        }
-        auto arrayType = std::dynamic_pointer_cast<ArrayType>(baseType);
-        baseType = arrayType->getElementType();
-        if (isNullable) {
-            baseType = std::make_shared<NullableType>(baseType);
-        }
-    }
-
+std::any TypeChecker::visitMethodCallExpr(PrystParser::MethodCallExprContext* ctx) {
+    auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
+    // TODO: Implement method call type checking
     return baseType;
+}
+
+std::any TypeChecker::visitMemberAccessExpr(PrystParser::MemberAccessExprContext* ctx) {
+    auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
+    return checkMemberAccess(baseType, ctx->IDENTIFIER()->getText(), false);
+}
+
+std::any TypeChecker::visitNullableMemberExpr(PrystParser::NullableMemberExprContext* ctx) {
+    auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
+    return checkMemberAccess(baseType, ctx->IDENTIFIER()->getText(), true);
 }
 
 std::any TypeChecker::visitLambdaExpr(PrystParser::LambdaExprContext* ctx) {
@@ -458,11 +297,11 @@ std::any TypeChecker::visitLambdaExpr(PrystParser::LambdaExprContext* ctx) {
     std::vector<std::shared_ptr<Type>> paramTypes;
 
     // Handle lambda parameters
-    if (ctx->parameters()) {
-        for (auto param : ctx->parameters()->parameter()) {
-            auto paramType = getTypeFromTypeContext(param->type());
+    if (ctx->lambdaParams()) {
+        for (size_t i = 0; i < ctx->lambdaParams()->type().size(); i++) {
+            auto paramType = getTypeFromTypeContext(ctx->lambdaParams()->type(i));
             paramTypes.push_back(paramType);
-            declareVariable(param->IDENTIFIER()->getText(), paramType);
+            declareVariable(ctx->lambdaParams()->IDENTIFIER(i)->getText(), paramType);
         }
     }
 
@@ -471,14 +310,11 @@ std::any TypeChecker::visitLambdaExpr(PrystParser::LambdaExprContext* ctx) {
     if (ctx->type()) {
         // Explicit return type after arrow: (params) -> ReturnType { ... }
         returnType = getTypeFromTypeContext(ctx->type());
-    } else if (ctx->expression()) {
-        // Arrow expression form: (params) -> expr
-        returnType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-    } else if (ctx->block()) {
+    } else if (ctx->VOID()) {
+        returnType = VOID_TYPE;
+    } else {
         // Block form with type inference: (params) -> { statements }
         returnType = inferReturnType(ctx->block());
-    } else {
-        returnType = VOID_TYPE;
     }
 
     auto funcType = std::make_shared<FunctionType>(returnType, paramTypes);
@@ -486,8 +322,6 @@ std::any TypeChecker::visitLambdaExpr(PrystParser::LambdaExprContext* ctx) {
     // Visit the lambda body
     if (ctx->block()) {
         visit(ctx->block());
-    } else if (ctx->expression()) {
-        visit(ctx->expression());
     }
 
     popScope();
@@ -511,55 +345,58 @@ std::shared_ptr<Type> TypeChecker::checkArrayAccess(std::shared_ptr<Type> arrayT
 std::shared_ptr<Type> TypeChecker::getTypeFromTypeContext(PrystParser::TypeContext* ctx) {
     if (!ctx) return VOID_TYPE;
 
-    if (ctx->VOID()) return VOID_TYPE;
-    if (ctx->INT()) return INT_TYPE;
-    if (ctx->FLOAT()) return FLOAT_TYPE;
-    if (ctx->BOOL()) return BOOL_TYPE;
-    if (ctx->STR()) return STRING_TYPE;
-
-    if (ctx->IDENTIFIER()) {
-        auto className = ctx->IDENTIFIER()->getText();
-        return std::make_shared<ClassType>(className);
+    auto basicTypeCtx = ctx->basicType();
+    if (basicTypeCtx) {
+        if (basicTypeCtx->VOID()) return VOID_TYPE;
+        if (basicTypeCtx->INT()) return INT_TYPE;
+        if (basicTypeCtx->FLOAT()) return FLOAT_TYPE;
+        if (basicTypeCtx->BOOL()) return BOOL_TYPE;
+        if (basicTypeCtx->STR()) return STRING_TYPE;
+        if (basicTypeCtx->IDENTIFIER()) {
+            auto className = basicTypeCtx->IDENTIFIER()->getText();
+            return std::make_shared<ClassType>(className);
+        }
     }
 
-    // Handle array type: type[]
-    if (ctx->LBRACK()) {
-        auto elementType = getTypeFromTypeContext(ctx->type(0));
+    // Handle array types
+    auto arrayTypeCtx = ctx->arrayType();
+    if (arrayTypeCtx) {
+        auto basicTypeCtx = arrayTypeCtx->basicType();
+        auto elementType = basicTypeCtx->VOID() ? VOID_TYPE :
+                          basicTypeCtx->INT() ? INT_TYPE :
+                          basicTypeCtx->FLOAT() ? FLOAT_TYPE :
+                          basicTypeCtx->BOOL() ? BOOL_TYPE :
+                          basicTypeCtx->STR() ? STRING_TYPE :
+                          basicTypeCtx->IDENTIFIER() ? std::make_shared<ClassType>(basicTypeCtx->IDENTIFIER()->getText()) :
+                          VOID_TYPE;
         return std::make_shared<ArrayType>(elementType);
     }
 
-    // Handle map type: map<KeyType, ValueType>
-    if (ctx->MAP()) {
-        auto keyType = getTypeFromTypeContext(ctx->type(0));
-        auto valueType = getTypeFromTypeContext(ctx->type(1));
+    // Handle map types
+    auto mapTypeCtx = ctx->mapType();
+    if (mapTypeCtx) {
+        auto keyType = mapTypeCtx->keyType()->STR() ? STRING_TYPE : INT_TYPE;
+        auto valueType = getTypeFromTypeContext(mapTypeCtx->type());
         return std::make_shared<MapType>(keyType, valueType);
     }
 
-    // Handle function type: fn<ReturnType>(ArgTypes...)
-    if (ctx->FN()) {
-        auto returnType = getTypeFromTypeContext(ctx->type(0));
+    // Handle function types
+    auto functionTypeCtx = ctx->functionType();
+    if (functionTypeCtx) {
+        auto returnType = getTypeFromTypeContext(functionTypeCtx->type());
         std::vector<std::shared_ptr<Type>> paramTypes;
-
-        // Get parameter types after the opening parenthesis
-        for (size_t i = 1; i < ctx->type().size(); i++) {
-            paramTypes.push_back(getTypeFromTypeContext(ctx->type(i)));
+        if (auto typeList = functionTypeCtx->typeList()) {
+            for (auto paramType : typeList->type()) {
+                paramTypes.push_back(getTypeFromTypeContext(paramType));
+            }
         }
-
         return std::make_shared<FunctionType>(returnType, paramTypes);
     }
 
     throw std::runtime_error("Unknown type");
 }
 
-std::any TypeChecker::visitBlock(PrystParser::BlockContext* ctx) {
-    pushScope();
-    for (auto stmt : ctx->statement()) {
-        visit(stmt);
-    }
-    auto result = inferReturnType(ctx);
-    popScope();
-    return result;
-}
+
 
 std::any TypeChecker::visitStatement(PrystParser::StatementContext* ctx) {
     if (ctx->varDecl()) return visit(ctx->varDecl());
@@ -713,49 +550,33 @@ std::any TypeChecker::visitArguments(PrystParser::ArgumentsContext* ctx) {
     return argTypes;
 }
 
-std::any TypeChecker::visitArrayLiteral(PrystParser::ArrayLiteralContext* ctx) {
-    if (ctx->expression().empty()) {
-        return std::make_shared<ArrayType>(VOID_TYPE);
-    }
+std::any TypeChecker::visitEmptyArrayLiteral(PrystParser::EmptyArrayLiteralContext* ctx) {
+    return std::make_shared<ArrayType>(VOID_TYPE);
+}
 
-    auto elementType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(0)));
+std::any TypeChecker::visitNonEmptyArrayLiteral(PrystParser::NonEmptyArrayLiteralContext* ctx) {
+    auto firstType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(0)));
     for (size_t i = 1; i < ctx->expression().size(); i++) {
         auto nextType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(i)));
-        if (!isAssignable(elementType, nextType)) {
+        if (!isAssignable(firstType, nextType)) {
             throw std::runtime_error("Inconsistent array element types");
         }
     }
-
-    return std::make_shared<ArrayType>(elementType);
+    return std::make_shared<ArrayType>(firstType);
 }
 
-std::any TypeChecker::visitMapLiteral(PrystParser::MapLiteralContext* ctx) {
+std::any TypeChecker::visitEmptyMapLiteral(PrystParser::EmptyMapLiteralContext* ctx) {
+    return std::make_shared<MapType>(VOID_TYPE, VOID_TYPE);
+}
+
+std::any TypeChecker::visitNonEmptyMapLiteral(PrystParser::NonEmptyMapLiteralContext* ctx) {
     auto entries = ctx->mapEntry();
-    if (entries.empty()) {
-        return std::make_shared<MapType>(VOID_TYPE, VOID_TYPE);
-    }
-
     auto firstEntry = entries[0];
-    if (!firstEntry->STRING() && !firstEntry->IDENTIFIER()) {
-        return ERROR_TYPE;
-    }
-    if (!firstEntry->expression()) {
-        return ERROR_TYPE;
-    }
-
-    // Key type is always string in map literals
-    auto keyType = STRING_TYPE;
+    auto keyType = STRING_TYPE;  // Map keys are always strings
     auto valueType = std::any_cast<std::shared_ptr<Type>>(visit(firstEntry->expression()));
 
     for (size_t i = 1; i < entries.size(); i++) {
-        auto entry = entries[i];
-        if (!entry->STRING() && !entry->IDENTIFIER()) {
-            throw std::runtime_error("Map key must be a string or identifier");
-        }
-        if (!entry->expression()) {
-            return ERROR_TYPE;
-        }
-        auto nextValueType = std::any_cast<std::shared_ptr<Type>>(visit(entry->expression()));
+        auto nextValueType = std::any_cast<std::shared_ptr<Type>>(visit(entries[i]->expression()));
         if (!isAssignable(valueType, nextValueType)) {
             throw std::runtime_error("Inconsistent map value types");
         }
@@ -764,48 +585,28 @@ std::any TypeChecker::visitMapLiteral(PrystParser::MapLiteralContext* ctx) {
     return std::make_shared<MapType>(keyType, valueType);
 }
 
-std::any TypeChecker::visitMapEntry(PrystParser::MapEntryContext* ctx) {
-    if (!ctx->STRING() && !ctx->IDENTIFIER()) {
-        return ERROR_TYPE;
-    }
 
-    auto keyType = STRING_TYPE;  // Map keys are always strings
-    auto valueType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-    return std::make_pair(keyType, valueType);
-}
 
 std::shared_ptr<Type> TypeChecker::getLambdaType(PrystParser::LambdaExprContext* ctx) {
     std::vector<std::shared_ptr<Type>> paramTypes;
+    std::shared_ptr<Type> returnType;
 
-    // Handle lambda parameters
-    if (ctx->parameters()) {
-        for (auto param : ctx->parameters()->parameter()) {
-            auto paramType = getTypeFromTypeContext(param->type());
+    if (ctx->lambdaParams()) {
+        for (size_t i = 0; i < ctx->lambdaParams()->type().size(); i++) {
+            auto paramType = getTypeFromTypeContext(ctx->lambdaParams()->type(i));
             paramTypes.push_back(paramType);
         }
     }
 
-    // Infer return type from arrow expression or block
-    std::shared_ptr<Type> returnType;
     if (ctx->type()) {
-        // Explicit return type after arrow: (params) -> ReturnType { ... }
         returnType = getTypeFromTypeContext(ctx->type());
-    } else if (ctx->expression()) {
-        // Arrow expression form: (params) -> expr
-        returnType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-    } else if (ctx->block()) {
-        // Block form with type inference: (params) -> { statements }
-        returnType = inferReturnType(ctx->block());
-    } else {
+    } else if (ctx->VOID()) {
         returnType = VOID_TYPE;
+    } else {
+        returnType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->block()));
     }
 
     return std::make_shared<FunctionType>(returnType, paramTypes);
-}
-
-// Expression visitor methods for labeled alternatives
-std::any TypeChecker::visitPrimaryExpr(PrystParser::PrimaryExprContext* ctx) {
-    return visit(ctx->primary());
 }
 
 std::any TypeChecker::visitBuiltinFunctionCall(PrystParser::BuiltinFunctionCallContext* ctx) {
@@ -836,25 +637,6 @@ std::any TypeChecker::visitConstructorExpr(PrystParser::ConstructorExprContext* 
     return classType;
 }
 
-std::any TypeChecker::visitMemberAccessExpr(PrystParser::MemberAccessExprContext* ctx) {
-    auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-    return checkMemberAccess(baseType, ctx->IDENTIFIER()->getText(), false);
-}
-
-std::any TypeChecker::visitNullableMemberExpr(PrystParser::NullableMemberExprContext* ctx) {
-    auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-    return checkMemberAccess(baseType, ctx->IDENTIFIER()->getText(), true);
-}
-
-std::any TypeChecker::visitMethodCallExpr(PrystParser::MethodCallExprContext* ctx) {
-    auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-    auto methodType = checkMemberAccess(baseType, ctx->IDENTIFIER()->getText(), false);
-    if (auto funcType = std::dynamic_pointer_cast<FunctionType>(methodType)) {
-        return funcType->getReturnType();
-    }
-    throw std::runtime_error("Member is not a method: " + ctx->IDENTIFIER()->getText());
-}
-
 std::any TypeChecker::visitArrayAccessExpr(PrystParser::ArrayAccessExprContext* ctx) {
     auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(0)));
     auto indexType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(1)));
@@ -881,70 +663,7 @@ std::any TypeChecker::visitPrefixExpr(PrystParser::PrefixExprContext* ctx) {
     return checkUnaryOp(op, operandType);
 }
 
-std::any TypeChecker::visitPostfixExpr(PrystParser::PostfixExprContext* ctx) {
-    auto baseType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->primary()));
-    bool isNullable = false;
 
-    // Handle member access, method calls, and nullable access
-    for (size_t i = 0; i < ctx->DOT().size(); i++) {
-        bool currentNullable = false;
-        // Check if this access is nullable (has ?. operator)
-        if (i < ctx->NULLABLE_DOT().size() && ctx->NULLABLE_DOT()[i]) {
-            currentNullable = true;
-            isNullable = true;
-        }
-
-        // Handle method calls
-        if (i < ctx->arguments().size()) {
-            std::vector<std::shared_ptr<Type>> argTypes;
-            for (auto arg : ctx->arguments()[i]->expression()) {
-                argTypes.push_back(std::any_cast<std::shared_ptr<Type>>(visit(arg)));
-            }
-            // If this is a method call, check member access first
-            if (i < ctx->IDENTIFIER().size()) {
-                baseType = checkMemberAccess(baseType, ctx->IDENTIFIER()[i]->getText(), currentNullable);
-            }
-            // Method call result inherits nullability
-            if (isNullable) {
-                baseType = std::make_shared<NullableType>(baseType);
-            }
-        }
-        // Handle property access
-        else if (i < ctx->IDENTIFIER().size()) {
-            baseType = checkMemberAccess(baseType, ctx->IDENTIFIER()[i]->getText(), currentNullable);
-            if (isNullable) {
-                baseType = std::make_shared<NullableType>(baseType);
-            }
-        }
-    }
-
-    // Handle array access
-    if (ctx->LBRACK() && ctx->expression()) {
-        auto indexType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression()));
-        if (!indexType) {
-            return ERROR_TYPE;
-        }
-        if (indexType->getKind() != Type::Kind::Int) {
-            throw std::runtime_error("Array index must be an integer");
-        }
-        if (baseType->getKind() != Type::Kind::Array) {
-            throw std::runtime_error("Cannot index a non-array type");
-        }
-        auto arrayType = std::dynamic_pointer_cast<ArrayType>(baseType);
-        baseType = arrayType->getElementType();
-        if (isNullable) {
-            baseType = std::make_shared<NullableType>(baseType);
-        }
-    }
-
-    // Handle increment/decrement operators
-    if (ctx->INC() || ctx->DEC()) {
-        std::string op = ctx->INC() ? "++" : "--";
-        return checkUnaryOp(op, baseType);
-    }
-
-    return baseType;
-}
 
 std::any TypeChecker::visitMultiplicativeExpr(PrystParser::MultiplicativeExprContext* ctx) {
     auto left = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(0)));
@@ -1004,45 +723,6 @@ std::any TypeChecker::visitAssignmentExpr(PrystParser::AssignmentExprContext* ct
     return targetType;
 }
 
-std::any TypeChecker::visitEmptyArrayLiteral(PrystParser::EmptyArrayLiteralContext* ctx) {
-    return std::make_shared<ArrayType>(VOID_TYPE);
-}
-
-std::any TypeChecker::visitNonEmptyArrayLiteral(PrystParser::NonEmptyArrayLiteralContext* ctx) {
-    auto firstType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(0)));
-    for (size_t i = 1; i < ctx->expression().size(); i++) {
-        auto nextType = std::any_cast<std::shared_ptr<Type>>(visit(ctx->expression(i)));
-        if (!isAssignable(firstType, nextType)) {
-            throw std::runtime_error("Inconsistent array element types");
-        }
-    }
-    return std::make_shared<ArrayType>(firstType);
-}
-
-std::any TypeChecker::visitEmptyMapLiteral(PrystParser::EmptyMapLiteralContext* ctx) {
-    return std::make_shared<MapType>(VOID_TYPE, VOID_TYPE);
-}
-
-std::any TypeChecker::visitNonEmptyMapLiteral(PrystParser::NonEmptyMapLiteralContext* ctx) {
-    auto entries = ctx->mapEntry();
-    auto firstEntry = entries[0];
-    auto keyType = STRING_TYPE;  // Map keys are always strings
-    auto valueType = std::any_cast<std::shared_ptr<Type>>(visit(firstEntry->expression()));
-
-    for (size_t i = 1; i < entries.size(); i++) {
-        auto nextValueType = std::any_cast<std::shared_ptr<Type>>(visit(entries[i]->expression()));
-        if (!isAssignable(valueType, nextValueType)) {
-            throw std::runtime_error("Inconsistent map value types");
-        }
-    }
-
-    return std::make_shared<MapType>(keyType, valueType);
-}
-
-std::any TypeChecker::visitMapKey(PrystParser::MapKeyContext* ctx) {
-    return STRING_TYPE;  // Map keys are always strings
-}
-
 std::any TypeChecker::visitBuiltinFunction(PrystParser::BuiltinFunctionContext* ctx) {
     std::string funcName = ctx->IDENTIFIER()->getText();
     std::vector<std::shared_ptr<Type>> argTypes;
@@ -1088,9 +768,8 @@ std::any TypeChecker::visitStringLiteral(PrystParser::StringLiteralContext* ctx)
 
 std::any TypeChecker::visitLambdaParams(PrystParser::LambdaParamsContext* ctx) {
     std::vector<std::shared_ptr<Type>> paramTypes;
-    for (size_t i = 0; i < ctx->type().size(); i++) {
-        auto paramType = getTypeFromTypeContext(ctx->type(i));
-        paramTypes.push_back(paramType);
+    for (auto typeCtx : ctx->type()) {
+        paramTypes.push_back(getTypeFromTypeContext(typeCtx));
     }
     return paramTypes;
 }

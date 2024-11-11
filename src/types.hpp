@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 namespace pryst {
 
@@ -61,7 +62,25 @@ public:
 
     virtual std::shared_ptr<Type> makeNullable() {
         if (isNullable()) return std::static_pointer_cast<Type>(shared_from_this());
-        return std::make_shared<NullableType>(std::static_pointer_cast<Type>(shared_from_this()));
+        auto nullable = std::make_shared<NullableType>(std::static_pointer_cast<Type>(shared_from_this()));
+        return std::static_pointer_cast<Type>(nullable);
+    }
+
+    virtual std::string toString() const {
+        switch(kind_) {
+            case Kind::Int: return "int";
+            case Kind::Float: return "float";
+            case Kind::Bool: return "bool";
+            case Kind::String: return "str";
+            case Kind::Void: return "void";
+            case Kind::Null: return "null";
+            case Kind::Array: return "array";
+            case Kind::Map: return "map";
+            case Kind::Function: return "function";
+            case Kind::Class: return "class";
+            case Kind::Interface: return "interface";
+            default: return "unknown";
+        }
     }
 
 protected:
@@ -136,11 +155,21 @@ public:
     std::shared_ptr<ClassType> getBaseClass() const { return baseClass_; }
     const std::vector<std::shared_ptr<InterfaceType>>& getInterfaces() const { return interfaces_; }
 
+    void addField(const std::string& name, std::shared_ptr<Type> type) {
+        fields_[name] = type;
+    }
+
+    std::shared_ptr<Type> getField(const std::string& name) const {
+        auto it = fields_.find(name);
+        return it != fields_.end() ? it->second : nullptr;
+    }
+
 private:
     std::string name_;
     std::vector<std::shared_ptr<Type>> genericParams_;
     std::shared_ptr<ClassType> baseClass_;
     std::vector<std::shared_ptr<InterfaceType>> interfaces_;
+    std::unordered_map<std::string, std::shared_ptr<Type>> fields_;
 };
 
 class ErrorPropagationType : public Type {
