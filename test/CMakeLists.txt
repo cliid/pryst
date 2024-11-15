@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 # Test sources
 set(TEST_SOURCES
     test_runner.cpp
+    type_registry_test.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_metadata.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/reflection_api.cpp
@@ -29,6 +30,8 @@ target_link_libraries(pryst_tests PRIVATE
 enable_testing()
 
 # Add test cases
+add_test(NAME type_registry_test
+         COMMAND pryst_tests type_registry_test)
 add_test(NAME type_reflection_test
          COMMAND pryst_tests ${CMAKE_CURRENT_SOURCE_DIR}/reflection/type_reflection_test.pst)
 add_test(NAME inheritance_test

@@ -121,25 +121,6 @@ add_custom_target(GenerateParser DEPENDS ${GENERATED_SRC})
 
 # add_library(jit_compiler ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.cpp ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.hpp)
 
-# Add source files
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-
-# Create executable
-add_executable(pryst ${SOURCES})
-
-add_dependencies(pryst GenerateParser)
-
-target_sources(pryst PRIVATE ${SOURCES} ${GENERATED_SRC})
-
-# Set include directories for the target
-target_include_directories(pryst PRIVATE
-    include
-    src
-    src/generated
-    ${LLVM_INCLUDE_DIRS}
-    ${ANTLR4_INCLUDE_DIR}
-)
-
 # Update LLVM libraries based on architecture
 llvm_map_components_to_libnames(LLVM_LIBS
     Core Support native
@@ -165,8 +146,33 @@ else()
     message(STATUS "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
-# target_link_libraries(jit_compiler PRIVATE ${LLVM_LIBS} antlr4-runtime)
-target_link_libraries(pryst PRIVATE ${LLVM_LIBS} antlr4-runtime)
+# Add source files (excluding main.cpp)
+file(GLOB_RECURSE LIB_SOURCES
+    "src/codegen/*.cpp"
+    "src/semantic/*.cpp"
+    "src/ast/*.cpp"
+    "src/utils/*.cpp"
+)
+
+# Create library
+add_library(pryst_lib STATIC ${LIB_SOURCES} ${GENERATED_SRC})
+add_dependencies(pryst_lib GenerateParser)
+
+# Create executable
+add_executable(pryst src/main.cpp)
+target_link_libraries(pryst PRIVATE pryst_lib)
+
+# Set include directories for the library
+target_include_directories(pryst_lib PUBLIC
+    include
+    src
+    src/generated
+    ${LLVM_INCLUDE_DIRS}
+    ${ANTLR4_INCLUDE_DIR}
+)
+
+# Link libraries to pryst_lib
+target_link_libraries(pryst_lib PUBLIC ${LLVM_LIBS} antlr4-runtime)
 
 # Configuration summary
 message(STATUS "Configuration Summary:")
