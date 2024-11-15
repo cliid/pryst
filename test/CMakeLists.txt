@@ -4,6 +4,9 @@ cmake_minimum_required(VERSION 3.10)
 # Enable testing
 enable_testing()
 
+# Find GTest package
+find_package(GTest REQUIRED)
+
 # Create type registry test executable
 add_executable(type_registry_test
     type_registry_test.cpp
@@ -16,11 +19,14 @@ target_include_directories(type_registry_test PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/include
     ${LLVM_INCLUDE_DIRS}
+    ${GTEST_INCLUDE_DIRS}
 )
 
-# Link against LLVM libraries
+# Link against LLVM libraries and GTest
 target_link_libraries(type_registry_test PRIVATE
-    ${LLVM_LIBS}
+    LLVM-14
+    GTest::GTest
+    GTest::Main
 )
 
 # Add test case

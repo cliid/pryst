@@ -19,7 +19,9 @@ public:
         Float,
         Bool,
         String,
-        Void
+        Void,
+        Class,  // Added Class type
+        Unknown
     };
 
     BasicTypeInfo(BasicKind basicKind, const std::string& name, llvm::Type* llvmType)
@@ -34,6 +36,8 @@ public:
             case BasicKind::Bool: return TypeKind::Bool;
             case BasicKind::String: return TypeKind::String;
             case BasicKind::Void: return TypeKind::Void;
+            case BasicKind::Class: return TypeKind::Class;
+            case BasicKind::Unknown: return TypeKind::Unknown;
             default: return TypeKind::Unknown;
         }
     }
