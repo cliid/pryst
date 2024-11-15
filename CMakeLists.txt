@@ -182,3 +182,6 @@ message(STATUS "  LLVM Directory: ${LLVM_DIR}")
 message(STATUS "  ANTLR4 Include Directory: ${ANTLR4_INCLUDE_DIR}")
 message(STATUS "  ANTLR4 Library Directory: ${ANTLR4_LIBRARY_DIR}")
 message(STATUS "  ANTLR4 Executable: ${ANTLR4_EXECUTABLE}")
+
+# Add tests
+add_subdirectory(test)
