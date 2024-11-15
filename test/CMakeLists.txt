@@ -4,33 +4,28 @@ cmake_minimum_required(VERSION 3.10)
 # Enable testing
 enable_testing()
 
-# Test sources
-set(TEST_SOURCES
+# Create type registry test executable
+add_executable(type_registry_test
     type_registry_test.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/codegen/type_metadata.cpp
 )
 
-# Add test executable
-add_executable(pryst_tests ${TEST_SOURCES})
-
-# Include directories
-target_include_directories(pryst_tests PRIVATE
+# Include directories for type registry test
+target_include_directories(type_registry_test PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/include
     ${LLVM_INCLUDE_DIRS}
-    ${ANTLR4_INCLUDE_DIR}
 )
 
-# Link against LLVM libraries and main library
-target_link_libraries(pryst_tests PRIVATE
+# Link against LLVM libraries
+target_link_libraries(type_registry_test PRIVATE
     ${LLVM_LIBS}
-    antlr4-runtime
 )
 
-# Add test cases
+# Add test case
 add_test(NAME TypeRegistryTest
-         COMMAND pryst_tests)
+         COMMAND type_registry_test)
 
 # Set test properties
 set_tests_properties(TypeRegistryTest
@@ -39,5 +34,8 @@ set_tests_properties(TypeRegistryTest
 )
 
 # Add compiler flags
-target_compile_features(pryst_tests PRIVATE cxx_std_17)
-target_compile_options(pryst_tests PRIVATE -Wall -Wextra)
+target_compile_features(type_registry_test PRIVATE cxx_std_17)
+target_compile_options(type_registry_test PRIVATE -Wall -Wextra)
+
+# Define TESTING macro for conditional compilation
+target_compile_definitions(type_registry_test PRIVATE TESTING=1)
