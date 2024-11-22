@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblibpryst.a CMakeFiles/libpryst.dir/src/type_checker.cpp.o
+/usr/bin/ranlib liblibpryst.a

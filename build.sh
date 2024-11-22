@@ -1,8 +1,17 @@
-antlr4 -Dlanguage=Cpp -no-listener -visitor -o src/generated Pryst.g4
-rm -rf build
-mkdir build
+#!/bin/bash
+
+# Exit on error
+set -e
+
+# Create build directory if it doesn't exist
+mkdir -p build
 cd build
-# export CC=/usr/bin/clang-20
-# export CXX=/usr/bin/clang++-20
+
+# Configure with CMake
 cmake ..
-make
+
+# Build using all available cores
+cmake --build . -j$(nproc)
+
+# Return to original directory
+cd ..

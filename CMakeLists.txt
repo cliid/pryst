@@ -1,187 +1,239 @@
 cmake_minimum_required(VERSION 3.10)
-project(PrystCompiler)
-
-# Use environment variables for compiler settings if available
-if(DEFINED ENV{CC})
-    set(CMAKE_C_COMPILER $ENV{CC})
-else()
-    set(CMAKE_C_COMPILER clang)
-endif()
-
-if(DEFINED ENV{CXX})
-    set(CMAKE_CXX_COMPILER $ENV{CXX})
-else()
-    set(CMAKE_CXX_COMPILER clang++)
-endif()
+project(pryst)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+# Add include directory
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Use LLVM_DIR from environment if available
-if(DEFINED ENV{LLVM_DIR})
-    set(LLVM_DIR "$ENV{LLVM_DIR}" CACHE PATH "Path to LLVM CMake config")
-    message(STATUS "Using LLVM_DIR from environment: $ENV{LLVM_DIR}")
-    # Try to find LLVMConfig.cmake in common locations relative to LLVM_DIR
-    list(APPEND CMAKE_PREFIX_PATH
-        "$ENV{LLVM_DIR}"
-        "$ENV{LLVM_DIR}/lib/cmake/llvm"
-        "$ENV{LLVM_DIR}/lib/cmake"
-        "$ENV{LLVM_DIR}/share/llvm/cmake"
-    )
-else()
-    if(APPLE)
-        set(LLVM_DIR "/usr/local" CACHE PATH "Path to LLVM CMake config")
-    else()
-        set(LLVM_DIR "/usr/lib/llvm-20" CACHE PATH "Path to LLVM CMake config")
-    endif()
-endif()
+# Add GTest
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.13.0.zip
+)
+FetchContent_MakeAvailable(googletest)
 
-find_package(LLVM REQUIRED CONFIG)
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+# Create library target
+add_library(libpryst
+    include/scope_manager.hpp
+    include/type_registry.hpp
+    include/type.hpp
+    include/type_checker.hpp
+    src/type_checker.cpp
+)
+set_target_properties(libpryst PROPERTIES LINKER_LANGUAGE CXX)
 
-add_definitions(${LLVM_DEFINITIONS})
-include_directories(${LLVM_INCLUDE_DIRS})
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-
-# Set ANTLR paths based on platform and try multiple common locations
-if(APPLE)
-    set(ANTLR4_SEARCH_PATHS
-        "/opt/homebrew/Cellar/antlr4-cpp-runtime/4.13.2"
-        "/usr/local/opt/antlr4-cpp-runtime"
-        "/opt/homebrew/opt/antlr4-cpp-runtime"
-        "/usr/local"
-    )
-else()
-    set(ANTLR4_SEARCH_PATHS
-        "/usr/local"
-        "/usr"
-        "/usr/local/opt/antlr4-cpp-runtime"
-    )
-endif()
-
-# Find ANTLR4 runtime in search paths
-foreach(base_path ${ANTLR4_SEARCH_PATHS})
-    if(EXISTS "${base_path}/include/antlr4-runtime")
-        set(ANTLR4_INCLUDE_DIR "${base_path}/include/antlr4-runtime" CACHE PATH "ANTLR4 include directory")
-        set(ANTLR4_LIBRARY_DIR "${base_path}/lib" CACHE PATH "ANTLR4 library directory")
-        break()
-    endif()
-endforeach()
-
-# Allow override through environment variables
-if(DEFINED ENV{ANTLR4_INCLUDE_DIR})
-    set(ANTLR4_INCLUDE_DIR "$ENV{ANTLR4_INCLUDE_DIR}" CACHE PATH "ANTLR4 include directory" FORCE)
-endif()
-if(DEFINED ENV{ANTLR4_LIBRARY_DIR})
-    set(ANTLR4_LIBRARY_DIR "$ENV{ANTLR4_LIBRARY_DIR}" CACHE PATH "ANTLR4 library directory" FORCE)
-endif()
-
-include_directories(${ANTLR4_INCLUDE_DIR})
-link_directories(${ANTLR4_LIBRARY_DIR})
-
-# Verify ANTLR4 runtime library exists
-find_library(ANTLR4_RUNTIME_LIBRARY antlr4-runtime HINTS ${ANTLR4_LIBRARY_DIR})
-if(NOT ANTLR4_RUNTIME_LIBRARY)
-    message(FATAL_ERROR "ANTLR4 runtime library not found. Please install or set ANTLR4_LIBRARY_DIR to the correct path.")
-endif()
-
-# Check for ANTLR4 executable
-find_program(ANTLR4_EXECUTABLE antlr4)
-if(NOT ANTLR4_EXECUTABLE)
-    message(FATAL_ERROR "ANTLR4 executable not found. Please ensure it is installed and in your PATH.")
-endif()
-
-add_custom_command(
-    OUTPUT
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.cpp
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystLexer.h
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystParser.h
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystVisitor.h
-        ${CMAKE_SOURCE_DIR}/src/generated/PrystBaseVisitor.h
-    COMMAND
-        ${ANTLR4_EXECUTABLE} -Dlanguage=Cpp -no-listener -visitor -o ${CMAKE_SOURCE_DIR}/src/generated ${CMAKE_SOURCE_DIR}/Pryst.g4
-    DEPENDS
-        ${CMAKE_SOURCE_DIR}/Pryst.g4
+# Create test executables
+enable_testing()
+add_executable(scope_manager_test
+    tests/scope_manager_test.cpp
+)
+target_link_libraries(scope_manager_test
+    libpryst
+    gtest
+    gtest_main
 )
 
-file(GLOB GENERATED_SRC
-    "${CMAKE_SOURCE_DIR}/src/generated/*.cpp"
-    "${CMAKE_SOURCE_DIR}/src/generated/*.h"
+add_executable(type_checker_test
+    tests/type_checker_test.cpp
+)
+target_link_libraries(type_checker_test
+    libpryst
+    gtest
+    gtest_main
 )
 
-add_custom_target(GenerateParser DEPENDS ${GENERATED_SRC})
-
-# add_library(jit_compiler ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.cpp ${CMAKE_SOURCE_DIR}/src/jit/jit_compiler.hpp)
-
-# Update LLVM libraries based on architecture
-llvm_map_components_to_libnames(LLVM_LIBS
-    Core Support native
-    MC MCParser Object BitWriter Analysis CodeGen BitReader
-    OrcJIT MCJIT ExecutionEngine
-    AsmParser AsmPrinter Target
+add_executable(error_chain_test
+    tests/error_chain_test.cpp
+)
+target_link_libraries(error_chain_test
+    libpryst
+    gtest
+    gtest_main
 )
 
-# Add architecture-specific libraries based on CPU architecture
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-    list(APPEND LLVM_LIBS
-        X86CodeGen X86AsmParser X86Desc X86Info
-    )
-    # Only add AArch64 libraries on x86_64 if cross-compilation is needed
-    if(NOT APPLE)
-        list(APPEND LLVM_LIBS
-            AArch64CodeGen AArch64AsmParser AArch64Desc AArch64Info
-        )
-    endif()
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
-    message(STATUS "Building for ARM64 architecture - skipping AArch64 libraries")
-else()
-    message(STATUS "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-endif()
-
-# Add source files (excluding main.cpp)
-file(GLOB_RECURSE LIB_SOURCES
-    "src/codegen/*.cpp"
-    "src/semantic/*.cpp"
-    "src/ast/*.cpp"
-    "src/utils/*.cpp"
+add_executable(type_coercion_test
+    tests/type_coercion_test.cpp
+)
+target_link_libraries(type_coercion_test
+    libpryst
+    gtest
+    gtest_main
 )
 
-# Create library
-add_library(pryst_lib STATIC ${LIB_SOURCES} ${GENERATED_SRC})
-add_dependencies(pryst_lib GenerateParser)
-
-# Create executable
-add_executable(pryst src/main.cpp)
-target_link_libraries(pryst PRIVATE pryst_lib)
-
-# Set include directories for the library
-target_include_directories(pryst_lib PUBLIC
-    include
-    src
-    src/generated
-    ${LLVM_INCLUDE_DIRS}
-    ${ANTLR4_INCLUDE_DIR}
+add_executable(scope_inheritance_test
+    tests/scope_inheritance_test.cpp
+)
+target_link_libraries(scope_inheritance_test
+    libpryst
+    gtest
+    gtest_main
 )
 
-# Link libraries to pryst_lib
-target_link_libraries(pryst_lib PUBLIC ${LLVM_LIBS} antlr4-runtime)
+add_executable(null_safety_test
+    tests/null_safety_test.cpp
+)
+target_link_libraries(null_safety_test
+    libpryst
+    gtest
+    gtest_main
+)
 
-# Configuration summary
-message(STATUS "Configuration Summary:")
-message(STATUS "  C++ Compiler: ${CMAKE_CXX_COMPILER}")
-message(STATUS "  LLVM Version: ${LLVM_PACKAGE_VERSION}")
-message(STATUS "  LLVM Directory: ${LLVM_DIR}")
-message(STATUS "  ANTLR4 Include Directory: ${ANTLR4_INCLUDE_DIR}")
-message(STATUS "  ANTLR4 Library Directory: ${ANTLR4_LIBRARY_DIR}")
-message(STATUS "  ANTLR4 Executable: ${ANTLR4_EXECUTABLE}")
+add_executable(type_inference_test
+    tests/type_inference_test.cpp
+)
+target_link_libraries(type_inference_test
+    libpryst
+    gtest
+    gtest_main
+)
 
-# Add tests
-add_subdirectory(test)
+add_executable(complex_error_chain_test
+    tests/complex_error_chain_test.cpp
+)
+target_link_libraries(complex_error_chain_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(error_transformation_test
+    tests/error_transformation_test.cpp
+)
+target_link_libraries(error_transformation_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(async_error_handling_test
+    tests/async_error_handling_test.cpp
+)
+target_link_libraries(async_error_handling_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(concurrent_error_handling_test
+    tests/concurrent_error_handling_test.cpp
+)
+target_link_libraries(concurrent_error_handling_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(generic_type_error_test
+    tests/generic_type_error_test.cpp
+)
+target_link_libraries(generic_type_error_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(recursive_type_error_test
+    tests/recursive_type_error_test.cpp
+)
+target_link_libraries(recursive_type_error_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(union_type_error_test
+    tests/union_type_error_test.cpp
+)
+target_link_libraries(union_type_error_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(parameterized_type_error_test
+    tests/parameterized_type_error_test.cpp
+)
+target_link_libraries(parameterized_type_error_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(intersection_type_error_test
+    tests/intersection_type_error_test.cpp
+)
+target_link_libraries(intersection_type_error_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(higher_kinded_type_error_test
+    tests/higher_kinded_type_error_test.cpp
+)
+target_link_libraries(higher_kinded_type_error_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(multi_type_arithmetic_test
+    tests/multi_type_arithmetic_test.cpp
+)
+target_link_libraries(multi_type_arithmetic_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(type_promotion_test
+    tests/type_promotion_test.cpp
+)
+target_link_libraries(type_promotion_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(function_type_test
+    tests/function_type_test.cpp
+)
+target_link_libraries(function_type_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_executable(array_type_test
+    tests/array_type_test.cpp
+)
+target_link_libraries(array_type_test
+    libpryst
+    gtest
+    gtest_main
+)
+
+add_test(NAME scope_manager_test COMMAND scope_manager_test)
+add_test(NAME type_checker_test COMMAND type_checker_test)
+add_test(NAME error_chain_test COMMAND error_chain_test)
+add_test(NAME type_coercion_test COMMAND type_coercion_test)
+add_test(NAME scope_inheritance_test COMMAND scope_inheritance_test)
+add_test(NAME null_safety_test COMMAND null_safety_test)
+add_test(NAME type_inference_test COMMAND type_inference_test)
+add_test(NAME complex_error_chain_test COMMAND complex_error_chain_test)
+add_test(NAME multi_type_arithmetic_test COMMAND multi_type_arithmetic_test)
+add_test(NAME type_promotion_test COMMAND type_promotion_test)
+add_test(NAME function_type_test COMMAND function_type_test)
+add_test(NAME error_transform_test COMMAND error_transformation_test)
+add_test(NAME async_error_test COMMAND async_error_handling_test)
+add_test(NAME concurrent_error_test COMMAND concurrent_error_handling_test)
+add_test(NAME generic_type_test COMMAND generic_type_error_test)
+add_test(NAME recursive_type_test COMMAND recursive_type_error_test)
+add_test(NAME union_type_test COMMAND union_type_error_test)
+add_test(NAME intersection_type_test COMMAND intersection_type_error_test)
+add_test(NAME parameterized_type_test COMMAND parameterized_type_error_test)
+add_test(NAME higher_kinded_type_test COMMAND higher_kinded_type_error_test)
+add_test(NAME array_type_test COMMAND array_type_test)
