@@ -1,0 +1,22 @@
+scope_manager_test 18 0.000159859
+type_checker_test 17 0.000148268
+error_chain_test 16 0.000149414
+type_coercion_test 15 0.000162731
+scope_inheritance_test 19 0.000135706
+null_safety_test 14 0.000174167
+type_inference_test 13 0.000180274
+complex_error_chain_test 12 0.000203018
+multi_type_arithmetic_test 19 0.000125749
+type_promotion_test 19 0.00013341
+function_type_test 1 0.00340433
+error_transform_test 11 0.000218864
+async_error_test 10 0.000248375
+concurrent_error_test 19 0.000127824
+generic_type_test 9 0.000273649
+recursive_type_test 8 0.000294524
+union_type_test 7 0.000353248
+intersection_type_test 6 0.000416176
+parameterized_type_test 5 0.000479605
+higher_kinded_type_test 4 0.000586042
+array_type_test 19 0.000129614
+---

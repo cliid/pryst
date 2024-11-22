@@ -1,6 +1,0 @@
-#include "type_registry.hpp"
-
-namespace pryst {
-// Implementation is header-only as all methods are defined in the header
-// This file exists for proper module organization
-} // namespace pryst

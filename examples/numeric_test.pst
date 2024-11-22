@@ -1,4 +1,0 @@
-int main() {
-    // Test basic numeric literal handling
-    float x = 42.0;
-}
