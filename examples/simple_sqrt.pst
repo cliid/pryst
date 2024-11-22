@@ -1,8 +1,0 @@
-int main() {
-    // Test sqrt with a positive number
-    float x = 16.0;
-    print("sqrt(16.0) = ");
-    print(sqrt(x));
-    print("\n");
-    return 0;
-}

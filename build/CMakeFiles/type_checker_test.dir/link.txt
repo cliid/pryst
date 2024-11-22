@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/type_checker_test.dir/tests/type_checker_test.cpp.o -o type_checker_test  liblibpryst.a lib/libgtest.a lib/libgtest_main.a lib/libgtest.a 

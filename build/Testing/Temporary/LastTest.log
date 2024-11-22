@@ -1,0 +1,874 @@
+Start testing: Nov 22 07:38 UTC
+----------------------------------------------------------
+1/21 Testing: scope_manager_test
+1/21 Test: scope_manager_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/scope_manager_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"scope_manager_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from ScopeManagerTest
+[ RUN      ] ScopeManagerTest.BasicScopePushPop
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] ScopeManagerTest.BasicScopePushPop (0 ms)
+[ RUN      ] ScopeManagerTest.GenerateScopeReportWithTypeChanges
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::getVisibilityChanges]: Analyzing visibility changes
+Debug [ScopeManager::getErrorHandlingChanges]: Analyzing error handling changes
+Debug [ScopeManager::getNullabilityChanges]: Analyzing nullability changes
+[       OK ] ScopeManagerTest.GenerateScopeReportWithTypeChanges (0 ms)
+[ RUN      ] ScopeManagerTest.GetVisibilityChanges
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::getVisibilityChanges]: Analyzing visibility changes
+[       OK ] ScopeManagerTest.GetVisibilityChanges (0 ms)
+[ RUN      ] ScopeManagerTest.VariableDeclarationAndLookup
+Debug [ScopeManager::declareVariable]: Declaring handler with type IOException
+Debug [ScopeManager::lookupVariable]: Looking up handler
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::declareVariable]: Declaring handler with type NetworkError
+Debug [ScopeManager::lookupVariable]: Looking up handler
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::lookupVariable]: Looking up handler
+[       OK ] ScopeManagerTest.VariableDeclarationAndLookup (0 ms)
+[ RUN      ] ScopeManagerTest.ErrorTypeHandling
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::getErrorHandlingChanges]: Analyzing error handling changes
+[       OK ] ScopeManagerTest.ErrorTypeHandling (0 ms)
+[ RUN      ] ScopeManagerTest.DetailedScopeReport
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::getVisibilityChanges]: Analyzing visibility changes
+Debug [ScopeManager::getErrorHandlingChanges]: Analyzing error handling changes
+Debug [ScopeManager::getNullabilityChanges]: Analyzing nullability changes
+[       OK ] ScopeManagerTest.DetailedScopeReport (0 ms)
+[ RUN      ] ScopeManagerTest.ErrorHandlingScenarios
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::lookupVariable]: Looking up nonexistent
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::declareVariable]: Declaring error with type IOException
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::declareVariable]: Declaring error with type NetworkError
+Debug [ScopeManager::getErrorHandlingChanges]: Analyzing error handling changes
+[       OK ] ScopeManagerTest.ErrorHandlingScenarios (0 ms)
+[ RUN      ] ScopeManagerTest.VariableRedeclarationHandling
+Debug [ScopeManager::declareVariable]: Declaring error with type IOException
+Debug [ScopeManager::declareVariable]: Declaring error with type NetworkError
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::declareVariable]: Declaring error with type NetworkError
+Debug [ScopeManager::lookupVariable]: Looking up error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::lookupVariable]: Looking up error
+[       OK ] ScopeManagerTest.VariableRedeclarationHandling (0 ms)
+[----------] 8 tests from ScopeManagerTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 8 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"scope_manager_test" end time: Nov 22 07:38 UTC
+"scope_manager_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/21 Testing: type_checker_test
+2/21 Test: type_checker_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/type_checker_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"type_checker_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from TypeCheckerTest
+[ RUN      ] TypeCheckerTest.BinaryArithmeticExpressions
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + Int
+Debug [TypeChecker::checkBinaryExpression]: Checking TypeError + Int
+[       OK ] TypeCheckerTest.BinaryArithmeticExpressions (0 ms)
+[ RUN      ] TypeCheckerTest.ComparisonExpressions
+Debug [TypeChecker::checkBinaryExpression]: Checking Int == Int
+[       OK ] TypeCheckerTest.ComparisonExpressions (0 ms)
+[ RUN      ] TypeCheckerTest.UnaryExpressions
+Debug [TypeChecker::checkUnaryExpression]: Checking - Int
+Debug [TypeChecker::checkUnaryExpression]: Checking ! Boolean
+[       OK ] TypeCheckerTest.UnaryExpressions (0 ms)
+[ RUN      ] TypeCheckerTest.ErrorPropagation
+Debug [TypeChecker::checkBinaryExpression]: Checking TypeError + Int
+Debug [TypeChecker::checkUnaryExpression]: Checking - TypeError
+[       OK ] TypeCheckerTest.ErrorPropagation (0 ms)
+[ RUN      ] TypeCheckerTest.UnsupportedOperations
+Debug [TypeChecker::checkBinaryExpression]: Checking Int ^ Int
+Debug [TypeChecker::checkBinaryExpression]: Unsupported operation
+Debug [TypeChecker::checkUnaryExpression]: Checking ~ Int
+Debug [TypeChecker::checkUnaryExpression]: Unsupported operation
+[       OK ] TypeCheckerTest.UnsupportedOperations (0 ms)
+[----------] 5 tests from TypeCheckerTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 5 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"type_checker_test" end time: Nov 22 07:38 UTC
+"type_checker_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/21 Testing: error_chain_test
+3/21 Test: error_chain_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/error_chain_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"error_chain_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from ErrorChainTest
+[ RUN      ] ErrorChainTest.NestedTryCatchBlocks
+Debug [TypeChecker::checkNestedErrorHandling]: Checking nested error handling
+Debug [TypeChecker::checkErrorPropagation]: Checking error propagation
+[       OK ] ErrorChainTest.NestedTryCatchBlocks (0 ms)
+[ RUN      ] ErrorChainTest.ErrorPropagationInScopes
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] ErrorChainTest.ErrorPropagationInScopes (0 ms)
+[ RUN      ] ErrorChainTest.MultipleErrorHandling
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] ErrorChainTest.MultipleErrorHandling (0 ms)
+[----------] 3 tests from ErrorChainTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"error_chain_test" end time: Nov 22 07:38 UTC
+"error_chain_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/21 Testing: type_coercion_test
+4/21 Test: type_coercion_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/type_coercion_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"type_coercion_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from TypeCoercionTest
+[ RUN      ] TypeCoercionTest.NumericTypeCoercion
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + Float
+Debug [TypeChecker::checkBinaryExpression]: Checking Float * Int
+[       OK ] TypeCoercionTest.NumericTypeCoercion (0 ms)
+[ RUN      ] TypeCoercionTest.StringCoercion
+Debug [TypeChecker::checkBinaryExpression]: Checking String + Int
+Debug [TypeChecker::checkBinaryExpression]: Checking String + Float
+[       OK ] TypeCoercionTest.StringCoercion (0 ms)
+[ RUN      ] TypeCoercionTest.BooleanCoercion
+Debug [TypeChecker::checkBinaryExpression]: Checking Boolean + Int
+Debug [TypeChecker::checkBinaryExpression]: Checking Boolean == Int
+[       OK ] TypeCoercionTest.BooleanCoercion (0 ms)
+[ RUN      ] TypeCoercionTest.ComplexExpressionCoercion
+Debug [TypeChecker::checkComplexExpression]: Checking complex expression
+Debug [TypeChecker::inferExpressionType]: Inferring expression type
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + Float
+Debug [TypeChecker::checkBinaryExpression]: Checking Float * Int
+Debug [TypeChecker::checkComplexExpression]: Checking complex expression
+Debug [TypeChecker::inferExpressionType]: Inferring expression type
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + String
+Debug [TypeChecker::checkBinaryExpression]: Checking String * Float
+[       OK ] TypeCoercionTest.ComplexExpressionCoercion (0 ms)
+[----------] 4 tests from TypeCoercionTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 4 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"type_coercion_test" end time: Nov 22 07:38 UTC
+"type_coercion_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/21 Testing: scope_inheritance_test
+5/21 Test: scope_inheritance_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/scope_inheritance_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"scope_inheritance_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from ScopeInheritanceTest
+[ RUN      ] ScopeInheritanceTest.VariableShadowing
+Debug [ScopeManager::declareVariable]: Declaring x with type Int
+Debug [ScopeManager::lookupVariable]: Looking up x
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::declareVariable]: Declaring x with type String
+Debug [ScopeManager::lookupVariable]: Looking up x
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::lookupVariable]: Looking up x
+[       OK ] ScopeInheritanceTest.VariableShadowing (0 ms)
+[ RUN      ] ScopeInheritanceTest.NestedScopeAccess
+Debug [ScopeManager::declareVariable]: Declaring outer with type Int
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::lookupVariable]: Looking up outer
+Debug [ScopeManager::declareVariable]: Declaring inner with type Int
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::lookupVariable]: Looking up outer
+Debug [ScopeManager::lookupVariable]: Looking up inner
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] ScopeInheritanceTest.NestedScopeAccess (0 ms)
+[ RUN      ] ScopeInheritanceTest.ScopeIsolation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::declareVariable]: Declaring isolated with type Int
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::lookupVariable]: Looking up isolated
+[       OK ] ScopeInheritanceTest.ScopeIsolation (0 ms)
+[----------] 3 tests from ScopeInheritanceTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"scope_inheritance_test" end time: Nov 22 07:38 UTC
+"scope_inheritance_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/21 Testing: null_safety_test
+6/21 Test: null_safety_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/null_safety_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"null_safety_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from NullSafetyTest
+[ RUN      ] NullSafetyTest.NullableOperations
+Debug [TypeChecker::checkBinaryExpression]: Checking Int? + Int
+Debug [TypeChecker::checkBinaryExpression]: Checking Int? == Int
+[       OK ] NullSafetyTest.NullableOperations (0 ms)
+[ RUN      ] NullSafetyTest.NullPropagation
+Debug [TypeChecker::checkComplexExpression]: Checking complex expression
+Debug [TypeChecker::inferExpressionType]: Inferring expression type
+Debug [TypeChecker::checkBinaryExpression]: Checking Int? + Int?
+[       OK ] NullSafetyTest.NullPropagation (0 ms)
+[ RUN      ] NullSafetyTest.NullCoalescing
+Debug [TypeChecker::checkNullCoalescing]: Checking null coalescing
+[       OK ] NullSafetyTest.NullCoalescing (0 ms)
+[----------] 3 tests from NullSafetyTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"null_safety_test" end time: Nov 22 07:38 UTC
+"null_safety_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/21 Testing: type_inference_test
+7/21 Test: type_inference_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/type_inference_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"type_inference_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from TypeInferenceTest
+[ RUN      ] TypeInferenceTest.ComplexExpressionInference
+Debug [TypeChecker::inferExpressionType]: Inferring expression type
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + Float
+Debug [TypeChecker::checkBinaryExpression]: Checking Float * Int
+[       OK ] TypeInferenceTest.ComplexExpressionInference (0 ms)
+[ RUN      ] TypeInferenceTest.GenericTypeInference
+Debug [TypeChecker::inferGenericType]: Inferring generic type
+[       OK ] TypeInferenceTest.GenericTypeInference (0 ms)
+[ RUN      ] TypeInferenceTest.LambdaInference
+Debug [TypeChecker::inferLambdaReturnType]: Inferring lambda return type
+Debug [TypeChecker::inferExpressionType]: Inferring expression type
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + Float
+[       OK ] TypeInferenceTest.LambdaInference (0 ms)
+[----------] 3 tests from TypeInferenceTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"type_inference_test" end time: Nov 22 07:38 UTC
+"type_inference_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/21 Testing: complex_error_chain_test
+8/21 Test: complex_error_chain_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/complex_error_chain_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"complex_error_chain_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from ComplexErrorChainTest
+[ RUN      ] ComplexErrorChainTest.NestedTryCatchBlocks
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] ComplexErrorChainTest.NestedTryCatchBlocks (0 ms)
+[ RUN      ] ComplexErrorChainTest.ErrorPropagationAcrossScopes
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] ComplexErrorChainTest.ErrorPropagationAcrossScopes (0 ms)
+[ RUN      ] ComplexErrorChainTest.ErrorChainValidation
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] ComplexErrorChainTest.ErrorChainValidation (0 ms)
+[----------] 3 tests from ComplexErrorChainTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"complex_error_chain_test" end time: Nov 22 07:38 UTC
+"complex_error_chain_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/21 Testing: multi_type_arithmetic_test
+9/21 Test: multi_type_arithmetic_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/multi_type_arithmetic_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"multi_type_arithmetic_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from MultiTypeArithmeticTest
+[ RUN      ] MultiTypeArithmeticTest.MixedTypeAddition
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + Float
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] MultiTypeArithmeticTest.MixedTypeAddition (0 ms)
+[ RUN      ] MultiTypeArithmeticTest.TypePromotionChain
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkBinaryExpression]: Checking Int * Double
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] MultiTypeArithmeticTest.TypePromotionChain (0 ms)
+[ RUN      ] MultiTypeArithmeticTest.ComplexExpressionTypes
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + Float
+Debug [TypeChecker::checkBinaryExpression]: Checking Float * Double
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] MultiTypeArithmeticTest.ComplexExpressionTypes (0 ms)
+[ RUN      ] MultiTypeArithmeticTest.InvalidTypeOperations
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + ArithmeticError
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] MultiTypeArithmeticTest.InvalidTypeOperations (0 ms)
+[----------] 4 tests from MultiTypeArithmeticTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 4 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"multi_type_arithmetic_test" end time: Nov 22 07:38 UTC
+"multi_type_arithmetic_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/21 Testing: type_promotion_test
+10/21 Test: type_promotion_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/type_promotion_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"type_promotion_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from TypePromotionTest
+[ RUN      ] TypePromotionTest.IntToFloatPromotion
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + Float
+[       OK ] TypePromotionTest.IntToFloatPromotion (0 ms)
+[ RUN      ] TypePromotionTest.FloatToDoublePromotion
+Debug [TypeChecker::checkBinaryExpression]: Checking Float * Double
+[       OK ] TypePromotionTest.FloatToDoublePromotion (0 ms)
+[ RUN      ] TypePromotionTest.IntToDoublePromotion
+Debug [TypeChecker::checkBinaryExpression]: Checking Int / Double
+[       OK ] TypePromotionTest.IntToDoublePromotion (0 ms)
+[ RUN      ] TypePromotionTest.ComplexPromotionChain
+Debug [TypeChecker::inferExpressionType]: Inferring expression type
+Debug [TypeChecker::checkBinaryExpression]: Checking Int + Float
+Debug [TypeChecker::checkBinaryExpression]: Checking Float * Double
+[       OK ] TypePromotionTest.ComplexPromotionChain (0 ms)
+[----------] 4 tests from TypePromotionTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 4 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"type_promotion_test" end time: Nov 22 07:38 UTC
+"type_promotion_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/21 Testing: function_type_test
+11/21 Test: function_type_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/function_type_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"function_type_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from FunctionTypeTest
+[ RUN      ] FunctionTypeTest.BasicFunctionTypeCheck
+[       OK ] FunctionTypeTest.BasicFunctionTypeCheck (0 ms)
+[ RUN      ] FunctionTypeTest.FunctionTypeCompatibility
+[       OK ] FunctionTypeTest.FunctionTypeCompatibility (0 ms)
+[ RUN      ] FunctionTypeTest.FunctionOverloadResolution
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [ScopeManager::declareVariable]: Declaring func1 with type (Int) -> Bool
+Debug [ScopeManager::declareVariable]: Declaring func2 with type (Float) -> Bool
+Debug [ScopeManager::lookupVariable]: Looking up func1
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] FunctionTypeTest.FunctionOverloadResolution (0 ms)
+[ RUN      ] FunctionTypeTest.GenericFunctionTypes
+[       OK ] FunctionTypeTest.GenericFunctionTypes (0 ms)
+[----------] 4 tests from FunctionTypeTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 4 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"function_type_test" end time: Nov 22 07:38 UTC
+"function_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/21 Testing: error_transform_test
+12/21 Test: error_transform_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/error_transformation_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"error_transform_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from ErrorTransformationTest
+[ RUN      ] ErrorTransformationTest.ErrorTypeTransformation
+Debug [TypeChecker::transformError]: Transforming error
+[       OK ] ErrorTransformationTest.ErrorTypeTransformation (0 ms)
+[ RUN      ] ErrorTransformationTest.ErrorChainTransformation
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+Debug [TypeChecker::transformError]: Transforming error
+[       OK ] ErrorTransformationTest.ErrorChainTransformation (0 ms)
+[ RUN      ] ErrorTransformationTest.InvalidErrorTransformation
+Debug [TypeChecker::transformError]: Transforming error
+[       OK ] ErrorTransformationTest.InvalidErrorTransformation (0 ms)
+[----------] 3 tests from ErrorTransformationTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"error_transform_test" end time: Nov 22 07:38 UTC
+"error_transform_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/21 Testing: async_error_test
+13/21 Test: async_error_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/async_error_handling_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"async_error_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from AsyncErrorHandlingTest
+[ RUN      ] AsyncErrorHandlingTest.AsyncErrorPropagation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] AsyncErrorHandlingTest.AsyncErrorPropagation (0 ms)
+[ RUN      ] AsyncErrorHandlingTest.AsyncErrorChainValidation
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] AsyncErrorHandlingTest.AsyncErrorChainValidation (0 ms)
+[ RUN      ] AsyncErrorHandlingTest.AsyncErrorTransformation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] AsyncErrorHandlingTest.AsyncErrorTransformation (0 ms)
+[----------] 3 tests from AsyncErrorHandlingTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"async_error_test" end time: Nov 22 07:38 UTC
+"async_error_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/21 Testing: concurrent_error_test
+14/21 Test: concurrent_error_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/concurrent_error_handling_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"concurrent_error_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from ConcurrentErrorHandlingTest
+[ RUN      ] ConcurrentErrorHandlingTest.MultipleErrorPropagation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] ConcurrentErrorHandlingTest.MultipleErrorPropagation (0 ms)
+[ RUN      ] ConcurrentErrorHandlingTest.ErrorChainPriority
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] ConcurrentErrorHandlingTest.ErrorChainPriority (0 ms)
+[ RUN      ] ConcurrentErrorHandlingTest.ConcurrentErrorTransformation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] ConcurrentErrorHandlingTest.ConcurrentErrorTransformation (0 ms)
+[----------] 3 tests from ConcurrentErrorHandlingTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"concurrent_error_test" end time: Nov 22 07:38 UTC
+"concurrent_error_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/21 Testing: generic_type_test
+15/21 Test: generic_type_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/generic_type_error_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"generic_type_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from GenericTypeErrorTest
+[ RUN      ] GenericTypeErrorTest.GenericTypeValidation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] GenericTypeErrorTest.GenericTypeValidation (0 ms)
+[ RUN      ] GenericTypeErrorTest.BoundErrorHandling
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] GenericTypeErrorTest.BoundErrorHandling (0 ms)
+[ RUN      ] GenericTypeErrorTest.GenericErrorTransformation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] GenericTypeErrorTest.GenericErrorTransformation (0 ms)
+[----------] 3 tests from GenericTypeErrorTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"generic_type_test" end time: Nov 22 07:38 UTC
+"generic_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/21 Testing: recursive_type_test
+16/21 Test: recursive_type_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/recursive_type_error_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"recursive_type_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from RecursiveTypeErrorTest
+[ RUN      ] RecursiveTypeErrorTest.RecursiveTypeValidation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] RecursiveTypeErrorTest.RecursiveTypeValidation (0 ms)
+[ RUN      ] RecursiveTypeErrorTest.CyclicReferenceHandling
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] RecursiveTypeErrorTest.CyclicReferenceHandling (0 ms)
+[ RUN      ] RecursiveTypeErrorTest.RecursiveErrorTransformation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] RecursiveTypeErrorTest.RecursiveErrorTransformation (0 ms)
+[----------] 3 tests from RecursiveTypeErrorTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"recursive_type_test" end time: Nov 22 07:38 UTC
+"recursive_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/21 Testing: union_type_test
+17/21 Test: union_type_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/union_type_error_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"union_type_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from UnionTypeErrorTest
+[ RUN      ] UnionTypeErrorTest.UnionTypeValidation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] UnionTypeErrorTest.UnionTypeValidation (0 ms)
+[ RUN      ] UnionTypeErrorTest.TypeMismatchHandling
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] UnionTypeErrorTest.TypeMismatchHandling (0 ms)
+[ RUN      ] UnionTypeErrorTest.UnionErrorTransformation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] UnionTypeErrorTest.UnionErrorTransformation (0 ms)
+[----------] 3 tests from UnionTypeErrorTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"union_type_test" end time: Nov 22 07:38 UTC
+"union_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/21 Testing: intersection_type_test
+18/21 Test: intersection_type_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/intersection_type_error_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"intersection_type_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from IntersectionTypeErrorTest
+[ RUN      ] IntersectionTypeErrorTest.IntersectionTypeValidation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] IntersectionTypeErrorTest.IntersectionTypeValidation (0 ms)
+[ RUN      ] IntersectionTypeErrorTest.TraitErrorHandling
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] IntersectionTypeErrorTest.TraitErrorHandling (0 ms)
+[ RUN      ] IntersectionTypeErrorTest.IntersectionErrorTransformation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] IntersectionTypeErrorTest.IntersectionErrorTransformation (0 ms)
+[----------] 3 tests from IntersectionTypeErrorTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"intersection_type_test" end time: Nov 22 07:38 UTC
+"intersection_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+19/21 Testing: parameterized_type_test
+19/21 Test: parameterized_type_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/parameterized_type_error_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"parameterized_type_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from ParameterizedTypeErrorTest
+[ RUN      ] ParameterizedTypeErrorTest.ParameterizedTypeValidation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] ParameterizedTypeErrorTest.ParameterizedTypeValidation (0 ms)
+[ RUN      ] ParameterizedTypeErrorTest.ConstraintErrorHandling
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] ParameterizedTypeErrorTest.ConstraintErrorHandling (0 ms)
+[ RUN      ] ParameterizedTypeErrorTest.ParameterErrorTransformation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] ParameterizedTypeErrorTest.ParameterErrorTransformation (0 ms)
+[----------] 3 tests from ParameterizedTypeErrorTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"parameterized_type_test" end time: Nov 22 07:38 UTC
+"parameterized_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+20/21 Testing: higher_kinded_type_test
+20/21 Test: higher_kinded_type_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/higher_kinded_type_error_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"higher_kinded_type_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from HigherKindedTypeErrorTest
+[ RUN      ] HigherKindedTypeErrorTest.HigherKindedTypeValidation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [TypeChecker::checkErrorInScope]: Checking error in scope
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] HigherKindedTypeErrorTest.HigherKindedTypeValidation (0 ms)
+[ RUN      ] HigherKindedTypeErrorTest.LiftErrorHandling
+Debug [TypeChecker::validateErrorChain]: Validating error chain
+[       OK ] HigherKindedTypeErrorTest.LiftErrorHandling (0 ms)
+[ RUN      ] HigherKindedTypeErrorTest.KindErrorTransformation
+Debug [ScopeManager::pushScope]: Creating new scope
+Debug [TypeChecker::transformError]: Transforming error
+Debug [ScopeManager::popScope]: Attempting to pop scope
+[       OK ] HigherKindedTypeErrorTest.KindErrorTransformation (0 ms)
+[----------] 3 tests from HigherKindedTypeErrorTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 3 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"higher_kinded_type_test" end time: Nov 22 07:38 UTC
+"higher_kinded_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+21/21 Testing: array_type_test
+21/21 Test: array_type_test
+Command: "/home/ubuntu/pryst-workspace/pryst-tmp/build/array_type_test"
+Directory: /home/ubuntu/pryst-workspace/pryst-tmp/build
+"array_type_test" start time: Nov 22 07:38 UTC
+Output:
+----------------------------------------------------------
+Running main() from /home/ubuntu/pryst-workspace/pryst-tmp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from ArrayTypeTest
+[ RUN      ] ArrayTypeTest.ArrayCreation
+[       OK ] ArrayTypeTest.ArrayCreation (0 ms)
+[ RUN      ] ArrayTypeTest.ArrayTypeRegistration
+[       OK ] ArrayTypeTest.ArrayTypeRegistration (0 ms)
+[ RUN      ] ArrayTypeTest.NestedArrayTypes
+[       OK ] ArrayTypeTest.NestedArrayTypes (0 ms)
+[ RUN      ] ArrayTypeTest.ArrayTypeCompatibility
+[       OK ] ArrayTypeTest.ArrayTypeCompatibility (0 ms)
+[ RUN      ] ArrayTypeTest.NullableArrayType
+[       OK ] ArrayTypeTest.NullableArrayType (0 ms)
+[----------] 5 tests from ArrayTypeTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 5 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"array_type_test" end time: Nov 22 07:38 UTC
+"array_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 22 07:38 UTC

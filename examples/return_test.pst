@@ -1,4 +1,0 @@
-int main() {
-    // Test return with numeric literals
-    return 42;  // Simple integer return
-}
