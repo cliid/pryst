@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/scope_inheritance_test.dir/tests/scope_inheritance_test.cpp.o -o scope_inheritance_test  liblibpryst.a lib/libgtest.a lib/libgtest_main.a lib/libgtest.a 

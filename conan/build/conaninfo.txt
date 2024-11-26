@@ -1,0 +1,36 @@
+[settings]
+    arch=x86_64
+    build_type=Release
+    compiler=gcc
+    compiler.libcxx=libstdc++11
+    compiler.version=11
+    os=Linux
+
+[requires]
+    antlr4-cppruntime/4.Y.Z
+
+[options]
+
+
+[full_settings]
+    arch=x86_64
+    arch_build=x86_64
+    build_type=Release
+    compiler=gcc
+    compiler.libcxx=libstdc++11
+    compiler.version=11
+    os=Linux
+    os_build=Linux
+
+[full_requires]
+    antlr4-cppruntime/4.13.1:6557f18ca99c0b6a233f43db00e30efaa525e27e
+
+[full_options]
+    antlr4-cppruntime:fPIC=True
+    antlr4-cppruntime:shared=False
+
+[recipe_hash]
+
+
+[env]
+

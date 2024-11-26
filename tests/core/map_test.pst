@@ -1,0 +1,34 @@
+// Test file for map type functionality
+let strIntMap = new map<str,int>();
+strIntMap["one"] = 1;
+strIntMap["two"] = 2;
+
+let strStrMap = new map<str,str>();
+strStrMap["hello"] = "world";
+strStrMap["test"] = "value";
+
+// Nested map test
+let nestedMap = new map<str,map<str,int>>();
+let innerMap = new map<str,int>();
+innerMap["inner_key"] = 42;
+nestedMap["outer_key"] = innerMap;
+
+// Array map test
+let arrayMap = new map<str,int[]>();
+let numbers = new int[]{1, 2, 3};
+arrayMap["numbers"] = numbers;
+
+// Complex nested type test
+let complexMap = new map<str,map<int,str[]>[]>();
+let innerTypeMap = new map<int,str[]>();
+let strArray = new str[]{"a", "b", "c"};
+innerTypeMap[1] = strArray;
+let mapArray = new map<int,str[]>[]{innerTypeMap};
+complexMap["complex"] = mapArray;
+
+// Print some values to verify
+print("Value at strIntMap['one']: ${strIntMap["one"]}");
+print("Value at strStrMap['hello']: ${strStrMap["hello"]}");
+print("Value at nestedMap['outer_key']['inner_key']: ${nestedMap["outer_key"]["inner_key"]}");
+print("Value at arrayMap['numbers'][0]: ${arrayMap["numbers"][0]}");
+print("Value at complexMap['complex'][0][1][0]: ${complexMap["complex"][0][1][0]}");

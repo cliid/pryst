@@ -1,0 +1,36 @@
+Files to Check and Revert:
+
+1. Lambda Expression Files (-> syntax):
+- /home/ubuntu/pryst-cpp/tests/lambda_test.pst
+- /home/ubuntu/pryst-cpp/tests/comprehensive_test.pst
+- /home/ubuntu/pryst-cpp/tests/web.pst
+
+2. String Interpolation Files (${} syntax):
+- /home/ubuntu/pryst-cpp/tests/io_test.pst
+- /home/ubuntu/pryst-cpp/tests/comprehensive_test.pst
+- /home/ubuntu/pryst-cpp/tests/file_test.pst
+
+3. Nullable Type Files (type? syntax):
+- /home/ubuntu/pryst-cpp/tests/null_test.pst
+- /home/ubuntu/pryst-cpp/tests/type_conversion_test.pst
+- /home/ubuntu/pryst-cpp/tests/comprehensive_test.pst
+
+4. Additional Test Files to Check:
+- /home/ubuntu/pryst-cpp/tests/file_namespace_test.pst
+- /home/ubuntu/pryst-cpp/tests/file_debug_test.pst
+- /home/ubuntu/pryst-cpp/tests/test.pst
+- /home/ubuntu/pryst-cpp/src/test/class_test.pst
+- /home/ubuntu/pryst-cpp/src/test/parser_test.pst
+- /home/ubuntu/pryst-cpp/src/test/webserver_test.pst
+- /home/ubuntu/pryst-cpp/src/test/map_test.pst
+- /home/ubuntu/pryst-cpp/src/test/runtime_functions_test.pst
+- /home/ubuntu/pryst-cpp/src/test/function_test.pst
+- /home/ubuntu/pryst-cpp/test/reflection/type_reflection_test.pst
+
+Notes:
+- Function type declarations should use fn<ReturnType>(ArgTypes) syntax
+- Lambda expressions should use (params) -> returnType { body } syntax
+- String interpolation should use ${var} syntax
+- Nullable types should use type? syntax
+- Need to verify each file's syntax against grammar rules
+- Skip files in build/ directory as they are generated

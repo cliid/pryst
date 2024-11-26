@@ -1,0 +1,31 @@
+import pryst::web;
+import pryst::io;
+
+int main(int argc, str[] argv) {
+    // Create a new web server
+    Server server = new Server("localhost", 8080);
+
+    // Create a file handler
+    server.get("/file", (Request req) -> Response {
+        File? file = new File("test.txt");
+        if (file == null) {
+            return new Response("File not found", 404);
+        }
+
+        str content = file?.readToString() ?? "Error reading file";
+        file?.close();
+        return new Response(content);
+    });
+
+    // Create a POST handler
+    server.post("/save", (Request req) -> Response {
+        File file = new File("output.txt");
+        file.writeAll(req.body);
+        file.close();
+        return new Response("File saved successfully");
+    });
+
+    // Start the server
+    server.start();
+    return 0;
+}

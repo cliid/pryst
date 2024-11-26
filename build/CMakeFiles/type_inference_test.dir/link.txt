@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/type_inference_test.dir/tests/type_inference_test.cpp.o -o type_inference_test  liblibpryst.a lib/libgtest.a lib/libgtest_main.a lib/libgtest.a 

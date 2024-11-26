@@ -1,0 +1,42 @@
+import pryst::io;
+
+int main() {
+    // Test IO static methods
+    print("Testing IO class...\n");
+    println("This should print with a newline");
+
+    str userInput = readLine();
+    println("You entered: ${userInput}");
+
+    char ch = getChar();
+    str chStr = (str)ch;  // Use C-style cast
+    println("You pressed: ${chStr}");
+
+    // Test File class
+    File file = new File("test.txt");
+    if (file == null) {
+        println("Failed to create file");
+        return 1;
+    }
+
+    // Test writing
+    bool writeResult = file.writeString("Hello, World!\nThis is a test file.\n");
+    if (!writeResult) {
+        println("Failed to write to file");
+        return 1;
+    }
+
+    // Test reading
+    str content = file.readString();
+    if (content == null) {
+        println("Failed to read file");
+        return 1;
+    }
+    println("File contents:");
+    println("${content}");
+
+    // Test closing
+    file.close();
+
+    return 0;
+}

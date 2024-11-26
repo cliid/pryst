@@ -1,0 +1,13 @@
+import pryst::io;
+
+int main() {
+    pryst::io::File? file = new pryst::io::File("test.txt");
+    if (file != null) {
+        file.writeString("Hello, World!");
+        str? content = file.readString();
+        if (content != null) {
+            print("File content: ${content}");
+        }
+    }
+    return 0;
+}

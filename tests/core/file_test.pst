@@ -1,0 +1,18 @@
+// Test file operations with nullable types
+try {
+    let file = new pryst::io::File("test.txt");
+
+    // Test simple read
+    str? content = file?.readToString();
+    print("File content: ${content}");
+
+    // Test write
+    file?.writeAll("test");
+    print("Write successful");
+
+    // Test close
+    file?.close();
+    print("File closed");
+} catch (FileError err) {
+    print("Error: ${err.message}");
+}

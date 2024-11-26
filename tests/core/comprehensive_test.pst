@@ -1,0 +1,90 @@
+// Comprehensive test suite for Pryst language features
+// Tests namespace resolution, type registration, and method access
+
+// Import web module
+import pryst::web;
+
+// Helper functions for primitive type printing
+void printString(str value) {
+    value.print();
+}
+
+void printInt(int value) {
+    (str)value.print();
+}
+
+void printFloat(float value) {
+    (str)value.print();
+}
+
+void printBool(bool value) {
+    (str)value.print();
+}
+
+// Test primitive types
+void testPrimitives() {
+    printString("=== Testing Primitives ===\n");
+
+    // Test integer operations
+    int x = 42;
+    print("x = ${x}\n");
+
+    // Test float operations
+    float y = 3.14;
+    print("y = ${y}\n");
+
+    // Test string operations
+    str s = "hello";
+    print("s = ${s}\n");
+
+    // Test boolean operations
+    bool b = true;
+    print("b = ${b}\n");
+
+    // Test type conversion
+    int z = 123;
+    print("int to string: ${(str)z}\n");
+}
+
+// Test web types with fully qualified names
+void testWebTypesQualified() {
+    printString("=== Testing Qualified Web Types ===\n");
+    pryst::web::Request? req1 = new pryst::web::Request();
+    pryst::web::Response? resp1 = new pryst::web::Response();
+    pryst::web::WebServer? server1 = new pryst::web::WebServer();
+    printString("Created qualified web types successfully\n");
+}
+
+// Test web types with imported names
+void testWebTypesImported() {
+    printString("=== Testing Imported Web Types ===\n");
+    Request? req2 = new Request();
+    Response? resp2 = new Response();
+    WebServer? server2 = new WebServer();
+    printString("Created imported web types successfully\n");
+}
+
+// Test method access
+void testMethodAccess() {
+    printString("=== Testing Method Access ===\n");
+    Request? req = new Request();
+    Response? resp = new Response();
+
+    str? body = req?.getBody();
+    str? path = req?.getPath();
+    str? method = req?.getMethod();
+
+    print("Request body: ${body ?? 'null'}\n");
+    print("Request path: ${path ?? 'null'}\n");
+    print("Request method: ${method ?? 'null'}\n");
+}
+
+// Main test function
+void main() {
+    printString("\n=== Starting Comprehensive Test Suite ===\n\n");
+    testPrimitives();
+    testWebTypesQualified();
+    testWebTypesImported();
+    testMethodAccess();
+    printString("\n=== All Tests Completed Successfully ===\n");
+}

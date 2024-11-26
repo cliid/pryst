@@ -1,0 +1,89 @@
+// Test file for map type caching and type system verification
+import pryst::web;
+
+void main() {
+    println("Starting map type system tests...");
+
+    // Test 1: Basic map operations with string keys
+    println("\nTest 1: String key operations");
+    map<str, str> strMap = {
+        "hello": "world",
+        "test": "value"
+    };
+
+    // Test has() method (previously contains)
+    if (!strMap.has("hello")) {
+        println("Error: has() failed for existing key");
+    }
+    if (strMap.has("nonexistent")) {
+        println("Error: has() returned true for nonexistent key");
+    }
+
+    // Test get/set operations
+    let value = strMap["hello"];
+    if (value != "world") {
+        println("Error: map get operation failed");
+    }
+    strMap["new"] = "entry";
+    if (!strMap.has("new")) {
+        println("Error: map set operation failed");
+    }
+
+    // Test 2: Integer key operations
+    println("\nTest 2: Integer key operations");
+    map<int, str> intMap = {
+        1: "one",
+        2: "two"
+    };
+    if (!intMap.has(1)) {
+        println("Error: has() failed for integer key");
+    }
+    intMap[3] = "three";
+    if (intMap[3] != "three") {
+        println("Error: integer key set/get failed");
+    }
+
+    // Test 3: Nested map operations
+    println("\nTest 3: Nested map operations");
+    map<str, map<int, int>> nestedMap = {};
+    map<int, int> innerMap = {
+        1: 42,
+        2: 84
+    };
+    nestedMap["test"] = innerMap;
+    if (!nestedMap.has("test")) {
+        println("Error: nested map set failed");
+    }
+
+    // Test 4: Collection operations
+    println("\nTest 4: Collection operations");
+    let keys = strMap.keys();
+    let values = strMap.values();
+    let size = strMap.size();
+    if (size != 3) {  // hello, test, new
+        println("Error: incorrect map size");
+    }
+
+    // Test 5: Error handling
+    println("\nTest 5: Error handling");
+    try {
+        // Access with null key should throw
+        let nullKey = strMap[null];
+        println("Error: null key access didn't throw");
+    } catch (Error err) {
+        println("Successfully caught null key error");
+    }
+
+    // Test 6: Type conversion
+    println("\nTest 6: Type conversion");
+    try {
+        // Attempt to use wrong key type
+        map<str, str> wrongKeyMap = {};
+        wrongKeyMap[42] = "test";  // Should fail - int key for str map
+        println("Error: wrong key type didn't throw");
+    } catch (Error err) {
+        println("Successfully caught wrong key type error");
+    }
+
+    println("\nMap test suite complete");
+}

@@ -1,0 +1,13 @@
+void testParser() {
+    let x = 42;
+    let y = "Hello";
+    let z = [1, 2, 3];
+    assert(x == 42, "Integer literal test failed");
+    assert(y == "Hello", "String literal test failed");
+    assert(z.length == 3, "Array literal test failed");
+}
+
+void main() {
+    testParser();
+    print("✓ Parser test passed!\n");
+}

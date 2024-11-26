@@ -1,0 +1,28 @@
+// Test file for File class in pryst::io namespace
+import pryst::io;
+
+int main() {
+    // Create a nullable File instance
+    pryst::io::File? file = null;
+
+    // Create a non-null File instance
+    pryst::io::File realFile = new pryst::io::File("test.txt", "w");
+
+    // Test writing to file
+    realFile.write("Hello, World!\n");
+
+    // Test reading from file
+    str? content = realFile.read();
+    print("File content: ${content}\n");
+
+    // Test nullable assignment
+    file = realFile;
+
+    // Test null check and method call
+    if (file != null) {
+        file.close();
+        print("File closed successfully\n");
+    }
+
+    return 0;
+}

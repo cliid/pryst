@@ -1,0 +1,348 @@
+import pryst::web;
+import pryst::utils as utils;
+from pryst::math import sin, cos;
+import pryst::io;
+
+error Error {
+    str message;
+    int code;
+
+    Error(str message, int code = 0) {  // Changed from constructor to Error
+        this.message = message;
+        this.code = code;
+    }
+}
+
+error FileError extends Error {
+    str filename;
+
+    FileError(str message, str filename, int code = 1) {  // Changed from constructor to FileError
+        super(message, code);
+        this.filename = filename;
+    }
+}
+
+error NetworkError extends Error {
+    str host;
+    int port;
+
+    NetworkError(str message, str host, int port, int code = 2) {  // Changed from constructor to NetworkError
+        super(message, code);
+        this.host = host;
+        this.port = port;
+    }
+}
+
+error ValidationError extends Error {
+    str field;
+    str constraint;
+
+    ValidationError(str message, str field, str constraint, int code = 3) {  // Changed from constructor to ValidationError
+        super(message, code);
+        this.field = field;
+        this.constraint = constraint;
+    }
+}
+
+// Interface declaration
+interface Drawable {
+    void draw();
+    int getArea();
+}
+
+// Interface with inheritance
+interface Shape3D extends Drawable {
+    float getVolume();
+}
+
+
+    // Class with interface implementation
+class Shape implements Drawable {
+    // Constants
+    const float PI;
+    const! int DIMENSION;  // compile-time constant with explicit type
+
+    // Member variables
+    float x;
+    float y;
+    str? name;  // nullable type
+
+    // Constructor
+    Shape(float x, float y, str? name) {
+        this.PI = 3.14159;
+        this.DIMENSION = 2;
+        this.x = x;
+        this.y = y;
+        this.name = name;
+    }
+
+    // Interface method implementations
+    void draw() {
+        // Method implementation
+        print("Drawing " + (this.name ?? "unnamed") + " shape at (" + x + ", " + y + ")");
+    }
+
+    int getArea() {
+        return 0;  // Base implementation
+    }
+}
+
+// Class with inheritance
+class Circle extends Shape {
+    float radius;
+
+    Circle(float x, float y, str? name, float radius) {
+        super(x, y, name);
+        this.radius = radius;
+    }
+
+    int getArea() {
+        return (int)(PI * radius * radius);  // Example of type casting
+    }
+}
+
+// Generic class
+class Container<T> {
+    T? value;
+
+    Container(T? initialValue) {
+        this.value = initialValue;
+    }
+
+    T? getValue() {
+        return value;
+    }
+
+    void setValue(T newValue) {
+        this.value = newValue;
+    }
+}
+
+// Main function demonstrating various features
+int main(int argc, str[] argv) {
+    // Variable declarations with type inference
+    let serverPort = 8080;
+    let serverHost = "localhost";
+
+    // Explicit type declarations
+    int count = 0;
+    float pi = 3.14159;
+    bool isActive = true;
+
+    // Type casting examples
+    float f = 3.14;
+    int i = (int)f;                  // C-style cast
+    str s = (str)i;                  // C-style cast
+    float f2 = (float)"3.14";        // String to float conversion
+
+    // Array operations with multidimensional arrays
+    int[] numbers = [1, 2, 3, 4, 5];
+    int[][] matrix = [[1, 2], [3, 4]];
+    numbers[0] = 10;
+    matrix[0][1] = 20;
+
+    // Map operations with different key types and methods
+    map<str, int> scores = {
+        "Alice": 95,
+        "Bob": 87
+    };
+    map<int, str> idToName = {
+        1: "John",
+        2: "Jane"
+    };
+
+    // Map operations
+    let hasAlice = scores.has("Alice");              // Check key existence
+    let bobScore = scores.get("Bob") ?? 0;           // Get with default
+    scores.set("Charlie", 91);                       // Set new value
+    let keys = scores.keys();                        // Get all keys
+    let values = scores.values();                    // Get all values
+
+    // Map with complex types
+    map<str, Circle?> shapes = {
+        "unit": new Circle(0.0, 0.0, "unit", 1.0),
+        "empty": null
+    };
+
+    // Complex string interpolation
+    str name = "World";
+    int year = 2024;
+    str message = "Hello, " + name + "! The year is " + year + ", and " + (2 + 2) + " equals 4.";
+    str complex = "The sum of " + numbers[0] + " and " + matrix[0][1] + " is " + (numbers[0] + matrix[0][1]);
+
+    // All operator types and precedence
+    int a = 5;
+    int b = 3;
+    int c = 2;
+    int d = 4;
+    int result = 0;
+
+    // Complex string interpolation with variables
+    str multiExpr = "Math: " + (a + b) + " * " + (c * d) + " = " + ((a + b) * (c * d));
+
+    // Initialize container and circle for later use
+    Container<int> container = new Container<int>(42);
+    Circle? nullCircle = null;
+    str nested = "Nested: " + (container?.getValue() ?? -1) + " and " + (nullCircle?.getArea() ?? 0);
+
+    // Lambda expressions with explicit return types
+    let add = (int a, int b) -> int {
+        return a + b;
+    };
+
+    // Inline lambda with explicit return type
+    let multiply = (int x, int y) -> int {
+        return x * y;
+    };
+
+    // Function type example
+    fn<int>(int, int) operation = add;
+
+    // Arithmetic operators with precedence
+    result = a + b * c;                  // Multiplication before addition
+    result = (a + b) * c;                // Parentheses override precedence
+    result = a + b - c * d / a % b;      // Complex precedence example
+
+    // Compound assignments
+    result = result + a;                      // Add
+    result = result - b;                      // Subtract
+    result = result * c;                      // Multiply
+    result = result / d;                      // Divide
+    result = result % b;                      // Modulo
+
+    // Increment/Decrement with expressions
+    result = ++a * b--;                  // Prefix and postfix in expression
+    result = (a++) + (--b);              // Mixed increment/decrement
+
+    // Comparison operators with precedence
+    bool compare = a < b || a > c && a <= d || a >= b || a == c || a != d;
+
+    // Logical operators with precedence
+    bool logic = !true && false || true && !false;
+
+    // Conditional (ternary) operator
+    int max = a > b ? a : b;            // Simple ternary
+    str status = count > 10 ? "high" : count > 5 ? "medium" : "low";  // Nested ternary
+
+    // Control flow with all variations
+    if (count < 10) {
+        count++;
+    } else if (count < 20) {
+        count = count + 2;
+    } else {
+        count = 0;
+    }
+
+    // While loop with continue/break
+    while (count > 0) {
+        count--;
+        if (count == 5) continue;
+        if (count == 2) break;
+    }
+
+    // C-style for loop with all components
+    for (int i = 0; i < 5; i++) {
+        print(i);
+    }
+
+    // Empty for loop
+    for (;;) {
+        if (count++ > 10) break;
+    }
+
+    // For-in loop
+    for (int num in numbers) {
+        print(num);
+    }
+
+    // Comprehensive file operations with proper error handling
+    try {
+        // Open file with explicit error handling
+        pryst::io::File? file = new pryst::io::File("test.txt");
+        try {
+            // Read operations with different methods
+            str? content = file.readToString();
+            str? partialContent = file.readBytes(100);  // Read 100 bytes
+
+            // Write operations with different methods
+            file.writeString("Hello, World!");
+            file.appendString("Append this");
+
+            // Chained operations with null safety
+            str[]? lines = file.readToString().split("\n");
+            str? firstLine = null;
+            if (lines != null) {
+                firstLine = lines[0] ?? "Empty file";
+            }
+
+            // Complex chained operations
+            str? processed = null;
+            str? fileContent = file.readToString();
+            if (fileContent != null) {
+                str temp = fileContent.trim();
+                str[] lines = temp.split("\n");
+                str[] upperLines = lines.transform((str line) -> str { return line.toUpperCase(); });
+                processed = upperLines.join("\n");
+            }
+        } catch (FileError err) {
+            print("File operation failed: " + err.message + ", File: " + err.filename + ", Code: " + err.code);
+        } finally {
+            if (file != null) {
+                file.close();  // Safe close with null check
+            }
+        }
+    } catch (FileError err) {
+        print("File open failed: " + err.message + ", File: " + err.filename + ", Code: " + err.code);
+    }
+
+    // Object creation and method calls with null safety
+    let circle = new Circle(0.0, 0.0, "mycircle", 5.0);
+    let area = circle.getArea();  // Not nullable, no need for safe call
+    let nullCircle = (Circle?)null;
+    let nullArea = nullCircle?.getArea() ?? 0;  // Null coalescing
+
+    // Complex chained method calls with null safety
+    let result = circle.getArea()
+        .toString()
+        .padLeft(5, '0')
+        .substring(0, 3);
+
+    // Multiple nullable chains
+    let complexChain = container?.getValue()
+        .toString()
+        .length()
+        .toString()
+        ?? "0";
+
+    // Web server setup (using pryst.web)
+    pryst::web::Server server = new pryst::web::Server(serverHost, serverPort);
+
+    // Route handler using lambda with request/response types
+    let getHandler = (web::Request request) -> web::Response {
+        return new web::Response("Hello, World!");
+    };
+    server.get("/", getHandler);
+
+    // Post handler with JSON and proper error handling
+    let postHandler = (web::Request request) -> web::Response {
+        try {
+            let jsonData = request.getJson();
+            let stringify = utils.jsonStringify;
+            let responseData = stringify(jsonData);
+            return new web::Response(responseData);
+        } catch (ValidationError err) {
+            return new web::Response("Validation error: " + err.message + ", Field: " + err.field, 400);
+        }
+    };
+    server.post("/api/data", postHandler);
+
+    // Start server with proper error handling
+    try {
+        server.start();
+    } catch (NetworkError err) {
+        print("Server error: " + err.message + ", Host: " + err.host + ", Port: " + err.port + ", Code: " + err.code);
+        return 1;
+    }
+
+    return 0;
+}

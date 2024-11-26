@@ -1,0 +1,40 @@
+// Test file for class declarations and usage
+class Point {
+    int x;
+    int y;
+
+    void init(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    str toString() {
+        return "Point(${this.x},${this.y})";
+    }
+}
+
+class Container<T> {
+    T value;
+
+    void init(T value) {
+        this.value = value;
+    }
+
+    T getValue() {
+        return this.value;
+    }
+}
+
+// Test class usage
+let point = new Point(10, 20);
+print("Created point: ${point.toString()}");
+
+let intContainer = new Container<int>(42);
+print("Int container value: ${intContainer.getValue()}");
+
+let strContainer = new Container<str>("test");
+print("String container value: ${strContainer.getValue()}");
+
+let mapContainer = new Container<map<str,int>>(new map<str,int>());
+mapContainer.getValue()["key"] = 100;
+print("Map container value at 'key': ${mapContainer.getValue()["key"]}");

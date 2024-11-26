@@ -1,0 +1,17 @@
+import pryst::web;
+
+void handleRoot(pryst::web::Request req, pryst::web::Response res) {
+    res.setContent("Hello from Pryst!", "text/plain");
+    print("Handled request at ${req.getPath()}");
+}
+
+void main() {
+    let server = new pryst::web::WebServer();
+
+    // Register routes
+    server.get("/", handleRoot);
+
+    // Start server
+    print("Starting server on port ${8080}...");
+    server.start(8080);
+}

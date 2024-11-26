@@ -1,0 +1,24 @@
+Files to check for ::llvm:: namespace usage:
+
+1. /home/ubuntu/pryst-cpp/pryst/src/types.hpp
+2. /home/ubuntu/pryst-cpp/pryst/src/type_registry.cpp
+3. /home/ubuntu/pryst-cpp/pryst/src/type_registry.hpp
+4. /home/ubuntu/pryst-cpp/pryst/src/type_checker.cpp
+5. /home/ubuntu/pryst-cpp/pryst/src/compiler.cpp
+6. /home/ubuntu/pryst-cpp/pryst/src/runtime/array_impl.cpp
+7. /home/ubuntu/pryst-cpp/pryst/src/runtime/array_registry.cpp
+8. /home/ubuntu/pryst-cpp/pryst/src/runtime/string_impl.cpp
+9. /home/ubuntu/pryst-cpp/pryst/src/runtime/error_impl.cpp
+10. /home/ubuntu/pryst-cpp/pryst/src/runtime/runtime_registry.hpp
+11. /home/ubuntu/pryst-cpp/pryst/src/runtime/error_registry.cpp
+
+Priority order:
+1. Core type system files (types.hpp, type_registry.*)
+2. Compiler and checker files
+3. Runtime implementation files
+
+Notes:
+- Replace ::llvm:: with llvm::
+- Check both explicit ::llvm:: usage and include statements
+- Verify each file compiles after changes
+- Keep track of progress in this file

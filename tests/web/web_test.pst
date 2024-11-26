@@ -1,0 +1,79 @@
+// Web-related class definitions for Pryst
+
+module pryst::web {
+    class Server {
+        str host;
+        int port;
+
+        Server(str host, int port) {
+            this.host = host;
+            this.port = port;
+        }
+
+        void start() {
+            // Implementation handled by runtime
+        }
+
+        void get(str path, (Request req) -> Response { body }) {
+            // Implementation handled by runtime
+        }
+
+        void post(str path, (Request req) -> Response { body }) {
+            // Implementation handled by runtime
+        }
+    }
+
+    class Request {
+        str method;
+        str path;
+        map<str, str> headers;
+        str body;
+
+        Request(str method, str path, map<str, str> headers, str body) {
+            this.method = method;
+            this.path = path;
+            this.headers = headers;
+            this.body = body;
+        }
+
+        map<str, any> json() {
+            // Implementation handled by runtime
+            return {};
+        }
+    }
+
+    class Response {
+        str body;
+        int statusCode;
+        map<str, str> headers;
+
+        Response(str body, int statusCode = 200) {
+            this.body = body;
+            this.statusCode = statusCode;
+            this.headers = {};
+        }
+    }
+}
+
+module pryst::io {
+    class File {
+        str path;
+
+        File(str path) {
+            this.path = path;
+        }
+
+        str readToString() {
+            // Implementation handled by runtime
+            return "";
+        }
+
+        void writeAll(str content) {
+            // Implementation handled by runtime
+        }
+
+        void close() {
+            // Implementation handled by runtime
+        }
+    }
+}

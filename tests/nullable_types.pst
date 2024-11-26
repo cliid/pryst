@@ -1,0 +1,43 @@
+// Test class with nullable fields and methods
+class Container {
+    let value: int?;
+    let next: Container?;
+
+    fn getValue() -> int? {
+        return value;
+    }
+
+    fn getNext() -> Container? {
+        return next;
+    }
+
+    fn setNext(n: Container?) -> void {
+        next = n;
+    }
+}
+
+// Test nullable method chaining
+let container = new Container();
+container.setNext(new Container());
+let value = container?.getNext()?.getValue();
+
+// Test null coalescing
+let defaultValue = value ?? 42;
+
+// Test nullable field access
+let nextContainer = container?.next;
+
+// Test nullable type conversion
+class Base {
+    let data: int?;
+}
+
+class Derived extends Base {
+    fn getData() -> int? {
+        return data;
+    }
+}
+
+let derived: Derived? = null;
+let base: Base? = derived;  // Should work - nullable upcast
+let data = derived?.getData() ?? 0;  // Chaining with null coalescing

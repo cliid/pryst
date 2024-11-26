@@ -1,0 +1,83 @@
+class Error {
+    str message;
+
+    Error(str message) {
+        this.message = message;
+    }
+}
+
+class Person {
+    str? name;  // Explicitly marked as nullable
+    int? age;   // Explicitly marked as nullable
+
+    void init(str name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    str getName() {
+        return name;
+    }
+
+    int getAge() {
+        return age;
+    }
+}
+
+int main() {
+    // Test null assignment and comparison
+    Person p1 = null;
+    Person p2 = Person("John", 30);
+    Person p3 = Person(null, null);
+
+    // Test null equality
+    bool test1 = p1 == null;  // true
+    bool test2 = p2 != null;  // true
+    bool test3 = p3.name == null;  // true
+    bool test4 = p3.age == null;   // true
+
+    // Test null-safe navigation
+    str name1 = p1?.getName();  // null
+    str name2 = p2?.getName();  // "John"
+    int age1 = p1?.getAge();    // null
+    int age2 = p2?.getAge();    // 30
+
+    // Test nullable type conversion
+    int x = null;
+    float y = x;  // null
+    str s = null;
+
+    // Test null propagation
+    int result = x?.toString()?.length();  // null
+
+    // Test error handling
+    try {
+        // Test unsafe member access on nullable type
+        str name = p1.name;  // Should throw error: Use ?. for null-safe navigation
+    } catch (Error e) {
+        print("Expected error: ${e.message}");
+    }
+
+    try {
+        // Test invalid type conversion
+        int nonNullable = null;  // Should throw error: Cannot assign null to non-nullable type
+    } catch (Error e) {
+        print("Expected error: ${e.message}");
+    }
+
+    try {
+        // Test invalid member access
+        int len = p1?.invalidMethod();  // Should throw error: Member not found
+    } catch (Error e) {
+        print("Expected error: ${e.message}");
+    }
+
+    try {
+        // Test non-null assertion on null value
+        Person nonNull = p1!;  // Should throw error: Cannot convert nullable to non-nullable
+    } catch (Error e) {
+        print("Expected error: ${e.message}");
+    }
+
+    return 0;
+}

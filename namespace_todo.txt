@@ -1,0 +1,71 @@
+# Files to Standardize Namespace Usage
+
+## Pattern 1: Files with Explicit Namespace Blocks
+- src/type_inference.hpp
+- src/llvm_type_converter.hpp
+- src/error.hpp
+- src/error_type.hpp
+- src/type_system/advanced/**/*.{cpp,hpp}
+- src/error_handling/advanced/**/*.{cpp,hpp}
+- src/runtime/**/*.{cpp,hpp}
+
+## Pattern 2: Files Using "using namespace" Directives
+- src/type_system/advanced/type_checker.cpp (using namespace core)
+- src/runtime/web_impl.cpp (using namespace pryst::runtime::web)
+- src/generated/*.cpp (using namespace pryst, antlr4, antlrcpp)
+
+## Pattern 3: Files with Nested Namespaces
+- src/error.hpp (pryst::types)
+- src/error_type.hpp (pryst::types)
+- src/type_registry.hpp (pryst::types)
+- src/runtime/web*.{cpp,hpp} (pryst::runtime::web)
+- src/type_system/advanced/**/*.{cpp,hpp} (pryst::core)
+
+## Standardization Rules to Apply:
+1. Use explicit namespace blocks with proper indentation
+2. Remove "using namespace" directives
+3. Use consistent nested namespace style:
+   ```cpp
+   namespace pryst {
+   namespace types {
+   // code
+   } // namespace types
+   } // namespace pryst
+   ```
+4. Remove redundant pryst:: qualifiers inside pryst namespace
+5. Keep sub-namespace qualifiers (types::, core::, runtime::) when referencing across sub-namespaces
+
+## Priority Order:
+1. Core type system files (type_registry.hpp, types.hpp)
+2. Error handling system (error.hpp, error_type.hpp)
+3. Runtime implementation files
+4. Generated files (minimal changes needed)
+
+## Progress Tracking:
+[x] Core Type System
+    - [x] type_checker.cpp (fixed duplicate methods, namespace consistency)
+    - [ ] type_registry.hpp
+    - [ ] types.hpp
+[ ] Error Handling
+    - [ ] error.hpp
+    - [ ] error_type.hpp
+[ ] Runtime Implementation
+    - [ ] web_impl.cpp
+    - [ ] io_impl.cpp
+[ ] Generated Files
+    - [ ] parser files
+    - [ ] lexer files
+
+## Known Issues:
+1. Duplicate method definitions found and fixed in type_checker.cpp:
+   - visitTypeofExpr
+   - visitQualifiedType
+2. Namespace inconsistencies identified:
+   - pryst::pryst::types incorrect nesting
+   - Inconsistent use of core:: qualifiers
+   - Mixed usage of namespace blocks and using directives
+
+## Next Files to Process:
+1. type_registry.hpp (high priority)
+2. error.hpp (high priority)
+3. error_type.hpp (high priority)

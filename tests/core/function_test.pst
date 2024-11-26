@@ -1,0 +1,49 @@
+// Test file for function declarations and calls
+int add(int a, int b) {
+    return a + b;
+}
+
+str greet(str name) {
+    return "Hello, ${name}";
+}
+
+// Function with default parameters
+str formatName(str firstName, str lastName = "Doe", str title = "Mr.") {
+    return "${title} ${firstName} ${lastName}";
+}
+
+// Function with nullable default parameter
+int calculate(int a, int b, int? multiplier = null) {
+    if (multiplier == null) {
+        return a + b;
+    }
+    return (a + b) * multiplier;
+}
+
+// Function with complex types
+int processMap(map<str,int> data) {
+    return data["value"];
+}
+
+// Lambda function
+let multiply = (int x, int y) -> int {
+    return x * y;
+};
+
+// Test function calls
+print("5 + 3 = ${add(5, 3)}");
+print(greet("World"));
+
+// Test default parameters
+print(formatName("John"));  // Should print "Mr. John Doe"
+print(formatName("Jane", "Smith"));  // Should print "Mr. Jane Smith"
+print(formatName("Alice", "Johnson", "Dr."));  // Should print "Dr. Alice Johnson"
+
+// Test nullable default parameter
+print("Result: ${calculate(5, 3)}");  // Should print "Result: 8"
+print("Result: ${calculate(5, 3, 2)}");  // Should print "Result: 16"
+
+let testMap = new map<str,int>();
+testMap["value"] = 42;
+print("Map value: ${processMap(testMap)}");
+print("6 * 7 = ${multiply(6, 7)}");

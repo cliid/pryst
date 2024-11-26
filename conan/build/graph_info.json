@@ -1,0 +1,18 @@
+{
+ "options": [
+  [
+   "antlr4-cppruntime:fPIC",
+   "True"
+  ],
+  [
+   "antlr4-cppruntime:shared",
+   "False"
+  ]
+ ],
+ "root": {
+  "name": null,
+  "version": null,
+  "user": null,
+  "channel": null
+ }
+}

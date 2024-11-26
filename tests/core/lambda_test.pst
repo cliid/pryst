@@ -1,0 +1,31 @@
+import pryst::web;
+
+// Basic lambda test
+let simpleAdd = (int x, int y) -> int {
+    return x + y;
+};
+
+// Method with lambda parameter
+void testLambda(fn<int>(int, int) operation) {
+    let result = operation(5, 3);
+    print(result);
+}
+
+// Test with web request type
+void testWebHandler(web::Request request) {
+    let response = new web::Response("test");
+}
+
+int main(int argc, str[] argv) {
+    // Test basic lambda
+    let add = (int x, int y) -> int {
+        return x + y;
+    };
+
+    // Test lambda with web types
+    let handler = (web::Request request) -> web::Response {
+        return new web::Response("test");
+    };
+
+    return 0;
+}

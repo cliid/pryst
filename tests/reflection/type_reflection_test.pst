@@ -1,0 +1,44 @@
+// Test basic type reflection
+class Animal {
+    str name;
+    int age;
+
+    str getName() {
+        return this.name;
+    }
+}
+
+class Dog extends Animal {
+    str breed;
+
+    str getBreed() {
+        return this.breed;
+    }
+}
+
+void main() {
+    // Test basic type reflection
+    let animal = new Animal();
+    let dog = new Dog();
+
+    // Test type name retrieval
+    print("Type of animal: ${typeof animal}"); // Should print "Animal"
+    print("Type of dog: ${typeof dog}");    // Should print "Dog"
+
+    // Test instance checking
+    print("Is animal instance of Animal? ${isInstance(animal, "Animal")}"); // Should print true
+    print("Is dog instance of Dog? ${isInstance(dog, "Dog")}");       // Should print true
+    print("Is dog instance of Animal? ${isInstance(dog, "Animal")}");    // Should print true (inheritance)
+    print("Is animal instance of Dog? ${isInstance(animal, "Dog")}");    // Should print false
+
+    // Test with primitive types
+    let num = 42;
+    let text = "Hello";
+    print("Type of num: ${getType(num)}");   // Should print "int"
+    print("Type of text: ${getType(text)}");  // Should print "string"
+
+    // Test with null values
+    Dog? nullDog = null;
+    print("Type of nullDog: ${getType(nullDog)}");  // Should print "Dog"
+    print("Is nullDog instance of Dog? ${isInstance(nullDog, "Dog")}");    // Should handle null case
+}

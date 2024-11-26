@@ -1,72 +1,74 @@
-#include "type_checker.hpp"
 #include <gtest/gtest.h>
+#include "type_registry.hpp"
+#include "error_type.hpp"
+#include "error_chain.hpp"
+#include "type_checker.hpp"
+#include <memory>
 
 using namespace pryst;
+using namespace pryst::core;
 
 class ErrorChainTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        registry = std::make_shared<pryst::TypeRegistry>();
-        registry->registerType("IOException", std::make_shared<pryst::ErrorType>("IOException"));
-        registry->registerType("NetworkError", std::make_shared<pryst::ErrorType>("NetworkError"));
-        registry->registerType("DatabaseError", std::make_shared<pryst::ErrorType>("DatabaseError"));
-        registry->registerType("ValidationError", std::make_shared<pryst::ErrorType>("ValidationError"));
-        checker = std::make_unique<pryst::TypeChecker>(registry);
-    }
+    llvm::LLVMContext context;
+    TypeRegistry typeRegistry{context};
+    runtime::RuntimeRegistry runtimeRegistry;
+    TypeChecker typeChecker{context, typeRegistry, runtimeRegistry};
 
-    std::shared_ptr<pryst::TypeRegistry> registry;
-    std::unique_ptr<pryst::TypeChecker> checker;
+    void SetUp() override {
+        // Register base Error type
+        auto errorType = std::make_shared<ClassType>("Error");
+        typeRegistry.cacheType("Error", errorType);
+    }
 };
 
-TEST_F(ErrorChainTest, NestedTryCatchBlocks) {
-    auto ioError = registry->getType("IOException");
-    auto netError = registry->getType("NetworkError");
-    auto dbError = registry->getType("DatabaseError");
+TEST_F(ErrorChainTest, ValidateErrorChainCreation) {
+    // Create custom error types
+    auto customError = std::make_shared<ClassType>("CustomError");
+    customError->setParent(typeRegistry.getCachedType("Error"));
+    typeRegistry.cacheType("CustomError", customError);
 
-    // Test nested try-catch with multiple error types
-    auto result = checker->checkNestedErrorHandling({ioError, netError}, {dbError});
-    EXPECT_FALSE(result->isError());
+    auto chainedError = std::make_shared<ClassType>("ChainedError");
+    chainedError->setParent(typeRegistry.getCachedType("Error"));
+    typeRegistry.cacheType("ChainedError", chainedError);
 
-    // Test error propagation through nested blocks
-    result = checker->checkErrorPropagation(ioError, {netError, dbError});
-    EXPECT_TRUE(result->isError());
-    EXPECT_EQ(result->toString(), "IOException");
+    // Test error chain creation
+    EXPECT_NO_THROW(typeRegistry.validateErrorChain("CustomError", "ChainedError"));
+    auto chainType = typeRegistry.createErrorChainType("CustomError", "ChainedError");
+    EXPECT_TRUE(chainType != nullptr);
+    EXPECT_TRUE(typeRegistry.isErrorType(chainType->toString()));
 }
 
-TEST_F(ErrorChainTest, ErrorPropagationInScopes) {
-    auto ioError = registry->getType("IOException");
-    auto validationError = registry->getType("ValidationError");
+TEST_F(ErrorChainTest, DetectCircularDependencies) {
+    // Create error types with potential circular dependency
+    auto error1 = std::make_shared<ClassType>("Error1");
+    error1->setParent(typeRegistry.getCachedType("Error"));
+    typeRegistry.cacheType("Error1", error1);
 
-    // Test error chain across multiple scopes
-    checker->pushScope();
-    auto result = checker->checkErrorInScope(ioError);
-    checker->popScope();
+    auto error2 = std::make_shared<ClassType>("Error2");
+    error2->setParent(typeRegistry.getCachedType("Error"));
+    typeRegistry.cacheType("Error2", error2);
 
-    EXPECT_TRUE(result->isError());
-    EXPECT_EQ(result->toString(), "IOException");
+    // Create first chain
+    EXPECT_NO_THROW(typeRegistry.validateErrorChain("Error1", "Error2"));
+    auto chain1 = typeRegistry.createErrorChainType("Error1", "Error2");
 
-    // Test error transformation across scopes
-    checker->pushScope();
-    result = checker->transformError(ioError, validationError);
-    checker->popScope();
-
-    EXPECT_TRUE(result->isError());
-    EXPECT_EQ(result->toString(), "ValidationError");
+    // Attempt to create circular chain (should throw)
+    EXPECT_THROW(typeRegistry.validateErrorChain("Error2", "Error1"), Error);
 }
 
-TEST_F(ErrorChainTest, MultipleErrorHandling) {
-    auto ioError = registry->getType("IOException");
-    auto netError = registry->getType("NetworkError");
-    auto dbError = registry->getType("DatabaseError");
+TEST_F(ErrorChainTest, ValidateErrorTypeHierarchy) {
+    // Create error type hierarchy
+    auto baseError = std::make_shared<ClassType>("BaseError");
+    baseError->setParent(typeRegistry.getCachedType("Error"));
+    typeRegistry.cacheType("BaseError", baseError);
 
-    std::vector<std::shared_ptr<pryst::Type>> errorChain = {ioError, netError, dbError};
+    auto derivedError = std::make_shared<ClassType>("DerivedError");
+    derivedError->setParent(baseError);
+    typeRegistry.cacheType("DerivedError", derivedError);
 
-    // Test handling multiple errors in chain
-    auto result = checker->validateErrorChain(errorChain);
-    EXPECT_FALSE(result->isError());
-
-    // Test invalid error chain
-    errorChain.push_back(ioError); // Duplicate error type
-    result = checker->validateErrorChain(errorChain);
-    EXPECT_TRUE(result->isError());
+    // Test error type validation
+    EXPECT_TRUE(typeRegistry.isErrorType("BaseError"));
+    EXPECT_TRUE(typeRegistry.isErrorType("DerivedError"));
+    EXPECT_TRUE(typeRegistry.isSubclassOf("DerivedError", "BaseError"));
 }

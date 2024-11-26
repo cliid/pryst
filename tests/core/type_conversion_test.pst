@@ -1,0 +1,91 @@
+// Test both type conversion syntaxes and type system features
+import pryst::web;
+
+// Helper function to print test results
+void printTestResult(str testName, bool passed) {
+    if (passed) {
+        print("✓ ${testName} passed");
+    } else {
+        print("✗ ${testName} failed");
+    }
+}
+
+// Test primitive type conversions
+void testPrimitiveConversions() {
+    // Test int to string conversion (both syntaxes)
+    let x = 42;
+    let s1 = (str)x;
+    let s2 = str(x);
+    printTestResult("Int to string cast syntax", s1 == "42");
+    printTestResult("Int to string function syntax", s2 == "42");
+
+    // Test float to string conversion
+    let f = 3.14;
+    let fs1 = (str)f;
+    let fs2 = str(f);
+    printTestResult("Float to string cast syntax", fs1 == "3.14");
+    printTestResult("Float to string function syntax", fs2 == "3.14");
+
+    // Test string to int conversion
+    let numStr = "123";
+    let n1 = (int)numStr;
+    let n2 = int(numStr);
+    printTestResult("String to int cast syntax", n1 == 123);
+    printTestResult("String to int function syntax", n2 == 123);
+
+    // Test bool conversions
+    let b = true;
+    let bs1 = (str)b;
+    let bs2 = str(b);
+    printTestResult("Bool to string cast syntax", bs1 == "true");
+    printTestResult("Bool to string function syntax", bs2 == "true");
+}
+
+// Test type registration and namespace handling
+void testTypeRegistration() {
+    // Test web type registration
+    let req1 = new pryst::web::Request();
+    let req2 = new Request();  // Should work with 'using' directive
+
+    printTestResult("Full qualified type creation", req1 != null);
+    printTestResult("Short name type creation", req2 != null);
+
+    // Test method access
+    req1.setMethod("GET");
+    req2.setMethod("POST");
+
+    printTestResult("Method access on full qualified type", req1.getMethod() == "GET");
+    printTestResult("Method access on short name type", req2.getMethod() == "POST");
+}
+
+// Test error cases
+void testErrorCases() {
+    try {
+        let invalid = int("not a number");
+        printTestResult("Invalid string to int conversion", false);
+    } catch (err) {
+        printTestResult("Invalid string to int conversion", true);
+    }
+
+    try {
+        let invalid = float("not a float");
+        printTestResult("Invalid string to float conversion", false);
+    } catch (err) {
+        printTestResult("Invalid string to float conversion", true);
+    }
+}
+
+void main() {
+    print("\nRunning Type System Tests\n=====================");
+
+    print("\nPrimitive Type Conversions:");
+    testPrimitiveConversions();
+
+    print("\nType Registration Tests:");
+    testTypeRegistration();
+
+    print("\nError Handling Tests:");
+    testErrorCases();
+
+    print("\nTest Suite Complete\n");
+}

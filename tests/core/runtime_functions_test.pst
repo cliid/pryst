@@ -1,0 +1,22 @@
+void testNullable() {
+    int? x = null;
+    let y = x?.toString();
+    assert(y == null, "Expected null result from null?.toString()");
+
+    x = 42;
+    y = x?.toString();
+    assert(y == "42", "Expected '42' from 42?.toString()");
+}
+
+void testArrayOperations() {
+    let arr = [1, 2, 3];
+    arr.push(4);
+    assert(arr.length == 4);
+    assert(arr[3] == 4);
+}
+
+void main() {
+    testNullable();
+    testArrayOperations();
+    print("✓ All tests passed!\n");
+}
